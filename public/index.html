@@ -1048,13 +1048,20 @@ function handleEvent(ev) {
       // Start all card timers simultaneously (all requests fire in parallel)
       for (let i = 0; i < ev.total; i++) startCardTimer(i);
       break;
-    case 'image':
+    case 'image': {
       doneCount++;
       stopCardTimer(ev.index);
-      results[ev.index] = { url: ev.url, filename: ev.filename, pageNum: ev.pageNum, title: ev.title };
-      cardDone(ev.index, ev.url);
+      const displayUrl = ev.dataUrl || ev.url || '';
+      results[ev.index] = {
+        url: displayUrl,
+        filename: ev.filename || `page_${String(ev.pageNum).padStart(2, '0')}.png`,
+        pageNum: ev.pageNum,
+        title: ev.title,
+      };
+      cardDone(ev.index, displayUrl);
       updateProg();
       break;
+    }
     case 'error':
       doneCount++;
       errorCount++;
@@ -1075,15 +1082,10 @@ function handleEvent(ev) {
   }
 }
 
-async function stopGeneration() {
-  // Abort the SSE stream immediately
+function stopGeneration() {
+  // Abort SSE stream — the server detects disconnection and cancels OpenAI requests
   if (sseController) { sseController.abort(); sseController = null; }
-  // Cancel in-flight API requests on server
-  const id = currentRequestId;
   currentRequestId = null;
-  if (id) {
-    try { await fetch(`/api/cancelar/${id}`, { method: 'POST' }); } catch (_) {}
-  }
   // Stop all running timers
   Object.keys(cardTimers).forEach(k => {
     clearInterval(cardTimers[k]);
@@ -1149,12 +1151,39 @@ function cardDone(idx, url) {
   document.getElementById(`st-${idx}`).textContent = '✓ Pronta';
   document.getElementById(`pv-${idx}`).innerHTML =
     `<img src="${esc(url)}" loading="lazy" alt="Página ${idx + 1}" />`;
+  const res = results[idx];
   const ft = document.getElementById(`ft-${idx}`);
   ft.style.display = 'flex';
-  ft.innerHTML = `
-    <a class="btn btn-ghost btn-sm" href="${esc(url)}" download>⬇ Baixar</a>
-    <a class="btn btn-ghost btn-sm" href="${esc(url)}" target="_blank" rel="noopener">🔗 Abrir</a>
-  `;
+  // For data URLs, set download filename explicitly; for server URLs open in tab works normally
+  if (url.startsWith('data:')) {
+    ft.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="downloadDataUrl(${idx})">⬇ Baixar</button>
+      <button class="btn btn-ghost btn-sm" onclick="openDataUrl(${idx})">🔗 Abrir</button>
+    `;
+  } else {
+    ft.innerHTML = `
+      <a class="btn btn-ghost btn-sm" href="${esc(url)}" download>⬇ Baixar</a>
+      <a class="btn btn-ghost btn-sm" href="${esc(url)}" target="_blank" rel="noopener">🔗 Abrir</a>
+    `;
+  }
+}
+
+function downloadDataUrl(idx) {
+  const r = results[idx];
+  if (!r) return;
+  const a = document.createElement('a');
+  a.href = r.url;
+  a.download = r.filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function openDataUrl(idx) {
+  const r = results[idx];
+  if (!r) return;
+  const win = window.open();
+  win.document.write(`<img src="${r.url}" style="max-width:100%">`);
 }
 
 function cardError(idx, msg) {
@@ -1196,8 +1225,7 @@ async function downloadAll() {
   toast(`${imgs.length} download${imgs.length > 1 ? 's' : ''} iniciado${imgs.length > 1 ? 's' : ''}.`, 'ok');
 }
 
-async function clearResults() {
-  try { await fetch('/api/limpar', { method: 'DELETE' }); } catch (_) {}
+function clearResults() {
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
   document.getElementById('results-card').style.display = 'none';
