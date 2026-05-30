@@ -106,9 +106,10 @@ export default async function handler(req) {
     if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
     const buf = await imgRes.arrayBuffer();
     const b64 = toBase64(buf);
+    const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
 
     return new Response(
-      JSON.stringify({ dataUrl: `data:image/png;base64,${b64}` }),
+      JSON.stringify({ dataUrl: `data:${mime};base64,${b64}` }),
       { headers: { 'Content-Type': 'application/json' } }
     );
 

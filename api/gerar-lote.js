@@ -15,7 +15,8 @@ async function urlToDataUrl(url, signal) {
   const res = await fetch(url, { signal });
   if (!res.ok) throw new Error(`Falha ao baixar imagem: HTTP ${res.status}`);
   const buf = await res.arrayBuffer();
-  return `data:image/png;base64,${toBase64(buf)}`;
+  const mime = (res.headers.get('content-type') || 'image/png').split(';')[0].trim();
+  return `data:${mime};base64,${toBase64(buf)}`;
 }
 
 // ── OpenAI ────────────────────────────────────────────────────────────────

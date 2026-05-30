@@ -1821,10 +1821,13 @@ async function createPDF() {
       document.getElementById('pdf-prog').textContent = `Incorporando página ${i + 1} de ${sorted.length}…`;
       await new Promise(r => setTimeout(r, 0)); // yield para atualizar UI
 
+      const mime = srcUrl.match(/^data:([^;]+)/)?.[1] || 'image/png';
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const pngImg = await pdfDoc.embedPng(bytes);
+      const pdfImg = mime === 'image/jpeg' || mime === 'image/jpg'
+        ? await pdfDoc.embedJpg(bytes)
+        : await pdfDoc.embedPng(bytes);
       const page = pdfDoc.addPage([595.28, 841.89]); // A4 em pontos PDF (72 dpi)
-      page.drawImage(pngImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+      page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
     }
 
     document.getElementById('pdf-prog').textContent = 'Finalizando e baixando…';
@@ -1841,7 +1844,7 @@ async function createPDF() {
     URL.revokeObjectURL(a.href);
     toast(`PDF com ${sorted.length} página${sorted.length > 1 ? 's' : ''} criado!`, 'ok');
   } catch (e) {
-    toast(`Erro ao criar PDF: ${e.message}`, 'err');
+    toast(`Erro ao criar PDF: ${e?.message || String(e)}`, 'err');
   } finally {
     overlay.remove();
   }
