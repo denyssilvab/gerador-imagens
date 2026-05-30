@@ -59,12 +59,17 @@ async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
 
 function replicateInput(model, prompt, size) {
   const ar = size || '2:3';
+  if (model.includes('nano-banana')) {
+    // Gemini 2.5 Flash Image — aceita prompt e aspect_ratio
+    return { prompt, aspect_ratio: ar };
+  }
   if (model.includes('ideogram')) {
     return { prompt, resolution: '1024x1536', rendering_quality: 'QUALITY', style_type: 'DESIGN' };
   }
   if (model.includes('recraft')) {
     return { prompt, size: '1024x1536', output_format: 'png' };
   }
+  // FLUX e outros
   return { prompt, aspect_ratio: ar, output_format: 'png', output_quality: 100 };
 }
 
