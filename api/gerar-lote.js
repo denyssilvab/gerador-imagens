@@ -20,7 +20,7 @@ async function urlToDataUrl(url, signal) {
 
 // ── OpenAI ────────────────────────────────────────────────────────────────
 
-async function generateOpenAI(apiKey, model, quality, prompt, signal) {
+async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
   const params = { model, prompt, n: 1 };
 
   if (model === 'dall-e-2') {
@@ -32,7 +32,8 @@ async function generateOpenAI(apiKey, model, quality, prompt, signal) {
     params.response_format = 'b64_json';
     params.style = 'vivid';
   } else {
-    params.size = '1024x1536';
+    // gpt-image-2 / gpt-image-1
+    params.size = size || '1024x1536';
     params.quality = quality || 'medium';
   }
 
@@ -56,14 +57,15 @@ async function generateOpenAI(apiKey, model, quality, prompt, signal) {
 
 // ── Replicate ─────────────────────────────────────────────────────────────
 
-function replicateInput(model, prompt) {
+function replicateInput(model, prompt, size) {
+  const ar = size || '2:3';
   if (model.includes('ideogram')) {
     return { prompt, resolution: '1024x1536', rendering_quality: 'QUALITY', style_type: 'DESIGN' };
   }
   if (model.includes('recraft')) {
     return { prompt, size: '1024x1536', output_format: 'png' };
   }
-  return { prompt, aspect_ratio: '2:3', output_format: 'png', output_quality: 100 };
+  return { prompt, aspect_ratio: ar, output_format: 'png', output_quality: 100 };
 }
 
 async function pollReplicate(apiKey, predictionId, signal) {
@@ -82,7 +84,7 @@ async function pollReplicate(apiKey, predictionId, signal) {
   throw new Error('Timeout após 3 minutos');
 }
 
-async function generateReplicate(apiKey, model, prompt, signal) {
+async function generateReplicate(apiKey, model, size, prompt, signal) {
   const res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
     method: 'POST',
     signal,
@@ -91,7 +93,7 @@ async function generateReplicate(apiKey, model, prompt, signal) {
       'Content-Type': 'application/json',
       'Prefer': 'wait=60',
     },
-    body: JSON.stringify({ input: replicateInput(model, prompt) }),
+    body: JSON.stringify({ input: replicateInput(model, prompt, size) }),
   });
 
   if (!res.ok) {
@@ -126,7 +128,7 @@ export default async function handler(req) {
     });
   }
 
-  const { apiKey, provider, model, quality, pages } = body;
+  const { apiKey, provider, model, quality, size, pages } = body;
 
   if (!apiKey || !Array.isArray(pages) || !pages.length) {
     return new Response(JSON.stringify({ error: 'Chave de API e páginas são obrigatórios' }), {
@@ -154,8 +156,8 @@ export default async function handler(req) {
 
         try {
           const dataUrl = provider === 'replicate'
-            ? await generateReplicate(apiKey, model, page.content, ctrl.signal)
-            : await generateOpenAI(apiKey, model, quality, page.content, ctrl.signal);
+            ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
+            : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
 
           send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl });
         } catch (e) {

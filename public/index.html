@@ -567,8 +567,19 @@
             <label>OpenAI API Key</label>
             <input id="apiKey-openai" type="password" placeholder="sk-..." autocomplete="off" />
           </div>
+          <div class="form-row">
+            <div class="fg span-full">
+              <label>Resolução</label>
+              <select id="resolution-openai">
+                <option value="1024x1536" selected>A4 Portrait — 1024×1536 px ⭐ (equivalente a 1055×1492)</option>
+                <option value="1024x1024">Quadrado — 1024×1024 px</option>
+                <option value="1536x1024">Paisagem — 1536×1024 px</option>
+                <option value="auto">Auto (modelo decide)</option>
+              </select>
+            </div>
+          </div>
           <p style="font-size:11px;color:var(--muted);line-height:1.5;">
-            GPT Image 2 é o modelo mais recente da família GPT Image. Retorna imagens 1024×1536 (proporção A4 retrato).
+            GPT Image 2 é o modelo mais recente. A resolução A4 Portrait (1024×1536) é a mais próxima de 1055×1492 suportada pela API.
           </p>
         </div>
 
@@ -594,14 +605,24 @@
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="fg span-full">
+              <label>Proporção (Aspect Ratio)</label>
+              <select id="resolution-replicate">
+                <option value="2:3" selected>A4 Portrait — 2:3 ⭐ (equivalente a 1055×1492)</option>
+                <option value="1:1">Quadrado — 1:1</option>
+                <option value="3:2">Paisagem — 3:2</option>
+                <option value="9:16">Vertical — 9:16</option>
+              </select>
+            </div>
+          </div>
           <div class="fg">
             <label>Replicate API Token</label>
             <input id="apiKey-replicate" type="password" placeholder="r8_..." autocomplete="off" />
           </div>
           <p style="font-size:11px;color:var(--muted);line-height:1.5;">
-            <strong style="color:var(--warn-fg);">Dica para material pedagógico:</strong>
-            Ideogram V2 tem a melhor renderização de texto em imagens. FLUX 1.1 Pro entrega a maior qualidade visual geral.
-            Aspect ratio <strong>2:3</strong> é utilizado (próximo do A4).
+            <strong style="color:var(--warn-fg);">Dica:</strong>
+            Ideogram V2 tem a melhor renderização de texto. FLUX 1.1 Pro entrega maior qualidade visual.
           </p>
         </div>
       </div>
@@ -688,6 +709,7 @@
 <!-- Toasts -->
 <div class="toasts" id="toasts"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 // ── Specs por tipo ─────────────────────────────────────────────────────────
 
@@ -799,6 +821,40 @@ COLORS: Orange #ff6b35 | Navy #0251af | Dark Blue #092964 | Green #89c13b
         Backgrounds: #fff4e6 #ffe6ea #e3f2fd #e8f5e9`
 };
 
+// ── IndexedDB ──────────────────────────────────────────────────────────────
+const DB_NAME = 'gerador-ped-v1', DB_STORE = 'imagens';
+let _db = null;
+async function openDB() {
+  if (_db) return _db;
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE, { keyPath: 'id', autoIncrement: true });
+    r.onsuccess = e => { _db = e.target.result; res(_db); };
+    r.onerror   = e => rej(e.target.error);
+  });
+}
+async function dbSave(rec) {
+  const d = await openDB();
+  return new Promise((res, rej) => {
+    const r = d.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).add({...rec, ts: Date.now()});
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function dbLoadAll() {
+  const d = await openDB();
+  return new Promise((res, rej) => {
+    const r = d.transaction(DB_STORE,'readonly').objectStore(DB_STORE).getAll();
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+async function dbClear() {
+  const d = await openDB();
+  return new Promise((res, rej) => {
+    const r = d.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).clear();
+    r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+  });
+}
+
 // ── State ──────────────────────────────────────────────────────────────────
 let docType = 'lesson';
 let provider = 'openai';
@@ -806,11 +862,26 @@ let currentRequestId = null;
 let totalPages = 0;
 let doneCount = 0;
 let errorCount = 0;
-const results = {}; // index → { url, filename, pageNum, title }
+let genCount = 0;
+let currentGen = 0;
+const results = {}; // domKey → { url, filename, pageNum, title }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('specs').value = SPECS.lesson;
 updateTopbarChips();
+
+// Load persisted images from IndexedDB on startup
+(async () => {
+  try {
+    const saved = await dbLoadAll();
+    if (!saved.length) return;
+    document.getElementById('results-card').style.display = '';
+    const grid = document.getElementById('img-grid');
+    const empty = grid.querySelector('.empty');
+    if (empty) empty.remove();
+    saved.slice().reverse().forEach(r => grid.appendChild(makePersistedCard(r)));
+  } catch (e) { console.warn('IndexedDB load:', e); }
+})();
 
 // ── Doc type ───────────────────────────────────────────────────────────────
 function setDocType(type, el) {
@@ -933,7 +1004,15 @@ const PHASES = [
 // Estimated total seconds per quality (for progress bar fill)
 const EST = { low: 8, medium: 20, high: 40 };
 
-function startCardTimer(idx) {
+function formatTime(s) {
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${String(s % 60).padStart(2,'0')}s`;
+}
+
+function ck(gen, idx) { return `${gen}_${idx}`; }
+
+function startCardTimer(gen, idx) {
+  const key   = ck(gen, idx);
   const q     = document.getElementById('quality').value;
   const estMs = (EST[q] || 20) * 1000;
   const start = Date.now();
@@ -943,24 +1022,23 @@ function startCardTimer(idx) {
     const pct     = Math.min(90, ((Date.now() - start) / estMs) * 100);
     let   phase   = PHASES[0][1];
     for (const [t, msg] of PHASES) { if (elapsed >= t) phase = msg; }
-
-    const ph = document.getElementById(`phase-${idx}`);
-    const el = document.getElementById(`elapsed-${idx}`);
-    const pb = document.getElementById(`pbar-${idx}`);
+    const ph = document.getElementById(`phase_${key}`);
+    const el = document.getElementById(`elapsed_${key}`);
+    const pb = document.getElementById(`pbar_${key}`);
     if (ph) ph.textContent = phase;
-    if (el) el.textContent = `${elapsed}s`;
-    if (pb) pb.style.width  = pct + '%';
+    if (el) el.textContent = formatTime(elapsed);
+    if (pb) pb.style.width = pct + '%';
   };
 
   tick();
-  cardTimers[idx] = setInterval(tick, 500);
+  cardTimers[key] = setInterval(tick, 500);
 }
 
-function stopCardTimer(idx) {
-  clearInterval(cardTimers[idx]);
-  delete cardTimers[idx];
-  // Fill to 100% on finish
-  const pb = document.getElementById(`pbar-${idx}`);
+function stopCardTimer(gen, idx) {
+  const key = ck(gen, idx);
+  clearInterval(cardTimers[key]);
+  delete cardTimers[key];
+  const pb = document.getElementById(`pbar_${key}`);
   if (pb) { pb.style.transition = 'width .4s'; pb.style.width = '100%'; }
 }
 
@@ -971,6 +1049,9 @@ async function startGeneration() {
   const apiKey  = getActiveApiKey();
   const model   = getActiveModel();
   const quality = document.getElementById('quality').value;
+  const size    = provider === 'openai'
+    ? document.getElementById('resolution-openai').value
+    : document.getElementById('resolution-replicate').value;
 
   if (!apiKey) {
     const label = provider === 'openai' ? 'OpenAI API Key' : 'Replicate API Token';
@@ -983,22 +1064,26 @@ async function startGeneration() {
 
   const pages = rawPages.map(p => ({ ...p, content: buildPrompt(p) }));
 
-  // Reset
+  // New generation session
+  currentGen = ++genCount;
   totalPages = pages.length;
   doneCount = 0;
   errorCount = 0;
-  Object.keys(results).forEach(k => delete results[k]);
   Object.keys(cardTimers).forEach(k => { clearInterval(cardTimers[k]); delete cardTimers[k]; });
 
-  // UI
+  // UI — show section, PREPEND cards (don't clear existing)
   document.getElementById('btn-gen').style.display = 'none';
   document.getElementById('btn-stop').style.display = '';
   document.getElementById('prog-wrap').style.display = '';
   document.getElementById('results-card').style.display = '';
 
   const grid = document.getElementById('img-grid');
-  grid.innerHTML = '';
-  pages.forEach((p, i) => grid.appendChild(makeCard(i, p.num, p.title)));
+  const empty = grid.querySelector('.empty');
+  if (empty) empty.remove();
+
+  const frag = document.createDocumentFragment();
+  pages.forEach((p, i) => frag.appendChild(makeCard(currentGen, i, p.num, p.title)));
+  grid.insertBefore(frag, grid.firstChild);
   updateProg();
 
   sseController = new AbortController();
@@ -1008,7 +1093,7 @@ async function startGeneration() {
       method: 'POST',
       signal: sseController.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, provider, model, quality, pages }),
+      body: JSON.stringify({ apiKey, provider, model, quality, size, pages }),
     });
 
     if (!response.ok) {
@@ -1045,35 +1130,37 @@ function handleEvent(ev) {
   switch (ev.type) {
     case 'start':
       currentRequestId = ev.requestId;
-      // Start all card timers simultaneously (all requests fire in parallel)
-      for (let i = 0; i < ev.total; i++) startCardTimer(i);
+      for (let i = 0; i < ev.total; i++) startCardTimer(currentGen, i);
       break;
     case 'image': {
       doneCount++;
-      stopCardTimer(ev.index);
+      stopCardTimer(currentGen, ev.index);
       const displayUrl = ev.dataUrl || ev.url || '';
-      results[ev.index] = {
+      const domKey = ck(currentGen, ev.index);
+      const result = {
         url: displayUrl,
-        filename: ev.filename || `page_${String(ev.pageNum).padStart(2, '0')}.png`,
+        filename: ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`,
         pageNum: ev.pageNum,
         title: ev.title,
       };
-      cardDone(ev.index, displayUrl);
+      results[domKey] = result;
+      dbSave({ ...result, dataUrl: displayUrl }).catch(() => {});
+      cardDone(currentGen, ev.index, displayUrl, domKey);
       updateProg();
       break;
     }
     case 'error':
       doneCount++;
       errorCount++;
-      stopCardTimer(ev.index);
-      cardError(ev.index, ev.error);
+      stopCardTimer(currentGen, ev.index);
+      cardError(currentGen, ev.index, ev.error);
       updateProg();
       toast(`Pág. ${ev.pageNum}: ${ev.error}`, 'err');
       break;
     case 'cancelled':
       doneCount++;
-      stopCardTimer(ev.index);
-      cardCancelled(ev.index);
+      stopCardTimer(currentGen, ev.index);
+      cardCancelled(currentGen, ev.index);
       updateProg();
       break;
     case 'done':
@@ -1083,14 +1170,12 @@ function handleEvent(ev) {
 }
 
 function stopGeneration() {
-  // Abort SSE stream — the server detects disconnection and cancels OpenAI requests
   if (sseController) { sseController.abort(); sseController = null; }
   currentRequestId = null;
-  // Stop all running timers
   Object.keys(cardTimers).forEach(k => {
     clearInterval(cardTimers[k]);
     delete cardTimers[k];
-    const pb = document.getElementById(`pbar-${k}`);
+    const pb = document.getElementById(`pbar_${k}`);
     if (pb) pb.style.background = 'var(--muted)';
   });
   toast('Geração interrompida.', 'warn');
@@ -1120,56 +1205,103 @@ function updateProg() {
 }
 
 // ── Image cards ────────────────────────────────────────────────────────────
-function makeCard(idx, num, title) {
+function makeCard(gen, idx, num, title) {
+  const key = ck(gen, idx);
   const d = document.createElement('div');
   d.className = 'icard';
-  d.id = `card-${idx}`;
+  d.id = `card_${key}`;
   d.innerHTML = `
     <div class="icard-head">
       <span class="icard-num">Pág. ${num}</span>
       <span class="icard-title">${esc(title)}</span>
-      <span class="icard-status s-gen" id="st-${idx}">Gerando…</span>
+      <span class="icard-status s-gen" id="st_${key}">Gerando…</span>
     </div>
-    <div class="icard-preview" id="pv-${idx}">
+    <div class="icard-preview" id="pv_${key}">
       <div class="card-loader">
         <div class="loader-bar-bg">
-          <div class="loader-bar-fill" id="pbar-${idx}"></div>
+          <div class="loader-bar-fill" id="pbar_${key}"></div>
         </div>
         <div class="loader-texts">
-          <span class="loader-phase" id="phase-${idx}">Aguardando...</span>
-          <span class="loader-elapsed" id="elapsed-${idx}">0s</span>
+          <span class="loader-phase" id="phase_${key}">Aguardando...</span>
+          <span class="loader-elapsed" id="elapsed_${key}">0s</span>
         </div>
       </div>
     </div>
-    <div class="icard-foot" id="ft-${idx}" style="display:none;"></div>
+    <div class="icard-foot" id="ft_${key}" style="display:none;"></div>
   `;
   return d;
 }
 
-function cardDone(idx, url) {
-  document.getElementById(`st-${idx}`).className = 'icard-status s-done';
-  document.getElementById(`st-${idx}`).textContent = '✓ Pronta';
-  document.getElementById(`pv-${idx}`).innerHTML =
-    `<img src="${esc(url)}" loading="lazy" alt="Página ${idx + 1}" />`;
-  const res = results[idx];
-  const ft = document.getElementById(`ft-${idx}`);
-  ft.style.display = 'flex';
-  // For data URLs, set download filename explicitly; for server URLs open in tab works normally
-  if (url.startsWith('data:')) {
-    ft.innerHTML = `
-      <button class="btn btn-ghost btn-sm" onclick="downloadDataUrl(${idx})">⬇ Baixar</button>
-      <button class="btn btn-ghost btn-sm" onclick="openDataUrl(${idx})">🔗 Abrir</button>
-    `;
-  } else {
-    ft.innerHTML = `
-      <a class="btn btn-ghost btn-sm" href="${esc(url)}" download>⬇ Baixar</a>
-      <a class="btn btn-ghost btn-sm" href="${esc(url)}" target="_blank" rel="noopener">🔗 Abrir</a>
-    `;
-  }
+function makePersistedCard(r) {
+  const domKey = `db_${r.id}`;
+  results[domKey] = { url: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '' };
+  const d = document.createElement('div');
+  d.className = 'icard';
+  d.innerHTML = `
+    <div class="icard-head">
+      <span class="icard-num">Pág. ${r.pageNum}</span>
+      <span class="icard-title">${esc(r.title || '')}</span>
+      <span class="icard-status s-done">✓ Salva</span>
+    </div>
+    <div class="icard-preview">
+      <img src="${esc(r.dataUrl)}" loading="lazy" alt="Pág. ${r.pageNum}" />
+    </div>
+    <div class="icard-foot" style="display:flex;">
+      <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
+      <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
+    </div>
+  `;
+  return d;
 }
 
-function downloadDataUrl(idx) {
-  const r = results[idx];
+function cardDone(gen, idx, url, domKey) {
+  const key = ck(gen, idx);
+  const st = document.getElementById(`st_${key}`);
+  const pv = document.getElementById(`pv_${key}`);
+  const ft = document.getElementById(`ft_${key}`);
+  if (!st) return;
+  st.className = 'icard-status s-done';
+  st.textContent = '✓ Pronta';
+  pv.innerHTML = `<img src="${esc(url)}" loading="lazy" alt="Pág. ${idx + 1}" />`;
+  ft.style.display = 'flex';
+  ft.innerHTML = `
+    <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
+    <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
+  `;
+}
+
+function cardError(gen, idx, msg) {
+  const key = ck(gen, idx);
+  const st = document.getElementById(`st_${key}`);
+  const pv = document.getElementById(`pv_${key}`);
+  if (!st) return;
+  st.className = 'icard-status s-err';
+  st.textContent = '✗ Erro';
+  pv.innerHTML = `
+    <div class="icard-error">
+      <span class="err-ico">⚠️</span>
+      <strong>Erro ao gerar esta página</strong>
+      <div class="err-msg">${esc(msg || 'Erro desconhecido')}</div>
+    </div>`;
+}
+
+function cardCancelled(gen, idx) {
+  const key = ck(gen, idx);
+  const st = document.getElementById(`st_${key}`);
+  const pv = document.getElementById(`pv_${key}`);
+  if (!st) return;
+  st.className = 'icard-status s-skip';
+  st.textContent = '— Cancelada';
+  pv.innerHTML = `
+    <div class="icard-cancelled">
+      <span class="skip-ico">🚫</span>
+      Cancelada pelo usuário
+    </div>`;
+}
+
+// ── Download ───────────────────────────────────────────────────────────────
+function downloadByKey(key) {
+  const r = results[key];
   if (!r) return;
   const a = document.createElement('a');
   a.href = r.url;
@@ -1179,53 +1311,43 @@ function downloadDataUrl(idx) {
   document.body.removeChild(a);
 }
 
-function openDataUrl(idx) {
-  const r = results[idx];
+function openByKey(key) {
+  const r = results[key];
   if (!r) return;
-  const win = window.open();
-  win.document.write(`<img src="${r.url}" style="max-width:100%">`);
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#000"><img src="${r.url}" style="max-width:100%;display:block;margin:auto"></body></html>`);
 }
 
-function cardError(idx, msg) {
-  document.getElementById(`st-${idx}`).className = 'icard-status s-err';
-  document.getElementById(`st-${idx}`).textContent = '✗ Erro';
-  document.getElementById(`pv-${idx}`).innerHTML = `
-    <div class="icard-error">
-      <span class="err-ico">⚠️</span>
-      <strong>Erro ao gerar esta página</strong>
-      <div class="err-msg">${esc(msg || 'Erro desconhecido')}</div>
-    </div>
-  `;
-}
-
-function cardCancelled(idx) {
-  document.getElementById(`st-${idx}`).className = 'icard-status s-skip';
-  document.getElementById(`st-${idx}`).textContent = '— Cancelada';
-  document.getElementById(`pv-${idx}`).innerHTML = `
-    <div class="icard-cancelled">
-      <span class="skip-ico">🚫</span>
-      Cancelada pelo usuário
-    </div>
-  `;
-}
-
-// ── Download all ───────────────────────────────────────────────────────────
 async function downloadAll() {
   const imgs = Object.values(results);
-  if (!imgs.length) { toast('Nenhuma imagem disponível para download.', 'warn'); return; }
-  for (const img of imgs) {
+  if (!imgs.length) { toast('Nenhuma imagem disponível.', 'warn'); return; }
+  toast('Preparando ZIP...', '');
+  try {
+    const zip = new JSZip();
+    for (const img of imgs) {
+      if (img.url.startsWith('data:')) {
+        zip.file(img.filename, img.url.split(',')[1], { base64: true });
+      } else {
+        const res = await fetch(img.url);
+        zip.file(img.filename, await res.blob());
+      }
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
-    a.href = img.url;
-    a.download = img.filename || `page_${img.pageNum}.png`;
+    a.href = URL.createObjectURL(blob);
+    a.download = 'material-pedagogico.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    await new Promise(r => setTimeout(r, 350));
+    URL.revokeObjectURL(a.href);
+    toast(`ZIP com ${imgs.length} imagem${imgs.length > 1 ? 'ns' : ''} pronto!`, 'ok');
+  } catch (e) {
+    toast(`Erro ao criar ZIP: ${e.message}`, 'err');
   }
-  toast(`${imgs.length} download${imgs.length > 1 ? 's' : ''} iniciado${imgs.length > 1 ? 's' : ''}.`, 'ok');
 }
 
-function clearResults() {
+async function clearResults() {
+  await dbClear().catch(() => {});
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
   document.getElementById('results-card').style.display = 'none';
