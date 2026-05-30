@@ -754,8 +754,8 @@
       </label>
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled title="Requer token Replicate">⬆ Upscale 2×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled title="Requer token Replicate">⬆ Upscale 4×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled title="Escalonamento preciso por etapas — sem distorção de texto">⬆ Upscale 2×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled title="Escalonamento preciso por etapas — sem distorção de texto">⬆ Upscale 4×</button>
       <button class="btn btn-ghost btn-sm" id="btn-pdf" onclick="createPDF()" disabled>📄 Criar PDF</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
       <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
@@ -1568,63 +1568,61 @@ async function confirmRefazer() {
 async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
-  const token = document.getElementById('apiKey-replicate').value.trim();
-  if (!token) { toast('Insira o Replicate API Token (aba Replicate nas configurações).', 'err'); return; }
 
-  toast(`Iniciando upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''}...`, '');
+  toast(`Processando upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''}...`, '');
 
   await Promise.allSettled(keys.map(async (key) => {
     const r = results[key];
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     const pv = card?.querySelector('.icard-preview');
-    if (pv) {
-      const prev = pv.innerHTML;
-      pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
-      try {
-        const upscaledUrl = await doUpscale(r.url, scale, token);
-        const filename = r.filename.replace('.png', `_${scale}x.png`);
-        results[key] = { ...r, url: upscaledUrl, filename };
-        pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
-        // Update footer buttons
-        const ft = card?.querySelector('.icard-foot');
-        if (ft) ft.querySelectorAll('button').forEach(b => {
-          if (b.textContent.includes('Baixar')) b.setAttribute('onclick', `downloadByKey('${key}')`);
-          if (b.textContent.includes('Abrir'))  b.setAttribute('onclick', `openByKey('${key}')`);
-        });
-        await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
-        toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
-      } catch (e) {
-        pv.innerHTML = prev;
-        toast(`Pág. ${r.pageNum} — erro upscale: ${e.message}`, 'err');
-      }
+    if (!pv) return;
+    const prev = pv.innerHTML;
+    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
+    try {
+      const upscaledUrl = await upscaleCanvas(r.url, scale);
+      const filename = r.filename.replace('.png', `_${scale}x.png`);
+      results[key] = { ...r, url: upscaledUrl, filename };
+      pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
+      await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
+      toast(`Pág. ${r.pageNum} — ${scale}× concluído!`, 'ok');
+    } catch (e) {
+      pv.innerHTML = prev;
+      toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err');
     }
   }));
 }
 
-async function doUpscale(dataUrl, scale, token) {
-  // Route through our Edge Function to avoid CORS
-  const res = await fetch('/api/upscale', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dataUrl, scale, token }),
+// Escalonamento por múltiplas etapas via Canvas — preserva texto e bordas sem distorção
+async function upscaleCanvas(dataUrl, finalScale) {
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image();
+    i.onload  = () => resolve(i);
+    i.onerror = () => reject(new Error('Falha ao carregar imagem'));
+    i.src = dataUrl;
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
+  // Etapas de 1.5× em vez de um salto único (evita artefatos e distorção de texto)
+  const steps = Math.ceil(Math.log(finalScale) / Math.log(1.5));
+  const stepScale = Math.pow(finalScale, 1 / steps);
 
-  const { outputUrl } = data;
-  if (!outputUrl) throw new Error('Sem URL de saída do upscaler');
+  let src = document.createElement('canvas');
+  src.width  = img.width;
+  src.height = img.height;
+  src.getContext('2d').drawImage(img, 0, 0);
 
-  // Download the upscaled image from Replicate CDN and convert to data URL
-  const imgRes = await fetch(outputUrl);
-  if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
-  const blob = await imgRes.blob();
-  return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result);
-    reader.readAsDataURL(blob);
-  });
+  for (let s = 0; s < steps; s++) {
+    const dst = document.createElement('canvas');
+    dst.width  = Math.round(src.width  * stepScale);
+    dst.height = Math.round(src.height * stepScale);
+    const ctx = dst.getContext('2d');
+    ctx.imageSmoothingEnabled  = true;
+    ctx.imageSmoothingQuality  = 'high';
+    ctx.drawImage(src, 0, 0, dst.width, dst.height);
+    src = dst;
+  }
+
+  return src.toDataURL('image/png');
 }
 
 // ── PDF (sem compressão — PNG lossless) ────────────────────────────────────
