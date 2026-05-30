@@ -1603,48 +1603,28 @@ async function upscaleSelected(scale) {
 }
 
 async function doUpscale(dataUrl, scale, token) {
-  const res = await fetch('https://api.replicate.com/v1/models/nightmareai/real-esrgan/predictions', {
+  // Route through our Edge Function to avoid CORS
+  const res = await fetch('/api/upscale', {
     method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'wait=60',
-    },
-    body: JSON.stringify({ input: { image: dataUrl, scale, face_enhance: false } }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl, scale, token }),
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Replicate ${res.status}`);
-  }
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Erro HTTP ${res.status}`);
 
-  let pred = await res.json();
-  if (pred.status !== 'succeeded') pred = await pollUpscale(token, pred.id);
+  const { outputUrl } = data;
+  if (!outputUrl) throw new Error('Sem URL de saída do upscaler');
 
-  const outputUrl = Array.isArray(pred.output) ? pred.output[0] : pred.output;
-  if (!outputUrl) throw new Error('Sem saída do upscaler');
-
-  // Convert output URL to persistent data URL
+  // Download the upscaled image from Replicate CDN and convert to data URL
   const imgRes = await fetch(outputUrl);
+  if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
   const blob = await imgRes.blob();
   return new Promise(resolve => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result);
     reader.readAsDataURL(blob);
   });
-}
-
-async function pollUpscale(token, id) {
-  for (let i = 0; i < 60; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-    if (data.status === 'succeeded') return data;
-    if (data.status === 'failed' || data.status === 'canceled') throw new Error(data.error || 'Upscale falhou');
-  }
-  throw new Error('Timeout no upscale (3 min)');
 }
 
 // ── PDF (sem compressão — PNG lossless) ────────────────────────────────────
