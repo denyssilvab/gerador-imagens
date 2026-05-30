@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Material Pedagógico</title>
+  <style>
+    :root {
+      --bg: #0e1117;
+      --surface: #161b27;
+      --surface2: #1e2438;
+      --border: #2a3050;
+      --border2: #353d60;
+      --text: #e4e8f5;
+      --muted: #6b748f;
+      --primary: #6366f1;
+      --primary-h: #4f52cc;
+      --green: #89c13b;
+      --green-d: #6ea02e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --success-bg: #14281a;
+      --success-fg: #4ade80;
+      --error-bg: #2a1212;
+      --error-fg: #f87171;
+      --warn-bg: #2a1f0a;
+      --warn-fg: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .topbar-logo {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--green), var(--primary));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .topbar h1 { font-size: 16px; font-weight: 700; }
+    .topbar .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 13px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card-head h2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--muted);
+    }
+    .card-body { padding: 18px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      width: fit-content;
+    }
+    .tab-btn {
+      padding: 7px 18px;
+      background: var(--surface2);
+      color: var(--muted);
+      border: none;
+      border-right: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      transition: background .15s, color .15s;
+    }
+    .tab-btn:last-child { border-right: none; }
+    .tab-btn:hover { background: var(--border); color: var(--text); }
+    .tab-btn.active { background: var(--primary); color: #fff; }
+
+    /* ── Form ── */
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .form-row.api-row { grid-template-columns: 1fr 200px; }
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fg.span-full { grid-column: 1 / -1; }
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+    }
+    input, textarea, select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 8px 12px;
+      width: 100%;
+      font-family: inherit;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+    }
+    input[type="password"] { letter-spacing: .08em; }
+    textarea { resize: vertical; }
+    input::placeholder, textarea::placeholder { color: var(--muted); }
+
+    /* ── Toggle collapsible ── */
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      padding: 0;
+      transition: color .15s;
+    }
+    .toggle-btn:hover { color: var(--text); }
+    .chevron { display: inline-block; transition: transform .2s; font-size: 9px; }
+    .chevron.open { transform: rotate(180deg); }
+    .collapse-wrap { display: none; }
+    .collapse-wrap.open { display: block; }
+
+    /* ── Page count badge ── */
+    .pg-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      transition: all .2s;
+    }
+    .pg-badge.has { background: rgba(137,193,59,.12); border-color: var(--green); color: var(--green); }
+
+    /* ── Hint ── */
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+    .hint code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all .15s;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-h); }
+    .btn-danger { background: var(--red); color: #fff; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--border); }
+    .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+
+    /* ── Controls row ── */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    /* ── Progress ── */
+    .prog-wrap { flex: 1; min-width: 180px; }
+    .prog-track {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      height: 8px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      border-radius: 6px;
+      background: linear-gradient(90deg, var(--primary), var(--green));
+      width: 0%;
+      transition: width .4s ease;
+    }
+    .prog-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+
+    /* ── Results grid ── */
+    .results-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .results-actions { display: flex; gap: 8px; }
+
+    .img-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    /* ── Image card ── */
+    .icard {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: border-color .2s;
+    }
+    .icard:hover { border-color: var(--border2); }
+
+    .icard-head {
+      padding: 9px 12px;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border-bottom: 1px solid var(--border);
+      min-width: 0;
+    }
+    .icard-num {
+      background: var(--primary);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .icard-title {
+      font-size: 11px;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 0;
+    }
+    .icard-status {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .s-gen  { background: rgba(99,102,241,.18); color: #a5b4fc; }
+    .s-done { background: rgba(74,222,128,.12); color: #4ade80; }
+    .s-err  { background: rgba(248,113,113,.12); color: #f87171; }
+    .s-skip { background: rgba(107,116,143,.15); color: var(--muted); }
+
+    .icard-preview {
+      aspect-ratio: 1055 / 1491;
+      background: #090c14;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .icard-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    /* ── Card loader ── */
+    .card-loader {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 24px 20px;
+      width: 100%;
+    }
+    .loader-bar-bg {
+      width: 100%;
+      height: 5px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .loader-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--green));
+      width: 0%;
+      transition: width 1.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .loader-bar-fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.35) 50%, transparent 100%);
+      animation: shimmer 1.8s ease infinite;
+    }
+    @keyframes shimmer {
+      from { transform: translateX(-100%); }
+      to   { transform: translateX(200%); }
+    }
+    .loader-texts {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 11px;
+    }
+    .loader-phase { color: var(--muted); font-style: italic; }
+    .loader-elapsed { color: var(--primary); font-weight: 700; font-family: monospace; }
+
+    .icard-error {
+      padding: 20px 16px;
+      text-align: center;
+      color: var(--error-fg);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .icard-error .err-ico { font-size: 28px; display: block; margin-bottom: 10px; }
+    .icard-error .err-msg {
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 6px;
+      word-break: break-word;
+    }
+
+    .icard-cancelled {
+      padding: 20px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .icard-cancelled .skip-ico { font-size: 28px; display: block; margin-bottom: 10px; }
+
+    .icard-foot {
+      padding: 9px 12px;
+      display: flex;
+      gap: 6px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--muted);
+    }
+    .empty .ico { font-size: 44px; display: block; margin-bottom: 12px; opacity: .4; }
+    .empty p { font-size: 14px; }
+
+    /* ── Toast ── */
+    .toasts {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 8px;
+      z-index: 200;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 13px;
+      max-width: 340px;
+      pointer-events: auto;
+      animation: toastIn .2s ease;
+      line-height: 1.4;
+    }
+    .toast.t-err  { border-color: #7f1d1d; background: var(--error-bg); color: var(--error-fg); }
+    .toast.t-ok   { border-color: #14532d; background: var(--success-bg); color: var(--success-fg); }
+    .toast.t-warn { border-color: #78350f; background: var(--warn-bg); color: var(--warn-fg); }
+    @keyframes toastIn {
+      from { transform: translateY(12px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    /* ── Divider ── */
+    .sep { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+
+    @media (max-width: 600px) {
+      .form-row.api-row { grid-template-columns: 1fr; }
+      .img-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-logo">📚</div>
+  <div>
+    <h1>Gerador de Material Pedagógico</h1>
+    <div class="sub">Geração paralela via OpenAI &amp; Replicate</div>
+  </div>
+  <div class="topbar-right">
+    <span class="chip" id="provider-chip">OpenAI</span>
+    <span class="chip" id="model-chip">gpt-image-2</span>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- ── TIPO DE ARQUIVO ── -->
+  <div class="card">
+    <div class="card-head"><h2>Tipo de Arquivo</h2></div>
+    <div class="card-body">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="setDocType('lesson', this)">Lesson</button>
+        <button class="tab-btn" onclick="setDocType('practice', this)">Practice Activities</button>
+        <button class="tab-btn" onclick="setDocType('lessonplan', this)">Lesson Plan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CONFIGURAÇÕES ── -->
+  <div class="card">
+    <div class="card-head"><h2>Configurações</h2></div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+
+      <!-- Unidade / Lição / CCSS -->
+      <div class="form-row">
+        <div class="fg">
+          <label>Unidade</label>
+          <input id="unit" type="number" min="1" value="3" placeholder="Ex: 3" />
+        </div>
+        <div class="fg">
+          <label>Lição (Lesson)</label>
+          <input id="lesson" type="number" min="1" value="32" placeholder="Ex: 32" />
+        </div>
+        <div class="fg">
+          <label>Código CCSS</label>
+          <input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" />
+        </div>
+      </div>
+
+      <!-- Provedor + Modelo -->
+      <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+        <!-- Header do bloco provedor -->
+        <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Provedor &amp; Modelo</span>
+          <div class="tabs" style="margin-left:auto;">
+            <button class="tab-btn active" id="tab-openai" onclick="setProvider('openai',this)">OpenAI</button>
+            <button class="tab-btn" id="tab-replicate" onclick="setProvider('replicate',this)">Replicate</button>
+          </div>
+        </div>
+
+        <!-- Painel OpenAI -->
+        <div id="panel-openai" style="padding:14px;display:flex;flex-direction:column;gap:12px;">
+          <div class="form-row">
+            <div class="fg" style="flex:2;">
+              <label>Modelo</label>
+              <select id="model-openai" onchange="onModelChange()">
+                <option value="gpt-image-2" selected>GPT Image 2 — mais recente ⭐</option>
+                <option value="gpt-image-1">GPT Image 1</option>
+                <option value="dall-e-3">DALL-E 3</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Qualidade</label>
+              <select id="quality">
+                <option value="medium" selected>Medium (~15s) ⚡</option>
+                <option value="high">High (~35s)</option>
+                <option value="low">Low / Preview (~6s)</option>
+              </select>
+            </div>
+          </div>
+          <div class="fg">
+            <label>OpenAI API Key</label>
+            <input id="apiKey-openai" type="password" placeholder="sk-..." autocomplete="off" />
+          </div>
+          <p style="font-size:11px;color:var(--muted);line-height:1.5;">
+            GPT Image 2 é o modelo mais recente da família GPT Image. Retorna imagens 1024×1536 (proporção A4 retrato).
+          </p>
+        </div>
+
+        <!-- Painel Replicate -->
+        <div id="panel-replicate" style="padding:14px;display:none;flex-direction:column;gap:12px;">
+          <div class="form-row">
+            <div class="fg span-full">
+              <label>Modelo</label>
+              <select id="model-replicate" onchange="onModelChange()">
+                <optgroup label="FLUX (Black Forest Labs)">
+                  <option value="black-forest-labs/flux-1.1-pro">FLUX 1.1 Pro — máxima qualidade ⭐</option>
+                  <option value="black-forest-labs/flux-pro">FLUX Pro</option>
+                  <option value="black-forest-labs/flux-dev">FLUX Dev — open weights</option>
+                  <option value="black-forest-labs/flux-schnell">FLUX Schnell — ultra rápido</option>
+                </optgroup>
+                <optgroup label="Ideogram AI">
+                  <option value="ideogram-ai/ideogram-v2">Ideogram V2 — excelente texto ✏️</option>
+                  <option value="ideogram-ai/ideogram-v2-turbo">Ideogram V2 Turbo</option>
+                </optgroup>
+                <optgroup label="Recraft AI">
+                  <option value="recraft-ai/recraft-v3">Recraft V3 — design &amp; layout</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+          <div class="fg">
+            <label>Replicate API Token</label>
+            <input id="apiKey-replicate" type="password" placeholder="r8_..." autocomplete="off" />
+          </div>
+          <p style="font-size:11px;color:var(--muted);line-height:1.5;">
+            <strong style="color:var(--warn-fg);">Dica para material pedagógico:</strong>
+            Ideogram V2 tem a melhor renderização de texto em imagens. FLUX 1.1 Pro entrega a maior qualidade visual geral.
+            Aspect ratio <strong>2:3</strong> é utilizado (próximo do A4).
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── ESPECIFICAÇÕES ── -->
+  <div class="card">
+    <div class="card-head">
+      <h2>Especificações Críticas do Layout</h2>
+      <button class="toggle-btn" onclick="toggleSpecs(this)">
+        Mostrar / Editar <span class="chevron">▼</span>
+      </button>
+    </div>
+    <div class="card-body">
+      <p class="hint">
+        Pré-carregadas conforme o tipo de arquivo. Essas especificações são enviadas junto com o prompt de cada página.
+      </p>
+      <div class="collapse-wrap" id="specs-wrap">
+        <textarea id="specs" rows="22" style="font-family:monospace;font-size:12px;margin-top:4px;"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PROMPT DAS PÁGINAS ── -->
+  <div class="card">
+    <div class="card-head">
+      <h2>Prompt das Páginas</h2>
+      <span class="pg-badge" id="pg-badge">0 páginas</span>
+    </div>
+    <div class="card-body">
+      <p class="hint">
+        Cole o prompt com todas as páginas. Cada página deve começar com
+        <code>===============================================</code><br>
+        <code>PAGE X - TÍTULO DA PÁGINA</code><br>
+        <code>===============================================</code>
+      </p>
+      <textarea id="prompt" rows="18"
+        placeholder="===============================================&#10;PAGE 1 - OPENING CONTEXT&#10;===============================================&#10;&#10;HEADER: Blue tag &quot;Unit 3 | Lesson 32&quot;...&#10;&#10;===============================================&#10;PAGE 2 - SECTION TITLE&#10;===============================================&#10;..."
+        oninput="onPromptInput()"></textarea>
+    </div>
+  </div>
+
+  <!-- ── CONTROLES ── -->
+  <div class="card">
+    <div class="card-body">
+      <div class="controls-row">
+        <button class="btn btn-primary" id="btn-gen" onclick="startGeneration()">
+          🚀 Gerar Imagens
+        </button>
+        <button class="btn btn-danger" id="btn-stop" onclick="stopGeneration()" style="display:none;">
+          ⏹ Parar Geração
+        </button>
+        <div class="prog-wrap" id="prog-wrap" style="display:none;">
+          <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+          <div class="prog-label" id="prog-label">Preparando...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESULTADOS ── -->
+  <div class="card" id="results-card" style="display:none;">
+    <div class="card-head">
+      <h2>Imagens Geradas</h2>
+      <div class="results-actions">
+        <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ Baixar Todas</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="img-grid" id="img-grid">
+        <div class="empty">
+          <span class="ico">🖼</span>
+          <p>As imagens aparecerão aqui conforme forem geradas</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ── Specs por tipo ─────────────────────────────────────────────────────────
+
+const SPECS = {
+lesson: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (IMPORTANT!)
+
+MARGINS:
+• Left: 25mm (15mm green bar + 10mm breathing space)
+• Right: 20mm  |  Top: 20mm  |  Bottom: 20mm
+
+USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
+• ALL content starts at x=25mm and extends to x=190mm
+• NO content beyond these boundaries
+
+HEADER (all pages):
+• Green rectangle LEFT side: 15mm wide × full page height (297mm), color #89c13b
+  - CONSISTENT halftone dot pattern (#a8c735): 3mm dots, 8mm spacing, perfect grid, centered
+• Blue rounded tag:
+  - Position: 25mm from top  |  Width: 70mm (x=15mm to x=85mm)  |  Height: 12mm
+  - Rounded corners: 5mm radius RIGHT side only, square LEFT
+  - Color: #0251af, flush against green bar (no gap)
+  - White text centered: "Unit X | Lesson Y" (11pt Bold)
+• Dotted separator BELOW tag: x=25mm to x=190mm, 2pt, #092964, at y=38mm
+
+FOOTER (all pages):
+• Dotted line: x=25mm to x=190mm, 2pt, #092964, 20mm from bottom
+• Centered text below line: (11pt Regular, #666666)
+
+TYPOGRAPHY MINIMUMS (NEVER SMALLER):
+• Title: 20pt Bold #092964
+• Subtitles: 20pt Bold #0251af
+• Body text: 18pt Regular #000000
+• Sidebar text: 16pt Regular #666666
+• ALL TITLES: Sentence case — NEVER all caps
+• NEVER stretch or distort text — maintain proportional scaling
+
+COLORS: Navy #0251af | Dark Blue #092964 | Green #89c13b | Light Green #a8c735
+        Orange #ff6b35 | Purple #9b59b6 | Pink #c2185b
+        Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
+
+LAYOUT PRINCIPLES:
+• Pedagogical textbook style, mix boxes and open text
+• Dotted lines for section divisions, sidebars for enrichment
+• Text aligned LEFT only
+• Rounded boxes: 5mm corners, 15mm padding
+• White space is acceptable — do NOT stretch content to fill page
+• Flat design illustrations: colorful, age-appropriate, minimum 40mm width`,
+
+practice: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (IMPORTANT!)
+
+MARGINS:
+• Left: 25mm (15mm green bar + 10mm breathing space)
+• Right: 20mm  |  Top: 20mm  |  Bottom: 20mm
+
+USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
+
+HEADER (all pages):
+• Green rectangle LEFT side: 15mm wide × full page height, color #89c13b
+  - Halftone dot pattern (#a8c735): 3mm dots, 8mm spacing, perfect grid
+• Blue rounded tag:
+  - Width: 70mm (x=15mm to x=85mm)  |  Height: 12mm  |  25mm from top
+  - Rounded RIGHT only (5mm), flush against green bar
+  - Color: #0251af  |  White text: "Unit X | Lesson Y" (11pt Bold)
+• Dotted separator: x=25mm to x=190mm, 2pt, #092964, at y=38mm
+
+FOOTER (all pages):
+• Dotted line: x=25mm to x=190mm, 2pt, #092964, 20mm from bottom
+• Centered text: (11pt Regular, #666666)
+
+TYPOGRAPHY:
+• Section title: 20pt Bold #092964
+• Exercise numbers: 18pt Bold #0251af
+• Instructions: 18pt Regular #000000
+• Answers/blanks: 18pt Regular, underline or dotted lines
+
+EXERCISE LAYOUT:
+• Clear numbered exercises with visual separation
+• Answer blanks: dotted or solid underlines
+• Boxes per exercise using backgrounds: #dceafa #e8f5e9 #fff4e6 #f3e5f5
+• Rounded boxes: 5mm corners, 12mm padding
+• Progressive difficulty within the page`,
+
+lessonplan: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (VERY IMPORTANT)
+
+MARGINS: 20mm on ALL sides (VERY IMPORTANT)
+
+HEADER DESIGN:
+• Green rectangle UPPER LEFT: 12mm height × 25mm width, solid #89c13b
+  - Filled with halftone dot pattern (#a8c735)
+• Orange horizontal bar: from green rectangle rightward to x=190mm
+  - Height: 12mm (vertically centered with green rectangle)
+  - Color: #ff6b35
+  - Text: "Unit X | Lesson Plan" (White, Bold 16pt, left-aligned, 10mm inner margin)
+• Dotted line below header: x=20mm to x=190mm, 2pt, #092964, at y=50mm from top
+
+FOOTER (all pages):
+• Dotted line: x=20mm to x=190mm, 2pt, #092964, 20mm from bottom
+• Centered text below: (11pt Regular, #666666)
+
+TEXT AREA: x=20mm to x=190mm (170mm wide)
+
+TYPOGRAPHY:
+• Page titles: 22pt Bold #092964
+• Section titles: 20pt Bold #ff6b35
+• Subsections: 18pt Bold #0251af
+• Main text: 16pt Regular #000000
+
+COLORS: Orange #ff6b35 | Navy #0251af | Dark Blue #092964 | Green #89c13b
+        Backgrounds: #fff4e6 #ffe6ea #e3f2fd #e8f5e9`
+};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let docType = 'lesson';
+let provider = 'openai';
+let currentRequestId = null;
+let totalPages = 0;
+let doneCount = 0;
+let errorCount = 0;
+const results = {}; // index → { url, filename, pageNum, title }
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.getElementById('specs').value = SPECS.lesson;
+updateTopbarChips();
+
+// ── Doc type ───────────────────────────────────────────────────────────────
+function setDocType(type, el) {
+  docType = type;
+  // Only toggle doc-type tabs (first .tabs group)
+  el.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('specs').value = SPECS[type];
+}
+
+// ── Provider ────────────────────────────────────────────────────────────────
+function setProvider(p, el) {
+  provider = p;
+  el.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-openai').style.display    = p === 'openai'    ? 'flex' : 'none';
+  document.getElementById('panel-replicate').style.display = p === 'replicate' ? 'flex' : 'none';
+  updateTopbarChips();
+}
+
+function onModelChange() { updateTopbarChips(); }
+
+function updateTopbarChips() {
+  const modelId = provider === 'openai'
+    ? document.getElementById('model-openai').value
+    : document.getElementById('model-replicate').value;
+  const label = modelId.includes('/') ? modelId.split('/')[1] : modelId;
+  document.getElementById('provider-chip').textContent = provider === 'openai' ? 'OpenAI' : 'Replicate';
+  document.getElementById('model-chip').textContent = label;
+}
+
+function getActiveApiKey() {
+  return provider === 'openai'
+    ? document.getElementById('apiKey-openai').value.trim()
+    : document.getElementById('apiKey-replicate').value.trim();
+}
+
+function getActiveModel() {
+  return provider === 'openai'
+    ? document.getElementById('model-openai').value
+    : document.getElementById('model-replicate').value;
+}
+
+// ── Collapsible ────────────────────────────────────────────────────────────
+function toggleSpecs(btn) {
+  const wrap = document.getElementById('specs-wrap');
+  const chevron = btn.querySelector('.chevron');
+  wrap.classList.toggle('open');
+  chevron.classList.toggle('open');
+}
+
+// ── Page parsing ───────────────────────────────────────────────────────────
+function parsePages(text) {
+  const re = /={10,}\s*\n(PAGE\s+(\d+)\s*[-–]?\s*([^\n]*))\s*\n={10,}/gi;
+  const markers = [];
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    markers.push({ index: m.index, end: m.index + m[0].length, num: parseInt(m[2]), title: m[3].trim() });
+  }
+  if (!markers.length) return [];
+  const pages = [];
+  for (let i = 0; i < markers.length; i++) {
+    const content = text.slice(markers[i].end, i + 1 < markers.length ? markers[i + 1].index : text.length).trim();
+    if (content) pages.push({ num: markers[i].num, title: markers[i].title, content });
+  }
+  return pages;
+}
+
+function onPromptInput() {
+  const pages = parsePages(document.getElementById('prompt').value);
+  const badge = document.getElementById('pg-badge');
+  const btn = document.getElementById('btn-gen');
+  if (pages.length > 0) {
+    badge.textContent = `${pages.length} página${pages.length > 1 ? 's' : ''} detectada${pages.length > 1 ? 's' : ''}`;
+    badge.className = 'pg-badge has';
+    btn.textContent = `🚀 Gerar ${pages.length} Imagem${pages.length > 1 ? 'ns' : ''}`;
+  } else {
+    badge.textContent = '0 páginas';
+    badge.className = 'pg-badge';
+    btn.textContent = '🚀 Gerar Imagens';
+  }
+}
+
+// ── Build full prompt ──────────────────────────────────────────────────────
+function buildPrompt(page) {
+  const unit    = document.getElementById('unit').value.trim();
+  const lesson  = document.getElementById('lesson').value.trim();
+  const ccss    = document.getElementById('ccss').value.trim();
+  const specs   = document.getElementById('specs').value.trim();
+
+  const tagText = docType === 'lessonplan'
+    ? `Unit ${unit} | Lesson Plan`
+    : `Unit ${unit} | Lesson ${lesson}`;
+
+  const footerText = `Mathematics - 6th Grade | ${ccss}`;
+
+  return [
+    specs,
+    '',
+    `HEADER TAG TEXT: "${tagText}"`,
+    `FOOTER TEXT: "${footerText}"`,
+    `CCSS: ${ccss}`,
+    '',
+    page.content,
+    '',
+    `CRITICAL: Use EXACTLY the header tag "${tagText}" and footer "${footerText}". Follow all format specs above.`
+  ].join('\n');
+}
+
+// ── Card timers ────────────────────────────────────────────────────────────
+const cardTimers = {};
+const PHASES = [
+  [0,  'Aguardando...'],
+  [2,  'Enviando para API...'],
+  [6,  'Processando prompt...'],
+  [14, 'Gerando pixels...'],
+  [28, 'Renderizando...'],
+  [45, 'Finalizando...'],
+];
+// Estimated total seconds per quality (for progress bar fill)
+const EST = { low: 8, medium: 20, high: 40 };
+
+function startCardTimer(idx) {
+  const q     = document.getElementById('quality').value;
+  const estMs = (EST[q] || 20) * 1000;
+  const start = Date.now();
+
+  const tick = () => {
+    const elapsed = Math.floor((Date.now() - start) / 1000);
+    const pct     = Math.min(90, ((Date.now() - start) / estMs) * 100);
+    let   phase   = PHASES[0][1];
+    for (const [t, msg] of PHASES) { if (elapsed >= t) phase = msg; }
+
+    const ph = document.getElementById(`phase-${idx}`);
+    const el = document.getElementById(`elapsed-${idx}`);
+    const pb = document.getElementById(`pbar-${idx}`);
+    if (ph) ph.textContent = phase;
+    if (el) el.textContent = `${elapsed}s`;
+    if (pb) pb.style.width  = pct + '%';
+  };
+
+  tick();
+  cardTimers[idx] = setInterval(tick, 500);
+}
+
+function stopCardTimer(idx) {
+  clearInterval(cardTimers[idx]);
+  delete cardTimers[idx];
+  // Fill to 100% on finish
+  const pb = document.getElementById(`pbar-${idx}`);
+  if (pb) { pb.style.transition = 'width .4s'; pb.style.width = '100%'; }
+}
+
+// ── Generation ─────────────────────────────────────────────────────────────
+let sseController = null;
+
+async function startGeneration() {
+  const apiKey  = getActiveApiKey();
+  const model   = getActiveModel();
+  const quality = document.getElementById('quality').value;
+
+  if (!apiKey) {
+    const label = provider === 'openai' ? 'OpenAI API Key' : 'Replicate API Token';
+    toast(`Insira sua ${label}.`, 'err');
+    return;
+  }
+
+  const rawPages = parsePages(document.getElementById('prompt').value);
+  if (!rawPages.length) { toast('Nenhuma página detectada. Verifique o formato do prompt.', 'err'); return; }
+
+  const pages = rawPages.map(p => ({ ...p, content: buildPrompt(p) }));
+
+  // Reset
+  totalPages = pages.length;
+  doneCount = 0;
+  errorCount = 0;
+  Object.keys(results).forEach(k => delete results[k]);
+  Object.keys(cardTimers).forEach(k => { clearInterval(cardTimers[k]); delete cardTimers[k]; });
+
+  // UI
+  document.getElementById('btn-gen').style.display = 'none';
+  document.getElementById('btn-stop').style.display = '';
+  document.getElementById('prog-wrap').style.display = '';
+  document.getElementById('results-card').style.display = '';
+
+  const grid = document.getElementById('img-grid');
+  grid.innerHTML = '';
+  pages.forEach((p, i) => grid.appendChild(makeCard(i, p.num, p.title)));
+  updateProg();
+
+  sseController = new AbortController();
+
+  try {
+    const response = await fetch('/api/gerar-lote', {
+      method: 'POST',
+      signal: sseController.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, provider, model, quality, pages }),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Erro HTTP ${response.status}`);
+    }
+
+    const reader  = response.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try { handleEvent(JSON.parse(line.slice(6))); } catch (_) {}
+        }
+      }
+    }
+
+  } catch (e) {
+    if (e.name !== 'AbortError') toast(`Erro de conexão: ${e.message}`, 'err');
+  } finally {
+    sseController = null;
+    finishGen();
+  }
+}
+
+function handleEvent(ev) {
+  switch (ev.type) {
+    case 'start':
+      currentRequestId = ev.requestId;
+      // Start all card timers simultaneously (all requests fire in parallel)
+      for (let i = 0; i < ev.total; i++) startCardTimer(i);
+      break;
+    case 'image':
+      doneCount++;
+      stopCardTimer(ev.index);
+      results[ev.index] = { url: ev.url, filename: ev.filename, pageNum: ev.pageNum, title: ev.title };
+      cardDone(ev.index, ev.url);
+      updateProg();
+      break;
+    case 'error':
+      doneCount++;
+      errorCount++;
+      stopCardTimer(ev.index);
+      cardError(ev.index, ev.error);
+      updateProg();
+      toast(`Pág. ${ev.pageNum}: ${ev.error}`, 'err');
+      break;
+    case 'cancelled':
+      doneCount++;
+      stopCardTimer(ev.index);
+      cardCancelled(ev.index);
+      updateProg();
+      break;
+    case 'done':
+      finishGen();
+      break;
+  }
+}
+
+async function stopGeneration() {
+  // Abort the SSE stream immediately
+  if (sseController) { sseController.abort(); sseController = null; }
+  // Cancel in-flight API requests on server
+  const id = currentRequestId;
+  currentRequestId = null;
+  if (id) {
+    try { await fetch(`/api/cancelar/${id}`, { method: 'POST' }); } catch (_) {}
+  }
+  // Stop all running timers
+  Object.keys(cardTimers).forEach(k => {
+    clearInterval(cardTimers[k]);
+    delete cardTimers[k];
+    const pb = document.getElementById(`pbar-${k}`);
+    if (pb) pb.style.background = 'var(--muted)';
+  });
+  toast('Geração interrompida.', 'warn');
+  finishGen();
+}
+
+function finishGen() {
+  currentRequestId = null;
+  document.getElementById('btn-gen').style.display = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  if (doneCount > 0) {
+    const ok = doneCount - errorCount;
+    if (errorCount === 0) {
+      toast(`✅ ${ok} imagem${ok > 1 ? 'ns geradas' : ' gerada'} com sucesso!`, 'ok');
+    } else {
+      toast(`Concluído: ${ok} gerada${ok > 1 ? 's' : ''}, ${errorCount} com erro.`, 'warn');
+    }
+  }
+}
+
+// ── Progress ───────────────────────────────────────────────────────────────
+function updateProg() {
+  const pct = totalPages > 0 ? (doneCount / totalPages) * 100 : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  const errs = errorCount > 0 ? ` · ${errorCount} erro${errorCount > 1 ? 's' : ''}` : '';
+  document.getElementById('prog-label').textContent = `${doneCount} de ${totalPages} páginas${errs}`;
+}
+
+// ── Image cards ────────────────────────────────────────────────────────────
+function makeCard(idx, num, title) {
+  const d = document.createElement('div');
+  d.className = 'icard';
+  d.id = `card-${idx}`;
+  d.innerHTML = `
+    <div class="icard-head">
+      <span class="icard-num">Pág. ${num}</span>
+      <span class="icard-title">${esc(title)}</span>
+      <span class="icard-status s-gen" id="st-${idx}">Gerando…</span>
+    </div>
+    <div class="icard-preview" id="pv-${idx}">
+      <div class="card-loader">
+        <div class="loader-bar-bg">
+          <div class="loader-bar-fill" id="pbar-${idx}"></div>
+        </div>
+        <div class="loader-texts">
+          <span class="loader-phase" id="phase-${idx}">Aguardando...</span>
+          <span class="loader-elapsed" id="elapsed-${idx}">0s</span>
+        </div>
+      </div>
+    </div>
+    <div class="icard-foot" id="ft-${idx}" style="display:none;"></div>
+  `;
+  return d;
+}
+
+function cardDone(idx, url) {
+  document.getElementById(`st-${idx}`).className = 'icard-status s-done';
+  document.getElementById(`st-${idx}`).textContent = '✓ Pronta';
+  document.getElementById(`pv-${idx}`).innerHTML =
+    `<img src="${esc(url)}" loading="lazy" alt="Página ${idx + 1}" />`;
+  const ft = document.getElementById(`ft-${idx}`);
+  ft.style.display = 'flex';
+  ft.innerHTML = `
+    <a class="btn btn-ghost btn-sm" href="${esc(url)}" download>⬇ Baixar</a>
+    <a class="btn btn-ghost btn-sm" href="${esc(url)}" target="_blank" rel="noopener">🔗 Abrir</a>
+  `;
+}
+
+function cardError(idx, msg) {
+  document.getElementById(`st-${idx}`).className = 'icard-status s-err';
+  document.getElementById(`st-${idx}`).textContent = '✗ Erro';
+  document.getElementById(`pv-${idx}`).innerHTML = `
+    <div class="icard-error">
+      <span class="err-ico">⚠️</span>
+      <strong>Erro ao gerar esta página</strong>
+      <div class="err-msg">${esc(msg || 'Erro desconhecido')}</div>
+    </div>
+  `;
+}
+
+function cardCancelled(idx) {
+  document.getElementById(`st-${idx}`).className = 'icard-status s-skip';
+  document.getElementById(`st-${idx}`).textContent = '— Cancelada';
+  document.getElementById(`pv-${idx}`).innerHTML = `
+    <div class="icard-cancelled">
+      <span class="skip-ico">🚫</span>
+      Cancelada pelo usuário
+    </div>
+  `;
+}
+
+// ── Download all ───────────────────────────────────────────────────────────
+async function downloadAll() {
+  const imgs = Object.values(results);
+  if (!imgs.length) { toast('Nenhuma imagem disponível para download.', 'warn'); return; }
+  for (const img of imgs) {
+    const a = document.createElement('a');
+    a.href = img.url;
+    a.download = img.filename || `page_${img.pageNum}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    await new Promise(r => setTimeout(r, 350));
+  }
+  toast(`${imgs.length} download${imgs.length > 1 ? 's' : ''} iniciado${imgs.length > 1 ? 's' : ''}.`, 'ok');
+}
+
+async function clearResults() {
+  try { await fetch('/api/limpar', { method: 'DELETE' }); } catch (_) {}
+  document.getElementById('img-grid').innerHTML = `
+    <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
+  document.getElementById('results-card').style.display = 'none';
+  document.getElementById('prog-wrap').style.display = 'none';
+  Object.keys(results).forEach(k => delete results[k]);
+  doneCount = 0; errorCount = 0; totalPages = 0;
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const c = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast t-${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(10px)';
+    el.style.transition = 'all .3s'; }, 5000);
+  setTimeout(() => { if (el.parentNode) c.removeChild(el); }, 5400);
+}
+
+// ── Util ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
