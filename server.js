@@ -6,7 +6,7 @@ const path = require('path');
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.static('public'));
+app.use(express.static('public', { etag: false, maxAge: 0 }));
 
 const GENERATED_DIR = path.join(__dirname, 'public', 'generated');
 fs.mkdirSync(GENERATED_DIR, { recursive: true });

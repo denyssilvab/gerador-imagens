@@ -25,6 +25,22 @@ async function pollUntilDone(token, predictionId, signal) {
   throw new Error('Timeout: upscale levou mais de 4 minutos');
 }
 
+// Model slugs and their input schemas
+const MODELS = {
+  'topaz:Standard V2':        { slug: 'topazlabs/image-upscale', model_name: 'Standard V2' },
+  'topaz:Low Resolution V2':  { slug: 'topazlabs/image-upscale', model_name: 'Low Resolution V2' },
+  'topaz:CGI':                { slug: 'topazlabs/image-upscale', model_name: 'CGI' },
+  'topaz:High Fidelity V2':   { slug: 'topazlabs/image-upscale', model_name: 'High Fidelity V2' },
+  'topaz:Text Refine':        { slug: 'topazlabs/image-upscale', model_name: 'Text Refine' },
+  'google/upscaler':                     { slug: 'google/upscaler',                     scaleParam: 'upscale_factor' },
+  'nightmareai/real-esrgan':             { slug: 'nightmareai/real-esrgan',             scaleParam: 'scale' },
+  'philz1337x/clarity-upscaler':         { slug: 'philz1337x/clarity-upscaler',         scaleParam: 'scale_factor' },
+  'recraft-ai/recraft-crisp-upscale':    { slug: 'recraft-ai/recraft-crisp-upscale',    scaleParam: null },
+  'afiaka87/crystal-upscaler':           { slug: 'afiaka87/crystal-upscaler',           scaleParam: 'scale' },
+  'recraft-ai/recraft-creative-upscale': { slug: 'recraft-ai/recraft-creative-upscale', scaleParam: null },
+  'prunaai/image-upscale':               { slug: 'prunaai/image-upscale',               scaleParam: 'scale' },
+};
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -34,16 +50,31 @@ export default async function handler(req) {
   try { body = await req.json(); }
   catch { return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 }); }
 
-  const { dataUrl, scale, token } = body;
+  const { dataUrl, scale, token, upscaleModel = 'topaz:Text Refine' } = body;
   if (!dataUrl || !scale || !token) {
     return new Response(JSON.stringify({ error: 'Parâmetros incompletos' }), { status: 400 });
   }
 
+  const cfg = MODELS[upscaleModel];
+  if (!cfg) {
+    return new Response(JSON.stringify({ error: `Modelo desconhecido: ${upscaleModel}` }), { status: 400 });
+  }
+
   const signal = req.signal;
 
+  let input;
+  if (cfg.model_name) {
+    // Topaz: usa model_name para selecionar sub-modelo
+    input = { image: dataUrl, model_name: cfg.model_name, scale };
+  } else if (cfg.scaleParam) {
+    input = { image: dataUrl, [cfg.scaleParam]: scale };
+  } else {
+    // Modelos sem parâmetro de escala (ex: Recraft)
+    input = { image: dataUrl };
+  }
+
   try {
-    // topazlabs/image-upscale — Text Refine é otimizado para imagens com tipografia
-    const res = await fetch('https://api.replicate.com/v1/models/topazlabs/image-upscale/predictions', {
+    const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
       method: 'POST',
       signal,
       headers: {
@@ -51,13 +82,7 @@ export default async function handler(req) {
         'Content-Type': 'application/json',
         'Prefer': 'wait=60',
       },
-      body: JSON.stringify({
-        input: {
-          image: dataUrl,
-          model_name: 'Text Refine',
-          scale,
-        },
-      }),
+      body: JSON.stringify({ input }),
     });
 
     if (!res.ok) {
@@ -76,7 +101,7 @@ export default async function handler(req) {
     const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
     if (!outputUrl) throw new Error('Replicate não retornou imagem upscalada');
 
-    // Baixa e converte para base64 para persistência (URLs do Replicate expiram)
+    // Baixa e converte para base64 (URLs do Replicate expiram)
     const imgRes = await fetch(outputUrl, { signal });
     if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
     const buf = await imgRes.arrayBuffer();

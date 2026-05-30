@@ -804,6 +804,27 @@
       </label>
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
+      <label style="display:flex;align-items:center;gap:5px;color:var(--muted);">
+        <span style="white-space:nowrap;font-size:12px;">⬆ Modelo:</span>
+        <select id="upscale-model" onchange="onUpscaleModelChange()" title="Modelo de Upscale AI" style="width:auto;font-size:12px;padding:3px 8px;background:var(--surface);border:1px solid var(--primary);border-radius:6px;color:var(--text);cursor:pointer;">
+          <optgroup label="Topaz Image Upscale">
+            <option value="topaz:Standard V2">Topaz — Standard V2</option>
+            <option value="topaz:Low Resolution V2">Topaz — Low Res V2</option>
+            <option value="topaz:CGI">Topaz — CGI</option>
+            <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
+            <option value="topaz:Text Refine" selected>Topaz — Text Refine</option>
+          </optgroup>
+          <optgroup label="Outros Modelos">
+            <option value="google/upscaler">Google Upscaler</option>
+            <option value="nightmareai/real-esrgan">Real-ESRGAN</option>
+            <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
+            <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
+            <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
+            <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
+            <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
+          </optgroup>
+        </select>
+      </label>
       <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled>⬆ 2×</button>
       <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled>⬆ 4×</button>
       <button class="btn btn-ghost btn-sm" id="btn-upscale6" onclick="upscaleSelected(6)" disabled>⬆ 6×</button>
@@ -1556,16 +1577,29 @@ function selectAll(checked) {
   updateSelectionUI();
 }
 
+// Modelos que suportam escala 6× (apenas Topaz)
+const UPSCALE_SUPPORTS_6X = new Set([
+  'topaz:Standard V2', 'topaz:Low Resolution V2', 'topaz:CGI',
+  'topaz:High Fidelity V2', 'topaz:Text Refine',
+]);
+
+function onUpscaleModelChange() {
+  updateSelectionUI();
+}
+
 function updateSelectionUI() {
   const n     = selectedKeys.size;
   const count = document.getElementById('sel-count');
   const has   = n > 0;
   count.style.display = has ? '' : 'none';
   count.textContent   = `${n} selecionada${n !== 1 ? 's' : ''}`;
-  ['btn-upscale2','btn-upscale4','btn-upscale6','btn-pdf','btn-del'].forEach(id => {
+  ['btn-upscale2','btn-upscale4','btn-pdf','btn-del'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = !has;
   });
+  const model6 = document.getElementById('upscale-model')?.value ?? '';
+  const btn6 = document.getElementById('btn-upscale6');
+  if (btn6) btn6.disabled = !has || !UPSCALE_SUPPORTS_6X.has(model6);
   const chkAll = document.getElementById('chk-all');
   const total  = document.querySelectorAll('.icard-check').length;
   if (chkAll) { chkAll.checked = n === total && total > 0; chkAll.indeterminate = n > 0 && n < total; }
@@ -1723,10 +1757,11 @@ async function upscaleSelected(scale) {
           pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
         }
 
+        const upscaleModel = document.getElementById('upscale-model')?.value ?? 'topaz:Text Refine';
         const res  = await fetch('/api/upscale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dataUrl: r.url, scale, token }),
+          body: JSON.stringify({ dataUrl: r.url, scale, token, upscaleModel }),
         });
         const data = await res.json();
 
