@@ -801,8 +801,9 @@
       </label>
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled>⬆ Upscale 2×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled>⬆ Upscale 4×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled>⬆ 2×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled>⬆ 4×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale6" onclick="upscaleSelected(6)" disabled>⬆ 6×</button>
       <button class="btn btn-ghost btn-sm" id="btn-pdf" onclick="createPDF()" disabled>📄 Criar PDF</button>
       <button class="btn btn-sm" id="btn-del" onclick="deleteSelected()" disabled style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
@@ -1558,7 +1559,7 @@ function updateSelectionUI() {
   const has   = n > 0;
   count.style.display = has ? '' : 'none';
   count.textContent   = `${n} selecionada${n !== 1 ? 's' : ''}`;
-  ['btn-upscale2','btn-upscale4','btn-pdf','btn-del'].forEach(id => {
+  ['btn-upscale2','btn-upscale4','btn-upscale6','btn-pdf','btn-del'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = !has;
   });

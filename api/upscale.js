@@ -42,8 +42,8 @@ export default async function handler(req) {
   const signal = req.signal;
 
   try {
-    // nightmareai/real-esrgan — modelo estável e confirmado no Replicate
-    const res = await fetch('https://api.replicate.com/v1/models/nightmareai/real-esrgan/predictions', {
+    // topazlabs/image-upscale — Text Refine é otimizado para imagens com tipografia
+    const res = await fetch('https://api.replicate.com/v1/models/topazlabs/image-upscale/predictions', {
       method: 'POST',
       signal,
       headers: {
@@ -54,8 +54,8 @@ export default async function handler(req) {
       body: JSON.stringify({
         input: {
           image: dataUrl,
+          model_name: 'Text Refine',
           scale,
-          face_enhance: false,
         },
       }),
     });
