@@ -801,9 +801,10 @@
       </label>
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled title="Escalonamento preciso por etapas — sem distorção de texto">⬆ Upscale 2×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled title="Escalonamento preciso por etapas — sem distorção de texto">⬆ Upscale 4×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled>⬆ Upscale 2×</button>
+      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled>⬆ Upscale 4×</button>
       <button class="btn btn-ghost btn-sm" id="btn-pdf" onclick="createPDF()" disabled>📄 Criar PDF</button>
+      <button class="btn btn-sm" id="btn-del" onclick="deleteSelected()" disabled style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
       <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
     </div>
@@ -1557,13 +1558,51 @@ function updateSelectionUI() {
   const has   = n > 0;
   count.style.display = has ? '' : 'none';
   count.textContent   = `${n} selecionada${n !== 1 ? 's' : ''}`;
-  ['btn-upscale2','btn-upscale4','btn-pdf'].forEach(id => {
+  ['btn-upscale2','btn-upscale4','btn-pdf','btn-del'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.disabled = !has;
   });
   const chkAll = document.getElementById('chk-all');
   const total  = document.querySelectorAll('.icard-check').length;
   if (chkAll) { chkAll.checked = n === total && total > 0; chkAll.indeterminate = n > 0 && n < total; }
+}
+
+async function deleteSelected() {
+  const keys = [...selectedKeys];
+  if (!keys.length) return;
+
+  for (const key of keys) {
+    // Remove card do DOM
+    const card = document.getElementById(`card_${key}`) ||
+      [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
+    if (card) card.remove();
+
+    // Remove do IndexedDB se for card persistido (db_N)
+    if (key.startsWith('db_')) {
+      const id = parseInt(key.slice(3));
+      try {
+        const d = await openDB();
+        await new Promise((res, rej) => {
+          const r = d.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).delete(id);
+          r.onsuccess = () => res(); r.onerror = () => rej(r.error);
+        });
+      } catch (_) {}
+    }
+
+    delete results[key];
+    selectedKeys.delete(key);
+  }
+
+  updateSelectionUI();
+
+  // Mostra empty state se não sobrou nada
+  const grid = document.getElementById('img-grid');
+  if (!grid.querySelector('.icard')) {
+    grid.innerHTML = `<div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
+    document.getElementById('results-card').style.display = 'none';
+  }
+
+  toast(`${keys.length} imagem${keys.length > 1 ? 'ns excluídas' : ' excluída'}.`, 'ok');
 }
 
 // ── Refazer ────────────────────────────────────────────────────────────────
