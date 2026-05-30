@@ -42,9 +42,8 @@ export default async function handler(req) {
   const signal = req.signal;
 
   try {
-    // cjwbw/real-esrgan com variante anime — treinado para ilustrações/design limpo,
-    // preserva bordas e texto muito melhor que a variante padrão de fotos
-    const res = await fetch('https://api.replicate.com/v1/models/cjwbw/real-esrgan/predictions', {
+    // nightmareai/real-esrgan — modelo estável e confirmado no Replicate
+    const res = await fetch('https://api.replicate.com/v1/models/nightmareai/real-esrgan/predictions', {
       method: 'POST',
       signal,
       headers: {
@@ -55,8 +54,8 @@ export default async function handler(req) {
       body: JSON.stringify({
         input: {
           image: dataUrl,
-          model_name: 'RealESRGAN_x4plus_anime_6B',
           scale,
+          face_enhance: false,
         },
       }),
     });

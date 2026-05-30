@@ -1694,41 +1694,73 @@ async function upscaleSelected(scale) {
 
   const token = document.getElementById('apiKey-replicate').value.trim();
   if (!token) {
-    toast('Upscale AI requer o Replicate API Token. Insira-o na aba Replicate das configurações.', 'err');
+    toast('Upscale AI requer o Replicate API Token — insira na aba Replicate.', 'err');
     return;
   }
 
-  toast(`Enviando ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} para upscale ${scale}× (AI)...`, '');
+  toast(`Iniciando upscale ${scale}× de ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} (sequencial)…`, '');
 
-  await Promise.allSettled(keys.map(async (key) => {
-    const r = results[key];
+  // Processa UM por vez para respeitar o rate limit do Replicate (burst = 1)
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    const r   = results[key];
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     const pv = card?.querySelector('.icard-preview');
-    if (!pv) return;
-    const prev = pv.innerHTML;
-    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>IA Upscale ${scale}×…</span></div>`;
-    try {
-      const res = await fetch('/api/upscale', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dataUrl: r.url, scale, token }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    if (!pv) continue;
 
-      const upscaledUrl = data.dataUrl;
-      const filename = r.filename.replace('.png', `_${scale}x.png`);
-      // Guarda original + upscaled
-      results[key] = { ...r, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale };
-      pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
-      await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
-      toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
-    } catch (e) {
-      pv.innerHTML = prev;
-      toast(`Pág. ${r.pageNum} — erro upscale: ${e.message}`, 'err');
+    const prev = pv.innerHTML;
+    const label = `${i + 1}/${keys.length}`;
+    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}× (${label})…</span></div>`;
+
+    let ok = false;
+    for (let attempt = 0; attempt < 4 && !ok; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Aguarda antes de tentar novamente (rate limit reset)
+          const wait = attempt * 15;
+          pv.querySelector('span').textContent = `Rate limit — aguardando ${wait}s… (${label})`;
+          await new Promise(r => setTimeout(r, wait * 1000));
+          pv.querySelector('span').textContent = `Upscale ${scale}× (${label})…`;
+        }
+
+        const res = await fetch('/api/upscale', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl: r.url, scale, token }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          const msg = data.error || `HTTP ${res.status}`;
+          // Rate limit — vai tentar novamente
+          if (msg.toLowerCase().includes('throttled') || msg.toLowerCase().includes('rate limit') || res.status === 429) {
+            throw Object.assign(new Error(msg), { isRateLimit: true });
+          }
+          throw new Error(msg);
+        }
+
+        const upscaledUrl = data.dataUrl;
+        const filename = r.filename.replace('.png', `_${scale}x.png`);
+        results[key] = { ...r, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale };
+        pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
+        await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
+        toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
+        ok = true;
+
+      } catch (e) {
+        if (e.isRateLimit && attempt < 3) continue; // vai tentar novamente
+        pv.innerHTML = prev;
+        toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err');
+        ok = true; // para o loop de retry
+      }
     }
-  }));
+
+    // Intervalo mínimo de 12s entre requisições para evitar rate limit
+    if (i < keys.length - 1) {
+      await new Promise(r => setTimeout(r, 12000));
+    }
+  }
 }
 
 // ── PDF (PNG lossless, sem recompressão) ───────────────────────────────────
