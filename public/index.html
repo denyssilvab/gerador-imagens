@@ -1698,33 +1698,28 @@ async function upscaleSelected(scale) {
     return;
   }
 
-  toast(`Iniciando upscale ${scale}× de ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} (sequencial)…`, '');
+  toast(`Upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} simultaneamente…`, '');
 
-  // Processa UM por vez para respeitar o rate limit do Replicate (burst = 1)
-  for (let i = 0; i < keys.length; i++) {
-    const key = keys[i];
-    const r   = results[key];
+  await Promise.allSettled(keys.map(async (key) => {
+    const r    = results[key];
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     const pv = card?.querySelector('.icard-preview');
-    if (!pv) continue;
+    if (!pv) return;
 
     const prev = pv.innerHTML;
-    const label = `${i + 1}/${keys.length}`;
-    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}× (${label})…</span></div>`;
+    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
 
-    let ok = false;
-    for (let attempt = 0; attempt < 4 && !ok; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         if (attempt > 0) {
-          // Aguarda antes de tentar novamente (rate limit reset)
           const wait = attempt * 15;
-          pv.querySelector('span').textContent = `Rate limit — aguardando ${wait}s… (${label})`;
+          pv.querySelector('span').textContent = `Aguardando ${wait}s (retry ${attempt})…`;
           await new Promise(r => setTimeout(r, wait * 1000));
-          pv.querySelector('span').textContent = `Upscale ${scale}× (${label})…`;
+          pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
         }
 
-        const res = await fetch('/api/upscale', {
+        const res  = await fetch('/api/upscale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataUrl: r.url, scale, token }),
@@ -1733,10 +1728,9 @@ async function upscaleSelected(scale) {
 
         if (!res.ok) {
           const msg = data.error || `HTTP ${res.status}`;
-          // Rate limit — vai tentar novamente
-          if (msg.toLowerCase().includes('throttled') || msg.toLowerCase().includes('rate limit') || res.status === 429) {
-            throw Object.assign(new Error(msg), { isRateLimit: true });
-          }
+          const isThrottle = msg.toLowerCase().includes('throttled') ||
+                             msg.toLowerCase().includes('rate limit') || res.status === 429;
+          if (isThrottle && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
           throw new Error(msg);
         }
 
@@ -1746,21 +1740,16 @@ async function upscaleSelected(scale) {
         pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
         await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
         toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
-        ok = true;
+        return;
 
       } catch (e) {
-        if (e.isRateLimit && attempt < 3) continue; // vai tentar novamente
+        if (e.retry) continue;
         pv.innerHTML = prev;
         toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err');
-        ok = true; // para o loop de retry
+        return;
       }
     }
-
-    // Intervalo mínimo de 12s entre requisições para evitar rate limit
-    if (i < keys.length - 1) {
-      await new Promise(r => setTimeout(r, 12000));
-    }
-  }
+  }));
 }
 
 // ── PDF (PNG lossless, sem recompressão) ───────────────────────────────────
