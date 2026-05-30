@@ -1791,7 +1791,31 @@ async function upscaleSelected(scale) {
   }));
 }
 
-// ── PDF (PNG lossless, sem recompressão) ───────────────────────────────────
+// Detecta PNG/JPEG pelos magic bytes; converte WebP/outros via canvas → PNG
+function imgBytesForPdf(dataUrl) {
+  const b64 = dataUrl.startsWith('data:') ? dataUrl.split(',')[1] : null;
+  if (!b64) return Promise.resolve(null);
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  // PNG: 89 50 4E 47 | JPEG: FF D8 FF
+  if (bytes[0] === 0x89 && bytes[1] === 0x50) return Promise.resolve({ bytes, fmt: 'png' });
+  if (bytes[0] === 0xFF && bytes[1] === 0xD8) return Promise.resolve({ bytes, fmt: 'jpeg' });
+  // WebP / outro formato: re-renderiza via canvas → PNG lossless
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.getContext('2d').drawImage(img, 0, 0);
+      cv.toBlob(blob => blob.arrayBuffer()
+        .then(buf => resolve({ bytes: new Uint8Array(buf), fmt: 'png' }))
+        .catch(reject), 'image/png');
+    };
+    img.onerror = () => reject(new Error('Não foi possível decodificar a imagem'));
+    img.src = dataUrl;
+  });
+}
+
+// ── PDF ────────────────────────────────────────────────────────────────────
 async function createPDF() {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem para o PDF.', 'warn'); return; }
@@ -1815,17 +1839,16 @@ async function createPDF() {
       const img = sorted[i];
       // Usa versão upscaled se disponível
       const srcUrl = img.upscaledUrl || img.url;
-      const base64 = srcUrl?.startsWith('data:') ? srcUrl.split(',')[1] : null;
-      if (!base64) continue;
+      if (!srcUrl?.startsWith('data:')) continue;
 
       document.getElementById('pdf-prog').textContent = `Incorporando página ${i + 1} de ${sorted.length}…`;
       await new Promise(r => setTimeout(r, 0)); // yield para atualizar UI
 
-      const mime = srcUrl.match(/^data:([^;]+)/)?.[1] || 'image/png';
-      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-      const pdfImg = mime === 'image/jpeg' || mime === 'image/jpg'
-        ? await pdfDoc.embedJpg(bytes)
-        : await pdfDoc.embedPng(bytes);
+      const imgData = await imgBytesForPdf(srcUrl);
+      if (!imgData) continue;
+      const pdfImg = imgData.fmt === 'jpeg'
+        ? await pdfDoc.embedJpg(imgData.bytes)
+        : await pdfDoc.embedPng(imgData.bytes);
       const page = pdfDoc.addPage([595.28, 841.89]); // A4 em pontos PDF (72 dpi)
       page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
     }
