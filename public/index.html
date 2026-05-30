@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerador de Material Pedagógico</title>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <style>
     :root {
       --bg: #0e1117;
@@ -435,6 +436,66 @@
       border-top: 1px solid var(--border);
     }
 
+    /* ── Checkbox select ── */
+    .icard-check {
+      position: absolute;
+      top: 8px; left: 8px;
+      width: 18px; height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      z-index: 2;
+    }
+    .icard.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.25); }
+    .icard-preview { position: relative; }
+
+    /* ── Selection toolbar ── */
+    .sel-toolbar {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 10px 18px;
+      background: rgba(99,102,241,.08);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .sel-toolbar.visible { display: flex; }
+    .sel-count { color: var(--primary); font-weight: 700; }
+
+    /* ── Upscale overlay on card ── */
+    .upscale-overlay {
+      position: absolute; inset: 0;
+      background: rgba(14,17,23,.82);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 10px; z-index: 3;
+    }
+    .upscale-overlay .spinner {
+      width: 28px; height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    .upscale-overlay span { font-size: 12px; color: var(--muted); }
+
+    /* ── Modal ── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.72); z-index: 300;
+      align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 24px;
+      width: 92%; max-width: 640px;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .modal h3 { font-size: 15px; font-weight: 700; }
+
     /* ── Empty state ── */
     .empty {
       text-align: center;
@@ -656,12 +717,6 @@
       <span class="pg-badge" id="pg-badge">0 páginas</span>
     </div>
     <div class="card-body">
-      <p class="hint">
-        Cole o prompt com todas as páginas. Cada página deve começar com
-        <code>===============================================</code><br>
-        <code>PAGE X - TÍTULO DA PÁGINA</code><br>
-        <code>===============================================</code>
-      </p>
       <textarea id="prompt" rows="18"
         placeholder="===============================================&#10;PAGE 1 - OPENING CONTEXT&#10;===============================================&#10;&#10;HEADER: Blue tag &quot;Unit 3 | Lesson 32&quot;...&#10;&#10;===============================================&#10;PAGE 2 - SECTION TITLE&#10;===============================================&#10;..."
         oninput="onPromptInput()"></textarea>
@@ -691,9 +746,21 @@
     <div class="card-head">
       <h2>Imagens Geradas</h2>
       <div class="results-actions">
-        <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ Baixar Todas</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
         <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
       </div>
+    </div>
+    <!-- Toolbar de seleção -->
+    <div class="sel-toolbar" id="sel-toolbar">
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+        <input type="checkbox" id="chk-all" onchange="selectAll(this.checked)" style="accent-color:var(--primary);width:15px;height:15px;" />
+        <span>Todas</span>
+      </label>
+      <span class="sel-count" id="sel-count">0 selecionadas</span>
+      <span style="flex:1;"></span>
+      <button class="btn btn-ghost btn-sm" onclick="upscaleSelected(2)" title="Requer token Replicate">⬆ Upscale 2×</button>
+      <button class="btn btn-ghost btn-sm" onclick="upscaleSelected(4)" title="Requer token Replicate">⬆ Upscale 4×</button>
+      <button class="btn btn-ghost btn-sm" onclick="createPDF()">📄 Criar PDF</button>
     </div>
     <div class="card-body">
       <div class="img-grid" id="img-grid">
@@ -709,6 +776,19 @@
 
 <!-- Toasts -->
 <div class="toasts" id="toasts"></div>
+
+<!-- Modal: Refazer imagem -->
+<div class="modal-bg" id="refazer-modal">
+  <div class="modal">
+    <h3>Refazer — Página <span id="refazer-num"></span></h3>
+    <p style="font-size:12px;color:var(--muted);">Cole o prompt modificado para esta página. As especificações de layout e cabeçalho serão aplicadas automaticamente.</p>
+    <textarea id="refazer-prompt" rows="12" style="font-family:monospace;font-size:12px;" placeholder="PAGE X - TÍTULO&#10;&#10;HEADER: ...&#10;TITLE: ...&#10;..."></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeRefazer()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmRefazer()">🔄 Regenerar</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
@@ -865,7 +945,9 @@ let doneCount = 0;
 let errorCount = 0;
 let genCount = 0;
 let currentGen = 0;
-const results = {}; // domKey → { url, filename, pageNum, title }
+const results = {};       // domKey → { url, filename, pageNum, title }
+const selectedKeys = new Set(); // domKeys currently selected
+let refazerTarget = null; // { domKey, gen, idx, pageNum }
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('specs').value = SPECS.lesson;
@@ -1142,11 +1224,11 @@ function handleEvent(ev) {
         url: displayUrl,
         filename: ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`,
         pageNum: ev.pageNum,
-        title: ev.title,
+        title: ev.title || '',
       };
       results[domKey] = result;
       dbSave({ ...result, dataUrl: displayUrl }).catch(() => {});
-      cardDone(currentGen, ev.index, displayUrl, domKey);
+      cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
       break;
     }
@@ -1213,6 +1295,7 @@ function makeCard(gen, idx, num, title) {
   d.id = `card_${key}`;
   d.innerHTML = `
     <div class="icard-head">
+      <input type="checkbox" class="icard-check" id="chk_${key}" onchange="toggleSelect('${key}',this.checked)" />
       <span class="icard-num">Pág. ${num}</span>
       <span class="icard-title">${esc(title)}</span>
       <span class="icard-status s-gen" id="st_${key}">Gerando…</span>
@@ -1240,6 +1323,7 @@ function makePersistedCard(r) {
   d.className = 'icard';
   d.innerHTML = `
     <div class="icard-head">
+      <input type="checkbox" class="icard-check" onchange="toggleSelect('${domKey}',this.checked)" />
       <span class="icard-num">Pág. ${r.pageNum}</span>
       <span class="icard-title">${esc(r.title || '')}</span>
       <span class="icard-status s-done">✓ Salva</span>
@@ -1250,12 +1334,13 @@ function makePersistedCard(r) {
     <div class="icard-foot" style="display:flex;">
       <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
       <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
+      <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${r.pageNum})">🔄 Refazer</button>
     </div>
   `;
   return d;
 }
 
-function cardDone(gen, idx, url, domKey) {
+function cardDone(gen, idx, url, domKey, result) {
   const key = ck(gen, idx);
   const st = document.getElementById(`st_${key}`);
   const pv = document.getElementById(`pv_${key}`);
@@ -1264,10 +1349,14 @@ function cardDone(gen, idx, url, domKey) {
   st.className = 'icard-status s-done';
   st.textContent = '✓ Pronta';
   pv.innerHTML = `<img src="${esc(url)}" loading="lazy" alt="Pág. ${idx + 1}" />`;
+  const chk = document.getElementById(`chk_${key}`);
+  if (chk) chk.disabled = false;
   ft.style.display = 'flex';
+  const pageNum = result?.pageNum || (idx + 1);
   ft.innerHTML = `
     <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
     <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
+    <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pageNum})">🔄 Refazer</button>
   `;
 }
 
@@ -1354,7 +1443,242 @@ async function clearResults() {
   document.getElementById('results-card').style.display = 'none';
   document.getElementById('prog-wrap').style.display = 'none';
   Object.keys(results).forEach(k => delete results[k]);
+  selectedKeys.clear();
+  updateSelectionUI();
   doneCount = 0; errorCount = 0; totalPages = 0;
+}
+
+// ── Selection ──────────────────────────────────────────────────────────────
+function toggleSelect(key, checked) {
+  if (checked) selectedKeys.add(key); else selectedKeys.delete(key);
+  const card = document.querySelector(`[id="card_${key}"], .icard`);
+  const cardEl = document.getElementById(`card_${key}`) ||
+    [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
+  if (cardEl) cardEl.classList.toggle('selected', checked);
+  updateSelectionUI();
+}
+
+function selectAll(checked) {
+  document.querySelectorAll('.icard-check').forEach(chk => {
+    chk.checked = checked;
+    const m = chk.getAttribute('onchange').match(/'([^']+)'/);
+    if (m) { if (checked) selectedKeys.add(m[1]); else selectedKeys.delete(m[1]); }
+    const card = chk.closest('.icard');
+    if (card) card.classList.toggle('selected', checked);
+  });
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const n = selectedKeys.size;
+  const toolbar = document.getElementById('sel-toolbar');
+  const count   = document.getElementById('sel-count');
+  toolbar.classList.toggle('visible', n > 0);
+  count.textContent = `${n} selecionada${n !== 1 ? 's' : ''}`;
+  const chkAll = document.getElementById('chk-all');
+  const total  = document.querySelectorAll('.icard-check').length;
+  if (chkAll) { chkAll.checked = n === total && total > 0; chkAll.indeterminate = n > 0 && n < total; }
+}
+
+// ── Refazer ────────────────────────────────────────────────────────────────
+function openRefazer(domKey, pageNum) {
+  refazerTarget = { domKey, pageNum };
+  document.getElementById('refazer-num').textContent = pageNum;
+  document.getElementById('refazer-prompt').value = '';
+  document.getElementById('refazer-modal').classList.add('open');
+  setTimeout(() => document.getElementById('refazer-prompt').focus(), 100);
+}
+
+function closeRefazer() {
+  document.getElementById('refazer-modal').classList.remove('open');
+  refazerTarget = null;
+}
+
+async function confirmRefazer() {
+  if (!refazerTarget) return;
+  const promptText = document.getElementById('refazer-prompt').value.trim();
+  if (!promptText) { toast('Cole o prompt da página antes de regenerar.', 'warn'); return; }
+
+  const { domKey, pageNum } = refazerTarget;
+  closeRefazer();
+
+  const apiKey = getActiveApiKey();
+  const model  = getActiveModel();
+  const quality = document.getElementById('quality').value;
+  const size    = provider === 'openai'
+    ? document.getElementById('resolution-openai').value
+    : document.getElementById('resolution-replicate').value;
+
+  if (!apiKey) { toast('Insira a chave de API antes de regenerar.', 'err'); return; }
+
+  // Build full prompt with specs
+  const fakePage = { num: pageNum, title: '', content: promptText };
+  const fullPrompt = buildPrompt(fakePage);
+
+  // Find or create card element to show progress
+  const card = document.querySelector(`[id="card_${domKey}"]`) ||
+    [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${domKey}'"]`));
+  const pv = card?.querySelector('.icard-preview');
+  if (pv) pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Regenerando...</span></div>`;
+
+  try {
+    const res = await fetch('/api/gerar-lote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey, provider, model, quality, size,
+        pages: [{ num: pageNum, title: '', content: fullPrompt }]
+      }),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.type === 'image') {
+            const dataUrl = ev.dataUrl || ev.url;
+            const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
+            results[domKey] = { ...results[domKey], url: dataUrl, filename };
+            if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
+            await dbSave({ dataUrl, url: dataUrl, filename, pageNum, title: '', ts: Date.now() }).catch(() => {});
+            toast(`Pág. ${pageNum} regenerada!`, 'ok');
+          } else if (ev.type === 'error') {
+            if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
+            toast(`Erro: ${ev.error}`, 'err');
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    toast(`Erro ao regenerar: ${e.message}`, 'err');
+  }
+}
+
+// ── Upscale via Replicate Real-ESRGAN ──────────────────────────────────────
+async function upscaleSelected(scale) {
+  const keys = [...selectedKeys].filter(k => results[k]?.url);
+  if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
+  const token = document.getElementById('apiKey-replicate').value.trim();
+  if (!token) { toast('Insira o Replicate API Token (aba Replicate nas configurações).', 'err'); return; }
+
+  toast(`Iniciando upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''}...`, '');
+
+  await Promise.allSettled(keys.map(async (key) => {
+    const r = results[key];
+    const card = document.getElementById(`card_${key}`) ||
+      [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
+    const pv = card?.querySelector('.icard-preview');
+    if (pv) {
+      const prev = pv.innerHTML;
+      pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
+      try {
+        const upscaledUrl = await doUpscale(r.url, scale, token);
+        const filename = r.filename.replace('.png', `_${scale}x.png`);
+        results[key] = { ...r, url: upscaledUrl, filename };
+        pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
+        // Update footer buttons
+        const ft = card?.querySelector('.icard-foot');
+        if (ft) ft.querySelectorAll('button').forEach(b => {
+          if (b.textContent.includes('Baixar')) b.setAttribute('onclick', `downloadByKey('${key}')`);
+          if (b.textContent.includes('Abrir'))  b.setAttribute('onclick', `openByKey('${key}')`);
+        });
+        await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
+        toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
+      } catch (e) {
+        pv.innerHTML = prev;
+        toast(`Pág. ${r.pageNum} — erro upscale: ${e.message}`, 'err');
+      }
+    }
+  }));
+}
+
+async function doUpscale(dataUrl, scale, token) {
+  const res = await fetch('https://api.replicate.com/v1/models/nightmareai/real-esrgan/predictions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'wait=60',
+    },
+    body: JSON.stringify({ input: { image: dataUrl, scale, face_enhance: false } }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Replicate ${res.status}`);
+  }
+
+  let pred = await res.json();
+  if (pred.status !== 'succeeded') pred = await pollUpscale(token, pred.id);
+
+  const outputUrl = Array.isArray(pred.output) ? pred.output[0] : pred.output;
+  if (!outputUrl) throw new Error('Sem saída do upscaler');
+
+  // Convert output URL to persistent data URL
+  const imgRes = await fetch(outputUrl);
+  const blob = await imgRes.blob();
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function pollUpscale(token, id) {
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    const res = await fetch(`https://api.replicate.com/v1/predictions/${id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.status === 'succeeded') return data;
+    if (data.status === 'failed' || data.status === 'canceled') throw new Error(data.error || 'Upscale falhou');
+  }
+  throw new Error('Timeout no upscale (3 min)');
+}
+
+// ── PDF (sem compressão — PNG lossless) ────────────────────────────────────
+async function createPDF() {
+  const keys = [...selectedKeys].filter(k => results[k]?.url);
+  if (!keys.length) { toast('Selecione ao menos uma imagem para o PDF.', 'warn'); return; }
+  if (typeof PDFLib === 'undefined') { toast('pdf-lib ainda carregando, aguarde.', 'warn'); return; }
+
+  toast('Gerando PDF...', '');
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    const sorted = keys.map(k => results[k]).sort((a, b) => (a.pageNum||0) - (b.pageNum||0));
+
+    for (const img of sorted) {
+      const base64 = img.url.startsWith('data:') ? img.url.split(',')[1] : null;
+      if (!base64) continue;
+      const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+      const pngImg = await pdfDoc.embedPng(bytes);
+      // A4 em pontos PDF (1 pt = 1/72 polegada)
+      const page = pdfDoc.addPage([595.28, 841.89]);
+      page.drawImage(pngImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+    }
+
+    const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'material-pedagogico.pdf';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    toast(`PDF com ${sorted.length} página${sorted.length > 1 ? 's' : ''} criado!`, 'ok');
+  } catch (e) {
+    toast(`Erro ao criar PDF: ${e.message}`, 'err');
+  }
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────
