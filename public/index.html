@@ -478,6 +478,53 @@
     }
     .upscale-overlay span { font-size: 12px; color: var(--muted); }
 
+    /* ── Download version dropdown ── */
+    .dl-menu {
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 0;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      overflow: hidden;
+      z-index: 50;
+      min-width: 180px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    }
+    .dl-menu button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: 9px 14px;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .dl-menu button:hover { background: var(--surface2); }
+    .dl-menu .dl-label { font-size: 10px; color: var(--muted); padding: 6px 14px 2px; }
+    .icard-foot { position: relative; }
+
+    /* ── PDF progress overlay ── */
+    .pdf-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 400;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px;
+    }
+    .pdf-overlay .spinner {
+      width: 40px; height: 40px;
+      border: 4px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+    }
+    .pdf-overlay p { color: #fff; font-size: 14px; }
+
     /* ── Modal ── */
     .modal-bg {
       display: none; position: fixed; inset: 0;
@@ -1330,7 +1377,7 @@ function makePersistedCard(r) {
       <img src="${esc(r.dataUrl)}" loading="lazy" alt="Pág. ${r.pageNum}" />
     </div>
     <div class="icard-foot" style="display:flex;">
-      <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
+      <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}',this)">⬇ Baixar</button>
       <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
       <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${r.pageNum})">🔄 Refazer</button>
     </div>
@@ -1352,7 +1399,7 @@ function cardDone(gen, idx, url, domKey, result) {
   ft.style.display = 'flex';
   const pageNum = result?.pageNum || (idx + 1);
   ft.innerHTML = `
-    <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}')">⬇ Baixar</button>
+    <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}',this)">⬇ Baixar</button>
     <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
     <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pageNum})">🔄 Refazer</button>
   `;
@@ -1388,12 +1435,48 @@ function cardCancelled(gen, idx) {
 }
 
 // ── Download ───────────────────────────────────────────────────────────────
-function downloadByKey(key) {
+let _openMenu = null;
+
+function downloadByKey(key, btnEl) {
   const r = results[key];
   if (!r) return;
+
+  // Se tem versão upscaled, mostra picker
+  if (r.upscaledUrl) {
+    if (_openMenu) { _openMenu.remove(); _openMenu = null; }
+    const menu = document.createElement('div');
+    menu.className = 'dl-menu';
+    menu.innerHTML = `
+      <div class="dl-label">Escolha a versão</div>
+      <button onclick="triggerDownload('${key}','original')">📄 Original</button>
+      <button onclick="triggerDownload('${key}','upscaled')">🔍 Upscaled ${r.upscaleApplied}×</button>
+    `;
+    const foot = btnEl?.closest('.icard-foot') || document.body;
+    foot.appendChild(menu);
+    _openMenu = menu;
+    const close = (e) => { if (!menu.contains(e.target)) { menu.remove(); _openMenu = null; document.removeEventListener('click', close); } };
+    setTimeout(() => document.addEventListener('click', close), 10);
+    return;
+  }
+
+  doDownload(r.url, r.filename);
+}
+
+function triggerDownload(key, version) {
+  const r = results[key];
+  if (!r) return;
+  if (_openMenu) { _openMenu.remove(); _openMenu = null; }
+  if (version === 'upscaled' && r.upscaledUrl) {
+    doDownload(r.upscaledUrl, r.upscaleFilename || r.filename.replace('.png','_upscaled.png'));
+  } else {
+    doDownload(r.url, r.filename);
+  }
+}
+
+function doDownload(url, filename) {
   const a = document.createElement('a');
-  a.href = r.url;
-  a.download = r.filename;
+  a.href = url;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -1402,8 +1485,9 @@ function downloadByKey(key) {
 function openByKey(key) {
   const r = results[key];
   if (!r) return;
+  const url = r.upscaledUrl || r.url;
   const w = window.open('', '_blank');
-  w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#000"><img src="${r.url}" style="max-width:100%;display:block;margin:auto"></body></html>`);
+  w.document.write(`<!DOCTYPE html><html><body style="margin:0;background:#000"><img src="${url}" style="max-width:100%;display:block;margin:auto"></body></html>`);
 }
 
 async function downloadAll() {
@@ -1569,7 +1653,13 @@ async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
 
-  toast(`Processando upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''}...`, '');
+  const token = document.getElementById('apiKey-replicate').value.trim();
+  if (!token) {
+    toast('Upscale AI requer o Replicate API Token. Insira-o na aba Replicate das configurações.', 'err');
+    return;
+  }
+
+  toast(`Enviando ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} para upscale ${scale}× (AI)...`, '');
 
   await Promise.allSettled(keys.map(async (key) => {
     const r = results[key];
@@ -1578,73 +1668,68 @@ async function upscaleSelected(scale) {
     const pv = card?.querySelector('.icard-preview');
     if (!pv) return;
     const prev = pv.innerHTML;
-    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
+    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>IA Upscale ${scale}×…</span></div>`;
     try {
-      const upscaledUrl = await upscaleCanvas(r.url, scale);
+      const res = await fetch('/api/upscale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dataUrl: r.url, scale, token }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+
+      const upscaledUrl = data.dataUrl;
       const filename = r.filename.replace('.png', `_${scale}x.png`);
-      results[key] = { ...r, url: upscaledUrl, filename };
+      // Guarda original + upscaled
+      results[key] = { ...r, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale };
       pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
       await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
-      toast(`Pág. ${r.pageNum} — ${scale}× concluído!`, 'ok');
+      toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
     } catch (e) {
       pv.innerHTML = prev;
-      toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err');
+      toast(`Pág. ${r.pageNum} — erro upscale: ${e.message}`, 'err');
     }
   }));
 }
 
-// Escalonamento por múltiplas etapas via Canvas — preserva texto e bordas sem distorção
-async function upscaleCanvas(dataUrl, finalScale) {
-  const img = await new Promise((resolve, reject) => {
-    const i = new Image();
-    i.onload  = () => resolve(i);
-    i.onerror = () => reject(new Error('Falha ao carregar imagem'));
-    i.src = dataUrl;
-  });
-
-  // Etapas de 1.5× em vez de um salto único (evita artefatos e distorção de texto)
-  const steps = Math.ceil(Math.log(finalScale) / Math.log(1.5));
-  const stepScale = Math.pow(finalScale, 1 / steps);
-
-  let src = document.createElement('canvas');
-  src.width  = img.width;
-  src.height = img.height;
-  src.getContext('2d').drawImage(img, 0, 0);
-
-  for (let s = 0; s < steps; s++) {
-    const dst = document.createElement('canvas');
-    dst.width  = Math.round(src.width  * stepScale);
-    dst.height = Math.round(src.height * stepScale);
-    const ctx = dst.getContext('2d');
-    ctx.imageSmoothingEnabled  = true;
-    ctx.imageSmoothingQuality  = 'high';
-    ctx.drawImage(src, 0, 0, dst.width, dst.height);
-    src = dst;
-  }
-
-  return src.toDataURL('image/png');
-}
-
-// ── PDF (sem compressão — PNG lossless) ────────────────────────────────────
+// ── PDF (PNG lossless, sem recompressão) ───────────────────────────────────
 async function createPDF() {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem para o PDF.', 'warn'); return; }
   if (typeof PDFLib === 'undefined') { toast('pdf-lib ainda carregando, aguarde.', 'warn'); return; }
 
-  toast('Gerando PDF...', '');
+  const sorted = keys.map(k => results[k]).sort((a, b) => (a.pageNum||0) - (b.pageNum||0));
+
+  // Overlay de progresso
+  const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay';
+  overlay.innerHTML = `
+    <div class="spinner"></div>
+    <p id="pdf-prog">Preparando PDF… 0 / ${sorted.length}</p>
+  `;
+  document.body.appendChild(overlay);
+
   try {
     const pdfDoc = await PDFLib.PDFDocument.create();
-    const sorted = keys.map(k => results[k]).sort((a, b) => (a.pageNum||0) - (b.pageNum||0));
 
-    for (const img of sorted) {
-      const base64 = img.url.startsWith('data:') ? img.url.split(',')[1] : null;
+    for (let i = 0; i < sorted.length; i++) {
+      const img = sorted[i];
+      // Usa versão upscaled se disponível
+      const srcUrl = img.upscaledUrl || img.url;
+      const base64 = srcUrl?.startsWith('data:') ? srcUrl.split(',')[1] : null;
       if (!base64) continue;
+
+      document.getElementById('pdf-prog').textContent = `Incorporando página ${i + 1} de ${sorted.length}…`;
+      await new Promise(r => setTimeout(r, 0)); // yield para atualizar UI
+
       const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
       const pngImg = await pdfDoc.embedPng(bytes);
-      // A4 em pontos PDF (1 pt = 1/72 polegada)
-      const page = pdfDoc.addPage([595.28, 841.89]);
+      const page = pdfDoc.addPage([595.28, 841.89]); // A4 em pontos PDF (72 dpi)
       page.drawImage(pngImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
     }
+
+    document.getElementById('pdf-prog').textContent = 'Finalizando e baixando…';
+    await new Promise(r => setTimeout(r, 0));
 
     const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
@@ -1658,6 +1743,8 @@ async function createPDF() {
     toast(`PDF com ${sorted.length} página${sorted.length > 1 ? 's' : ''} criado!`, 'ok');
   } catch (e) {
     toast(`Erro ao criar PDF: ${e.message}`, 'err');
+  } finally {
+    overlay.remove();
   }
 }
 
