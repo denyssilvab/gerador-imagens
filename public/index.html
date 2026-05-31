@@ -1267,7 +1267,7 @@ async function startGeneration() {
       buf = lines.pop();
       for (const line of lines) {
         if (line.startsWith('data: ')) {
-          try { handleEvent(JSON.parse(line.slice(6))); } catch (_) {}
+          try { await handleEvent(JSON.parse(line.slice(6))); } catch (_) {}
         }
       }
     }
@@ -1280,7 +1280,7 @@ async function startGeneration() {
   }
 }
 
-function handleEvent(ev) {
+async function handleEvent(ev) {
   switch (ev.type) {
     case 'start':
       currentRequestId = ev.requestId;
@@ -1289,7 +1289,12 @@ function handleEvent(ev) {
     case 'image': {
       doneCount++;
       stopCardTimer(currentGen, ev.index);
-      const displayUrl = ev.dataUrl || ev.url || '';
+      let displayUrl = ev.dataUrl || ev.url || '';
+      // Aplica header/footer programático
+      try {
+        const { header, footer } = _overlayTexts();
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, docType);
+      } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       const domKey = ck(currentGen, ev.index);
       const result = {
         url: displayUrl,
@@ -1707,7 +1712,11 @@ async function confirmRefazer() {
         try {
           const ev = JSON.parse(line.slice(6));
           if (ev.type === 'image') {
-            const dataUrl = ev.dataUrl || ev.url;
+            let dataUrl = ev.dataUrl || ev.url;
+            try {
+              const { header, footer } = _overlayTexts();
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, docType);
+            } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             results[domKey] = { ...results[domKey], url: dataUrl, filename };
             if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
@@ -1813,6 +1822,135 @@ function imgBytesForPdf(dataUrl) {
     img.onerror = () => reject(new Error('Não foi possível decodificar a imagem'));
     img.src = dataUrl;
   });
+}
+
+// ── Header/Footer overlay (Canvas API — gratuita, nativa) ─────────────────
+function _rrect(ctx, x, y, w, h, rTL, rTR, rBR, rBL) {
+  ctx.beginPath();
+  ctx.moveTo(x + rTL, y);
+  ctx.lineTo(x + w - rTR, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + rTR);
+  ctx.lineTo(x + w, y + h - rBR);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - rBR, y + h);
+  ctx.lineTo(x + rBL, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - rBL);
+  ctx.lineTo(x, y + rTL);
+  ctx.quadraticCurveTo(x, y, x + rTL, y);
+  ctx.closePath();
+}
+
+function _halftone(ctx, x, y, w, h, dotR, spacing, color) {
+  ctx.fillStyle = color;
+  for (let dx = x + spacing * 0.6; dx < x + w - dotR; dx += spacing) {
+    for (let dy = y + spacing * 0.6; dy < y + h - dotR; dy += spacing) {
+      ctx.beginPath(); ctx.arc(dx, dy, dotR, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+}
+
+function _dottedLine(ctx, x1, y1, x2, lw, dashLen, gapLen) {
+  ctx.strokeStyle = '#092964'; ctx.lineWidth = lw;
+  ctx.setLineDash([dashLen, gapLen]);
+  ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y1); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const W = img.naturalWidth, H = img.naturalHeight;
+      const cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      const ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+
+      const mx = mm => W * mm / 210;
+      const my = mm => H * mm / 297;
+      const mpt = p => W * p / 595.28;
+      const lw = mpt(2);
+
+      if (type === 'lessonplan') {
+        // ── Lessonplan header ───────────────────────────────────────────────
+        const hH = my(12);
+        // Apaga área do cabeçalho gerado pela IA
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, my(14));
+
+        // Retângulo verde superior esquerdo: x=20mm, w=25mm, h=12mm
+        const gX = mx(20), gW = mx(25), r = mx(1.5);
+        ctx.fillStyle = '#89c13b';
+        _rrect(ctx, gX, 0, gW, hH, r, r, r, r); ctx.fill();
+        _halftone(ctx, gX, 0, gW, hH, mx(1.2), mx(4.5), '#a8c735');
+
+        // Barra laranja: x=45mm até x=190mm
+        const oX = mx(45), oW = mx(190) - mx(45);
+        ctx.fillStyle = '#ff6b35';
+        _rrect(ctx, oX, 0, oW, hH, r, r, r, r); ctx.fill();
+
+        // Texto na barra laranja (Branco, Bold, x=55mm centralizado verticalmente)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillText(headerText, mx(55), hH / 2);
+
+        // Linha pontilhada a y=50mm
+        _dottedLine(ctx, mx(20), my(50), mx(190), lw, mx(3), mx(2));
+
+      } else {
+        // ── Lesson / Practice header ────────────────────────────────────────
+        // Apaga barra lateral esquerda e área da tag
+        ctx.fillStyle = '#89c13b'; ctx.fillRect(0, 0, mx(15), H);
+        _halftone(ctx, 0, 0, mx(15), H, mx(1.2), mx(4.5), '#a8c735');
+
+        // Apaga área da tag com branco
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(mx(15), 0, W - mx(15), my(42));
+
+        // Tag azul: x=15mm, y=25mm, w=70mm, h=12mm, arredondada só à direita
+        const tX = mx(15), tY = my(25), tW = mx(70), tH = my(12), tR = my(5);
+        ctx.fillStyle = '#0251af';
+        _rrect(ctx, tX, tY, tW, tH, 0, tR, tR, 0); ctx.fill();
+
+        // Texto da tag (Branco, Bold, centralizado)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${mpt(11)}px Arial,Helvetica,sans-serif`;
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+        ctx.fillText(headerText, tX + tW / 2, tY + tH / 2);
+
+        // Linha pontilhada a y=38mm
+        _dottedLine(ctx, mx(25), my(38), mx(190), lw, mx(3), mx(2));
+      }
+
+      // ── Footer (igual em todos os tipos) ───────────────────────────────────
+      const footerY = H - my(20);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(24), W, my(24));
+      _dottedLine(ctx, mx(20), footerY, mx(190), lw, mx(3), mx(2));
+      ctx.fillStyle = '#666666';
+      ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
+      ctx.textBaseline = 'top'; ctx.textAlign = 'center';
+      ctx.fillText(footerText, W / 2, footerY + my(3));
+      ctx.textAlign = 'left';
+
+      cv.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      }, 'image/png');
+    };
+    img.onerror = () => reject(new Error('Overlay falhou'));
+    img.src = dataUrl;
+  });
+}
+
+function _overlayTexts() {
+  const unit   = document.getElementById('unit')?.value.trim()   || '';
+  const lesson = document.getElementById('lesson')?.value.trim() || '';
+  const ccss   = document.getElementById('ccss')?.value.trim()   || '';
+  const header = docType === 'lessonplan'
+    ? `Unit ${unit} | Lesson Plan`
+    : `Unit ${unit} | Lesson ${lesson}`;
+  const footer = `Mathematics - 6th Grade | ${ccss}`;
+  return { header, footer };
 }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
