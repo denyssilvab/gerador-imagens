@@ -1770,7 +1770,10 @@ async function upscaleSelected(scale) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataUrl: sourceUrl, scale, token, upscaleModel }),
         });
-        const data = await res.json();
+        const data = await res.json().catch(async () => {
+          const txt = await res.text().catch(() => '');
+          return { error: txt || `HTTP ${res.status}: resposta inválida` };
+        });
 
         if (!res.ok) {
           const msg = data.error || `HTTP ${res.status}`;
