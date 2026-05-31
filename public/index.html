@@ -871,10 +871,13 @@ lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
 MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
 USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
 
-⚠️ IMPORTANT: DO NOT draw any header or footer.
-Header and footer are added automatically after generation.
-Start all content at y=42mm from the top.
-Content area ends at y=270mm from the top.
+⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
+They are added programmatically after generation.
+
+CONTENT AREA (draw ONLY inside this zone):
+• Starts at: y=42mm from top (leave top 42mm completely white)
+• Ends at: y=275mm from top (leave bottom 22mm completely white)
+• Horizontal: x=25mm to x=190mm (leave both side margins white — NO lines on edges)
 
 TYPOGRAPHY (NEVER SMALLER THAN):
 • Titles: 20pt Bold #092964
@@ -899,10 +902,13 @@ practice: `FORMAT: A4 (210mm × 297mm), 300 DPI
 MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
 USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
 
-⚠️ IMPORTANT: DO NOT draw any header or footer.
-Header and footer are added automatically after generation.
-Start all content at y=42mm from the top.
-Content area ends at y=270mm from the top.
+⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
+They are added programmatically after generation.
+
+CONTENT AREA (draw ONLY inside this zone):
+• Starts at: y=42mm from top (leave top 42mm completely white)
+• Ends at: y=275mm from top (leave bottom 22mm completely white)
+• Horizontal: x=25mm to x=190mm (leave both side margins white — NO lines on edges)
 
 TYPOGRAPHY:
 • Section titles: 20pt Bold #092964
@@ -924,10 +930,13 @@ lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 MARGINS: 20mm on all sides
 USABLE WIDTH: 170mm (x=20mm to x=190mm)
 
-⚠️ IMPORTANT: DO NOT draw any header or footer.
-Header and footer are added automatically after generation.
-Start all content at y=55mm from the top.
-Content area ends at y=270mm from the top.
+⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
+They are added programmatically after generation.
+
+CONTENT AREA (draw ONLY inside this zone):
+• Starts at: y=16mm from top (leave top 16mm completely white)
+• Ends at: y=275mm from top (leave bottom 22mm completely white)
+• Horizontal: x=20mm to x=190mm (leave both side margins white — NO lines on edges)
 
 TYPOGRAPHY:
 • Page titles: 24pt Bold #092964
@@ -1847,39 +1856,45 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
       const mpt = p => W * p / 595.28;
       const lw = mpt(2);
 
+      // ── Limpa margens laterais (remove linhas finas geradas pela IA) ────────
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(mx(190), 0, W, H);           // margem direita
+
       if (type === 'lessonplan') {
         // ── Lessonplan header ───────────────────────────────────────────────
         const hH = my(12);
-        // Apaga área do cabeçalho gerado pela IA
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, my(14));
+        // Limpa margem esquerda + toda a faixa do header
+        ctx.fillRect(0, 0, mx(20), H);           // margem esquerda (antes do retângulo verde)
+        ctx.fillRect(0, 0, W, my(15));            // faixa superior: garante área limpa
 
-        // Retângulo verde superior esquerdo: x=20mm, w=25mm, h=12mm
+        // Retângulo verde: x=20mm, y=0, w=25mm, h=12mm
+        // Cantos superiores retos (encosta no topo), inferiores levemente arredondados
         const gX = mx(20), gW = mx(25), r = mx(1.5);
         ctx.fillStyle = '#89c13b';
-        _rrect(ctx, gX, 0, gW, hH, r, r, r, r); ctx.fill();
+        _rrect(ctx, gX, 0, gW, hH, 0, 0, r, r); ctx.fill();
         _halftone(ctx, gX, 0, gW, hH, mx(1.2), mx(4.5), '#a8c735');
 
-        // Barra laranja: x=45mm até x=190mm
+        // Barra laranja: x=45mm até x=190mm, cantos superiores retos
         const oX = mx(45), oW = mx(190) - mx(45);
         ctx.fillStyle = '#ff6b35';
-        _rrect(ctx, oX, 0, oW, hH, r, r, r, r); ctx.fill();
+        _rrect(ctx, oX, 0, oW, hH, 0, 0, r, r); ctx.fill();
 
-        // Texto na barra laranja (Branco, Bold, x=55mm centralizado verticalmente)
+        // Texto na barra laranja
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
         ctx.fillText(headerText, mx(55), hH / 2);
 
-        // Linha pontilhada a y=50mm
-        _dottedLine(ctx, mx(20), my(50), mx(190), lw, mx(3), mx(2));
+        // Linha pontilhada logo abaixo do cabeçalho (y=14mm, 2mm após os 12mm do header)
+        _dottedLine(ctx, mx(20), my(14), mx(190), lw, mx(3), mx(2));
 
       } else {
         // ── Lesson / Practice header ────────────────────────────────────────
-        // Apaga barra lateral esquerda e área da tag
+        // Sidebar verde: x=0 até x=15mm, altura total
         ctx.fillStyle = '#89c13b'; ctx.fillRect(0, 0, mx(15), H);
         _halftone(ctx, 0, 0, mx(15), H, mx(1.2), mx(4.5), '#a8c735');
 
-        // Apaga área da tag com branco
+        // Limpa área acima da linha pontilhada (x=15mm em diante)
         ctx.fillStyle = '#ffffff'; ctx.fillRect(mx(15), 0, W - mx(15), my(42));
 
         // Tag azul: x=15mm, y=25mm, w=70mm, h=12mm, arredondada só à direita
@@ -1887,19 +1902,19 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         ctx.fillStyle = '#0251af';
         _rrect(ctx, tX, tY, tW, tH, 0, tR, tR, 0); ctx.fill();
 
-        // Texto da tag (Branco, Bold, centralizado)
+        // Texto da tag
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(11)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
         ctx.fillText(headerText, tX + tW / 2, tY + tH / 2);
 
-        // Linha pontilhada a y=38mm
+        // Linha pontilhada a y=38mm (2mm abaixo da tag que termina em y=37mm)
         _dottedLine(ctx, mx(25), my(38), mx(190), lw, mx(3), mx(2));
       }
 
       // ── Footer (igual em todos os tipos) ───────────────────────────────────
       const footerY = H - my(20);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(24), W, my(24));
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(22), W, my(22)); // wipe menor → menos conteúdo cortado
       _dottedLine(ctx, mx(20), footerY, mx(190), lw, mx(3), mx(2));
       ctx.fillStyle = '#666666';
       ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
