@@ -931,10 +931,10 @@ lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 Header and footer are added automatically after generation.
 
 CONTENT AREA — draw ONLY inside this zone:
-• Vertical: y=25mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
+• Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
 • Horizontal: x=35mm (left) to x=190mm (right) — NO content, lines or borders outside
 • COMPACT LAYOUT: max 4–6mm vertical spacing between sections
-• ALL content MUST fit within these bounds — reduce spacing if needed, never overflow
+• ALL content MUST fit within y=20mm–y=278mm — reduce spacing if needed, never overflow
 • Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
 
 TYPOGRAPHY:
@@ -1863,8 +1863,8 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
 
       if (type === 'lessonplan') {
         // ── Lessonplan header ───────────────────────────────────────────────
-        // Wipe: y=0 a y=25mm (5mm de buffer após a linha pontilhada em y=20mm)
-        ctx.fillRect(0, 0, W, my(25));
+        // Wipe: y=0 a y=20mm
+        ctx.fillRect(0, 0, W, my(20));
 
         const hY = my(5);    // header em y=5mm
         const hH = my(10);   // altura: 10mm
