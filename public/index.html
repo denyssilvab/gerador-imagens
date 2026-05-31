@@ -868,16 +868,15 @@
 const SPECS = {
 lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
-USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
-
 ⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
-They are added programmatically after generation.
+Header and footer are added automatically after generation.
 
-CONTENT AREA (draw ONLY inside this zone):
-• Starts at: y=42mm from top (leave top 42mm completely white)
-• Ends at: y=275mm from top (leave bottom 22mm completely white)
-• Horizontal: x=25mm to x=190mm (leave both side margins white — NO lines on edges)
+CONTENT AREA — draw ONLY inside this zone:
+• Vertical: y=25mm (top) to y=275mm (bottom) — leave everything outside this range WHITE
+• Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
+• COMPACT LAYOUT: max 4–6mm vertical spacing between sections
+• ALL content MUST fit within y=25mm–y=275mm — reduce spacing if needed, never overflow
+• Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
 
 TYPOGRAPHY (NEVER SMALLER THAN):
 • Titles: 20pt Bold #092964
@@ -895,26 +894,31 @@ LAYOUT PRINCIPLES:
 ✓ Dotted lines for section divisions, sidebars for enrichment
 ✓ Text aligned LEFT only
 ✓ Rounded boxes: 5mm corners, 15mm padding
-✓ White space is acceptable — do NOT stretch content to fill page`,
+✓ White space is acceptable — do NOT stretch content to fill page
+
+⚠️ TEXT RENDERING:
+✓ NEVER stretch or distort text vertically or horizontally
+✓ Natural typography — letter aspect ratios unchanged from standard font
+✓ Text boxes auto-size to content, NOT forced to fill box`,
 
 practice: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
-USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
-
 ⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
-They are added programmatically after generation.
+Header and footer are added automatically after generation.
 
-CONTENT AREA (draw ONLY inside this zone):
-• Starts at: y=42mm from top (leave top 42mm completely white)
-• Ends at: y=275mm from top (leave bottom 22mm completely white)
-• Horizontal: x=25mm to x=190mm (leave both side margins white — NO lines on edges)
+CONTENT AREA — draw ONLY inside this zone:
+• Vertical: y=25mm (top) to y=275mm (bottom) — leave everything outside this range WHITE
+• Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
+• COMPACT LAYOUT: max 4–6mm vertical spacing between sections
+• ALL content MUST fit within y=25mm–y=275mm — reduce spacing if needed, never overflow
+• Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
 
-TYPOGRAPHY:
+TYPOGRAPHY (NEVER SMALLER THAN):
 • Section titles: 20pt Bold #092964
 • Exercise numbers: 18pt Bold #0251af
 • Instructions: 18pt Regular #000000
 • Answers/blanks: 18pt Regular, underline or dotted lines
+• ALL TITLES: Sentence case — NEVER all caps
 
 COLORS: Navy #0251af | Dark Blue #092964 | Green #89c13b
         Backgrounds: #dceafa #e8f5e9 #fff4e6 #f3e5f5
@@ -923,7 +927,11 @@ EXERCISE LAYOUT:
 ✓ Clear numbered exercises with visual separation
 ✓ Answer blanks: dotted or solid underlines
 ✓ Rounded boxes: 5mm corners, 12mm padding
-✓ Progressive difficulty within the page`,
+✓ Progressive difficulty within the page
+
+⚠️ TEXT RENDERING:
+✓ NEVER stretch or distort text vertically or horizontally
+✓ Natural typography — letter aspect ratios unchanged from standard font`,
 
 lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
@@ -1116,6 +1124,10 @@ function buildPrompt(page) {
 
   const footerText = `Mathematics - 6th Grade | ${ccss}`;
 
+  const [zone, maxY, leftX] = docType === 'lessonplan'
+    ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
+    : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
+
   return [
     specs,
     '',
@@ -1126,9 +1138,9 @@ function buildPrompt(page) {
     page.content,
     '',
     `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
-    `CRITICAL: Content zone is x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=278mm.`,
+    `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
     `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
-    `CRITICAL: Use the FULL horizontal width x=35mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
+    `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
   ].join('\n');
 }
 
@@ -2001,46 +2013,63 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         // Linha pontilhada: x=15mm→x=200mm, y=20mm
         _dottedLine(ctx, mx(15), my(20), mx(200), lw, mx(3), mx(2));
 
+        // ── Footer lessonplan: 15mm, texto centralizado ─────────────────────
+        const fY = H - my(15);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, fY, W, my(15));
+        _dottedLine(ctx, mx(15), fY, mx(200), lw, mx(3), mx(2));
+        ctx.fillStyle = '#666666';
+        ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+        ctx.fillText(footerText, W / 2, fY + my(7.5));
+        ctx.textAlign = 'left';
+
       } else {
-        // ── Lesson / Practice ──────────────────────────────────────────────
-        // Header: 42mm | Footer: 15mm → conteúdo: 240mm
-        const cTop = my(42), cH = H - my(42) - my(15);
+        // ── Lesson / Practice ─────────────────────────────────────────────
+        // Header: 5mm margem + 10mm tag + 5mm espaço + linha y=20mm → conteúdo y=25mm
+        // Footer: 20mm do fundo → linha a y=277mm → zona: y=25mm–y=275mm
+        const cTop = my(25), cH = H - my(25) - my(22);
         ctx.drawImage(img, 0, cTop, W, cH);
 
-        // Limpa margem direita
+        // Limpa margem direita (x=190mm+)
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(mx(190), 0, W, H);
 
-        // Sidebar verde: altura total
+        // Sidebar verde: 15mm × altura total (full page), dots 3mm diâmetro / 8mm espaço
         ctx.fillStyle = '#89c13b'; ctx.fillRect(0, 0, mx(15), H);
-        _halftone(ctx, 0, 0, mx(15), H, mx(1.2), mx(4), '#a8c735');
+        _halftone(ctx, 0, 0, mx(15), H, mx(1.5), mx(8), '#a8c735');
 
-        // Fundo branco na zona do header (x=15mm+)
+        // Fundo branco na zona do header (x=15mm+, y=0–25mm)
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(mx(15), 0, W - mx(15), my(42));
+        ctx.fillRect(mx(15), 0, W - mx(15), my(25));
 
-        // Tag azul
-        const tX = mx(15), tY = my(25), tW = mx(70), tH = my(12), tR = my(5);
+        // Tag azul: flush com sidebar, y=5mm, 70mm×10mm, raio 5mm lado direito
+        const tX = mx(15), tY = my(5), tW = mx(70), tH = my(10), tR = my(5);
         ctx.fillStyle = '#0251af';
         _rrect(ctx, tX, tY, tW, tH, 0, tR, tR, 0); ctx.fill();
 
+        // Texto da tag: alinhado à esquerda, começando 10mm após a barra (x=25mm)
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(11)}px Arial,Helvetica,sans-serif`;
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillText(headerText, mx(25), tY + tH / 2);
+
+        // Linha pontilhada separadora: y=20mm, x=25mm–x=200mm
+        _dottedLine(ctx, mx(25), my(20), mx(200), lw, mx(3), mx(2));
+
+        // Garante 10mm de espaço entre sidebar e conteúdo (y=25mm até footer)
+        const fY = H - my(20);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(mx(15), my(25), mx(10), fY - my(25));
+
+        // ── Footer: 20mm do fundo, preserva sidebar verde ─────────────────
+        ctx.fillRect(mx(15), fY, W - mx(15), my(20));
+        _dottedLine(ctx, mx(25), fY, mx(200), lw, mx(3), mx(2));
+        ctx.fillStyle = '#666666';
+        ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-        ctx.fillText(headerText, tX + tW / 2, tY + tH / 2);
-
-        _dottedLine(ctx, mx(25), my(38), mx(190), lw, mx(3), mx(2));
+        ctx.fillText(footerText, W / 2, fY + my(10));
+        ctx.textAlign = 'left';
       }
-
-      // ── Footer: 15mm, texto centralizado verticalmente ──────────────────────
-      const fY = H - my(15);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, fY, W, my(15));
-      _dottedLine(ctx, mx(15), fY, mx(200), lw, mx(3), mx(2));
-      ctx.fillStyle = '#666666';
-      ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
-      ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-      ctx.fillText(footerText, W / 2, fY + my(7.5));
-      ctx.textAlign = 'left';
 
       cv.toBlob(blob => {
         const reader = new FileReader();
