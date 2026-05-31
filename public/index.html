@@ -866,111 +866,88 @@
 // ── Specs por tipo ─────────────────────────────────────────────────────────
 
 const SPECS = {
-lesson: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (IMPORTANT!)
+lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-MARGINS:
-• Left: 25mm (15mm green bar + 10mm breathing space)
-• Right: 20mm  |  Top: 20mm  |  Bottom: 20mm
-
+MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
 USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
-• ALL content starts at x=25mm and extends to x=190mm
-• NO content beyond these boundaries
 
-HEADER (all pages):
-• Green rectangle LEFT side: 15mm wide × full page height (297mm), color #89c13b
-  - CONSISTENT halftone dot pattern (#a8c735): 3mm dots, 8mm spacing, perfect grid, centered
-• Blue rounded tag:
-  - Position: 25mm from top  |  Width: 70mm (x=15mm to x=85mm)  |  Height: 12mm
-  - Rounded corners: 5mm radius RIGHT side only, square LEFT
-  - Color: #0251af, flush against green bar (no gap)
-  - White text centered: "Unit X | Lesson Y" (11pt Bold)
-• Dotted separator BELOW tag: x=25mm to x=190mm, 2pt, #092964, at y=38mm
+⚠️ IMPORTANT: DO NOT draw any header or footer.
+Header and footer are added automatically after generation.
+Start all content at y=42mm from the top.
+Content area ends at y=270mm from the top.
 
-FOOTER (all pages):
-• Dotted line: x=25mm to x=190mm, 2pt, #092964, 20mm from bottom
-• Centered text below line: (11pt Regular, #666666)
-
-TYPOGRAPHY MINIMUMS (NEVER SMALLER):
-• Title: 20pt Bold #092964
+TYPOGRAPHY (NEVER SMALLER THAN):
+• Titles: 20pt Bold #092964
 • Subtitles: 20pt Bold #0251af
 • Body text: 18pt Regular #000000
-• Sidebar text: 16pt Regular #666666
+• Annotations: 16pt Regular #666666
 • ALL TITLES: Sentence case — NEVER all caps
-• NEVER stretch or distort text — maintain proportional scaling
 
 COLORS: Navy #0251af | Dark Blue #092964 | Green #89c13b | Light Green #a8c735
         Orange #ff6b35 | Purple #9b59b6 | Pink #c2185b
         Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
 
 LAYOUT PRINCIPLES:
-• Pedagogical textbook style, mix boxes and open text
-• Dotted lines for section divisions, sidebars for enrichment
-• Text aligned LEFT only
-• Rounded boxes: 5mm corners, 15mm padding
-• White space is acceptable — do NOT stretch content to fill page
-• Flat design illustrations: colorful, age-appropriate, minimum 40mm width`,
+✓ Pedagogical textbook style, mix boxes and open text
+✓ Dotted lines for section divisions, sidebars for enrichment
+✓ Text aligned LEFT only
+✓ Rounded boxes: 5mm corners, 15mm padding
+✓ White space is acceptable — do NOT stretch content to fill page`,
 
-practice: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (IMPORTANT!)
+practice: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-MARGINS:
-• Left: 25mm (15mm green bar + 10mm breathing space)
-• Right: 20mm  |  Top: 20mm  |  Bottom: 20mm
-
+MARGINS: Left 25mm | Right 20mm | Top 20mm | Bottom 20mm
 USABLE BODY AREA: 165mm width (x=25mm to x=190mm)
 
-HEADER (all pages):
-• Green rectangle LEFT side: 15mm wide × full page height, color #89c13b
-  - Halftone dot pattern (#a8c735): 3mm dots, 8mm spacing, perfect grid
-• Blue rounded tag:
-  - Width: 70mm (x=15mm to x=85mm)  |  Height: 12mm  |  25mm from top
-  - Rounded RIGHT only (5mm), flush against green bar
-  - Color: #0251af  |  White text: "Unit X | Lesson Y" (11pt Bold)
-• Dotted separator: x=25mm to x=190mm, 2pt, #092964, at y=38mm
-
-FOOTER (all pages):
-• Dotted line: x=25mm to x=190mm, 2pt, #092964, 20mm from bottom
-• Centered text: (11pt Regular, #666666)
+⚠️ IMPORTANT: DO NOT draw any header or footer.
+Header and footer are added automatically after generation.
+Start all content at y=42mm from the top.
+Content area ends at y=270mm from the top.
 
 TYPOGRAPHY:
-• Section title: 20pt Bold #092964
+• Section titles: 20pt Bold #092964
 • Exercise numbers: 18pt Bold #0251af
 • Instructions: 18pt Regular #000000
 • Answers/blanks: 18pt Regular, underline or dotted lines
 
+COLORS: Navy #0251af | Dark Blue #092964 | Green #89c13b
+        Backgrounds: #dceafa #e8f5e9 #fff4e6 #f3e5f5
+
 EXERCISE LAYOUT:
-• Clear numbered exercises with visual separation
-• Answer blanks: dotted or solid underlines
-• Boxes per exercise using backgrounds: #dceafa #e8f5e9 #fff4e6 #f3e5f5
-• Rounded boxes: 5mm corners, 12mm padding
-• Progressive difficulty within the page`,
+✓ Clear numbered exercises with visual separation
+✓ Answer blanks: dotted or solid underlines
+✓ Rounded boxes: 5mm corners, 12mm padding
+✓ Progressive difficulty within the page`,
 
-lessonplan: `FORMAT: A4 (210mm × 297mm) or (1055 × 1491 pixels), 300 DPI (VERY IMPORTANT)
+lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-MARGINS: 20mm on ALL sides (VERY IMPORTANT)
+MARGINS: 20mm on all sides
+USABLE WIDTH: 170mm (x=20mm to x=190mm)
 
-HEADER DESIGN:
-• Green rectangle UPPER LEFT: 12mm height × 25mm width, solid #89c13b
-  - Filled with halftone dot pattern (#a8c735)
-• Orange horizontal bar: from green rectangle rightward to x=190mm
-  - Height: 12mm (vertically centered with green rectangle)
-  - Color: #ff6b35
-  - Text: "Unit X | Lesson Plan" (White, Bold 16pt, left-aligned, 10mm inner margin)
-• Dotted line below header: x=20mm to x=190mm, 2pt, #092964, at y=50mm from top
-
-FOOTER (all pages):
-• Dotted line: x=20mm to x=190mm, 2pt, #092964, 20mm from bottom
-• Centered text below: (11pt Regular, #666666)
-
-TEXT AREA: x=20mm to x=190mm (170mm wide)
+⚠️ IMPORTANT: DO NOT draw any header or footer.
+Header and footer are added automatically after generation.
+Start all content at y=55mm from the top.
+Content area ends at y=270mm from the top.
 
 TYPOGRAPHY:
-• Page titles: 22pt Bold #092964
-• Section titles: 20pt Bold #ff6b35
-• Subsections: 18pt Bold #0251af
-• Main text: 16pt Regular #000000
+• Page titles: 24pt Bold #092964
+• Section headers: 20pt Bold #ff6b35
+• Subsection headers: 18pt Bold #0251af
+• Body text: 16pt Regular #000000
+• Small annotations: 14pt Regular #666666
 
-COLORS: Orange #ff6b35 | Navy #0251af | Dark Blue #092964 | Green #89c13b
-        Backgrounds: #fff4e6 #ffe6ea #e3f2fd #e8f5e9`
+COLORS:
+#092964 (Dark Blue) | #0251af (Navy Blue) | #ff6b35 (Orange) | #89c13b (Green)
+#e3f2fd (Light Blue) | #e8f5e9 (Light Green) | #fff4e6 (Light Orange) | #ffe6ea (Light Pink)
+
+DESIGN PRINCIPLES:
+✓ No drop shadows
+✓ Selective use of boxes - only for emphasis
+✓ All boxes/elements with rounded corners (5-8mm)
+✓ Clean white space, generous margins
+✓ Professional pedagogical layout
+✓ Visual hierarchy through size, color, and spacing
+✓ Information flows naturally, not forced into containers`
 };
 
 // ── IndexedDB ──────────────────────────────────────────────────────────────
