@@ -45,8 +45,8 @@ async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
     body: JSON.stringify(params),
   });
 
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message || `OpenAI HTTP ${res.status}`);
+  const data = await res.json().catch(async () => ({ _raw: await res.text().catch(() => '') }));
+  if (!res.ok) throw new Error(data.error?.message || data._raw || `OpenAI HTTP ${res.status}`);
 
   const item = data.data?.[0];
   if (!item) throw new Error('Nenhuma imagem retornada pela API OpenAI');
@@ -107,7 +107,7 @@ async function generateReplicate(apiKey, model, size, prompt, signal) {
     throw new Error(err.detail || err.error || `Replicate HTTP ${res.status}`);
   }
 
-  let prediction = await res.json();
+  let prediction = await res.json().catch(async () => { throw new Error(await res.text().catch(() => 'Replicate resposta inválida')); });
   if (prediction.status !== 'succeeded') {
     prediction = await pollReplicate(apiKey, prediction.id, signal);
   }
