@@ -1810,7 +1810,7 @@ async function upscaleSelected(scale) {
         });
 
         if (!res.ok) {
-          const msg = data.error || `HTTP ${res.status}`;
+          const msg = String(data.error ?? `HTTP ${res.status}`);
           const isThrottle = msg.toLowerCase().includes('throttled') ||
                              msg.toLowerCase().includes('rate limit') || res.status === 429;
           if ((isThrottle || res.status === 504) && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
