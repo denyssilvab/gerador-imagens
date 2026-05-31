@@ -934,9 +934,10 @@ USABLE WIDTH: 170mm (x=20mm to x=190mm)
 They are added programmatically after generation.
 
 CONTENT AREA — draw ONLY inside this zone, strictly:
-• Vertical: y=22mm (top) to y=280mm (bottom) — leave everything outside this range WHITE
+• Vertical: y=25mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
 • Horizontal: x=35mm (left) to x=190mm (right) — use the FULL width, text must reach x=190mm
-• ALL content MUST fit within y=22mm–y=280mm — if too long, reduce spacing between sections
+• COMPACT LAYOUT: minimize vertical spacing between sections (4–6mm max between blocks)
+• ALL content MUST fit within y=25mm–y=278mm — if too long, reduce spacing, never overflow
 • Text lines must extend to x=190mm — do NOT break lines early, use the full available width
 
 TYPOGRAPHY:
@@ -1129,8 +1130,9 @@ function buildPrompt(page) {
     page.content,
     '',
     `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
-    `CRITICAL: Content zone is x=35mm–x=190mm horizontally, y=22mm–y=280mm vertically. NOTHING outside this zone. If content is too long, reduce spacing between sections — never let content go past y=280mm.`,
-    `CRITICAL: Use the FULL horizontal width x=35mm to x=190mm. Text must reach close to x=190mm — do not break lines early or waste horizontal space.`
+    `CRITICAL: Content zone is x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=278mm.`,
+    `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
+    `CRITICAL: Use the FULL horizontal width x=35mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
   ].join('\n');
 }
 
@@ -1865,8 +1867,8 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
 
       if (type === 'lessonplan') {
         // ── Lessonplan header ───────────────────────────────────────────────
-        // Wipe: y=0 a y=20mm
-        ctx.fillRect(0, 0, W, my(20));
+        // Wipe: y=0 a y=25mm (5mm de buffer após a linha pontilhada em y=20mm)
+        ctx.fillRect(0, 0, W, my(25));
 
         const hY = my(5);    // header em y=5mm
         const hH = my(10);   // altura: 10mm
