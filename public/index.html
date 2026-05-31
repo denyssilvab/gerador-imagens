@@ -1779,14 +1779,15 @@ async function pollReplicateClient(predictionId, token, onStatus) {
   for (let i = 0; i < 80; i++) {
     await new Promise(r => setTimeout(r, 4000));
     onStatus?.(`Processando… ${Math.round((i + 1) * 4)}s`);
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
+
+    // Proxy via Vercel (evita CORS do Replicate)
+    const res = await fetch(`/api/upscale-status?id=${encodeURIComponent(predictionId)}&token=${encodeURIComponent(token)}`);
     const data = await res.json().catch(() => ({}));
+
     if (data.status === 'succeeded') {
-      const outputUrl = Array.isArray(data.output) ? data.output[0] : data.output;
-      if (!outputUrl) throw new Error('Replicate não retornou imagem');
-      const imgRes = await fetch(outputUrl);
+      if (!data.outputUrl) throw new Error('Replicate não retornou imagem');
+      // CDN do Replicate é público — download direto sem CORS
+      const imgRes = await fetch(data.outputUrl);
       if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
       const buf = await imgRes.arrayBuffer();
       const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
