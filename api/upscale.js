@@ -44,15 +44,14 @@ export default async function handler(req) {
   }
 
   try {
-    // wait=25 para caber no limite da Edge Function (~30s).
-    // Se não terminar a tempo, retorna predictionId para polling no cliente.
+    // Cria prediction SEM wait — retorna predictionId imediatamente.
+    // O cliente faz polling GET direto no Replicate (sem CORS issue, sem timeout).
     const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
       method: 'POST',
       signal: req.signal,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'Prefer': 'wait=25',
       },
       body: JSON.stringify({ input }),
     });
@@ -66,32 +65,9 @@ export default async function handler(req) {
     }
 
     const prediction = await res.json();
-
-    // Se ainda não terminou, devolve o ID para o cliente fazer polling
-    if (prediction.status !== 'succeeded') {
-      return new Response(
-        JSON.stringify({ predictionId: prediction.id, status: prediction.status }),
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Terminou dentro do wait=25 — baixa e devolve base64
-    const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
-    if (!outputUrl) throw new Error('Replicate não retornou imagem upscalada');
-
-    const imgRes = await fetch(outputUrl, { signal: req.signal });
-    if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
-    const buf = await imgRes.arrayBuffer();
-    const bytes = new Uint8Array(buf);
-    let str = '';
-    for (let i = 0; i < bytes.length; i += 8192) {
-      str += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
-    }
-    const b64 = btoa(str);
-    const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
-
+    // Retorna predictionId para o cliente fazer polling diretamente no Replicate
     return new Response(
-      JSON.stringify({ dataUrl: `data:${mime};base64,${b64}` }),
+      JSON.stringify({ predictionId: prediction.id, status: prediction.status }),
       { headers: { 'Content-Type': 'application/json' } }
     );
 

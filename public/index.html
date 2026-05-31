@@ -1730,6 +1730,25 @@ async function confirmRefazer() {
   }
 }
 
+// Comprime imagem para JPEG antes de enviar (reduz ~4MB PNG → ~300KB JPEG)
+async function compressForUpscale(dataUrl, quality = 0.88) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const cv = document.createElement('canvas');
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.getContext('2d').drawImage(img, 0, 0);
+      cv.toBlob(blob => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(dataUrl); // fallback: envia original
+    img.src = dataUrl;
+  });
+}
+
 // ── Configuração dos modelos de upscale (lado cliente, sem Vercel) ─────────
 const UPSCALE_MODELS_CLIENT = {
   'topaz:Standard V2':        { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'Standard V2', scale: s }) },
@@ -1814,17 +1833,17 @@ async function upscaleSelected(scale) {
 
         const upscaleModel = document.getElementById('upscale-model')?.value ?? 'nightmareai/real-esrgan';
         const sourceUrl = r.originalUrl || r.url;
-        const cfg = UPSCALE_MODELS_CLIENT[upscaleModel];
-        if (!cfg) throw new Error(`Modelo desconhecido: ${upscaleModel}`);
 
-        // Chama Replicate diretamente do browser — sem passar pela Vercel (evita 504)
-        const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
+        // Comprime para JPEG antes de enviar (PNG ~4MB → JPEG ~300KB, evita timeout)
+        pv.querySelector('span').textContent = `Comprimindo imagem…`;
+        const compressedUrl = await compressForUpscale(sourceUrl);
+
+        // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
+        pv.querySelector('span').textContent = `Upscale ${scale}× — iniciando…`;
+        const res = await fetch('/api/upscale', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ input: cfg.buildInput(sourceUrl, scale) }),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ dataUrl: compressedUrl, scale, token, upscaleModel }),
         });
 
         const pred = await res.json().catch(async () => {
@@ -1836,14 +1855,14 @@ async function upscaleSelected(scale) {
           const msg = String(pred.detail || pred.error || `HTTP ${res.status}`);
           const isThrottle = msg.toLowerCase().includes('throttled') ||
                              msg.toLowerCase().includes('rate limit') || res.status === 429;
-          if (isThrottle && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
+          if ((isThrottle || res.status === 504) && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
           throw new Error(msg);
         }
 
-        // Polling direto no Replicate até terminar (sem limite de tempo)
+        // Polling direto no Replicate até terminar (GET, sem CORS issue, sem timeout)
         pv.querySelector('span').textContent = `Upscale ${scale}× — processando…`;
         const data = await pollReplicateClient(
-          pred.id, token,
+          pred.predictionId || pred.id, token,
           txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; }
         );
 
