@@ -2028,7 +2028,8 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         // Header: 5mm margem + 10mm tag + 5mm espaço + linha y=20mm → conteúdo y=25mm
         // Footer: 15mm do fundo → zona conteúdo: y=25mm–y=275mm
         const cTop = my(25), cH = H - my(25) - my(22);
-        ctx.drawImage(img, 0, cTop, W, cH);
+        // Desloca 10mm à direita: conteúdo do AI em x≈15mm → canvas x≈25mm (breathing space)
+        ctx.drawImage(img, mx(10), cTop, W - mx(10), cH);
 
         // Limpa margem direita (x=200mm+) — 10mm de buffer igual ao Lesson Plan
         ctx.fillStyle = '#ffffff';
