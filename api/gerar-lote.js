@@ -81,9 +81,9 @@ async function pollReplicate(apiKey, predictionId, signal) {
       signal,
       headers: { 'Authorization': `Bearer ${apiKey}` },
     });
-    const data = await res.json();
+    const data = await res.json().catch(async () => ({ error: await res.text().catch(() => `HTTP ${res.status}`) }));
     if (data.status === 'succeeded') return data;
-    if (data.status === 'failed' || data.status === 'canceled') {
+    if (data.status === 'failed' || data.status === 'canceled' || data.error) {
       throw new Error(data.error || `Replicate: ${data.status}`);
     }
   }

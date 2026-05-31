@@ -812,11 +812,11 @@
             <option value="topaz:Low Resolution V2">Topaz — Low Res V2</option>
             <option value="topaz:CGI">Topaz — CGI</option>
             <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
-            <option value="topaz:Text Refine" selected>Topaz — Text Refine</option>
+            <option value="topaz:Text Refine">Topaz — Text Refine</option>
           </optgroup>
           <optgroup label="Outros Modelos">
             <option value="google/upscaler">Google Upscaler</option>
-            <option value="nightmareai/real-esrgan">Real-ESRGAN</option>
+            <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
             <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
             <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
             <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
@@ -1753,7 +1753,7 @@ async function upscaleSelected(scale) {
           pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
         }
 
-        const upscaleModel = document.getElementById('upscale-model')?.value ?? 'topaz:Text Refine';
+        const upscaleModel = document.getElementById('upscale-model')?.value ?? 'nightmareai/real-esrgan';
         const res  = await fetch('/api/upscale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

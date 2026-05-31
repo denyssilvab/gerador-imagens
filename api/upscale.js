@@ -50,7 +50,7 @@ export default async function handler(req) {
   try { body = await req.json(); }
   catch { return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 }); }
 
-  const { dataUrl, scale, token, upscaleModel = 'topaz:Text Refine' } = body;
+  const { dataUrl, scale, token, upscaleModel = 'nightmareai/real-esrgan' } = body;
   if (!dataUrl || !scale || !token) {
     return new Response(JSON.stringify({ error: 'Parâmetros incompletos' }), { status: 400 });
   }
