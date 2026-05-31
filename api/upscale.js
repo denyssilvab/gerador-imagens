@@ -1,31 +1,5 @@
 export const config = { runtime: 'edge' };
 
-function toBase64(buffer) {
-  const bytes = new Uint8Array(buffer);
-  let str = '';
-  for (let i = 0; i < bytes.length; i += 8192) {
-    str += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
-  }
-  return btoa(str);
-}
-
-async function pollUntilDone(token, predictionId, signal) {
-  for (let i = 0; i < 80; i++) {
-    await new Promise(r => setTimeout(r, 3000));
-    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
-      signal,
-      headers: { 'Authorization': `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (data.status === 'succeeded') return data;
-    if (data.status === 'failed' || data.status === 'canceled') {
-      throw new Error(data.error || `Upscale ${data.status}`);
-    }
-  }
-  throw new Error('Timeout: upscale levou mais de 4 minutos');
-}
-
-// Model slugs and their input schemas
 const MODELS = {
   'topaz:Standard V2':        { slug: 'topazlabs/image-upscale', model_name: 'Standard V2' },
   'topaz:Low Resolution V2':  { slug: 'topazlabs/image-upscale', model_name: 'Low Resolution V2' },
@@ -60,27 +34,25 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: `Modelo desconhecido: ${upscaleModel}` }), { status: 400 });
   }
 
-  const signal = req.signal;
-
   let input;
   if (cfg.model_name) {
-    // Topaz: usa model_name para selecionar sub-modelo
     input = { image: dataUrl, model_name: cfg.model_name, scale };
   } else if (cfg.scaleParam) {
     input = { image: dataUrl, [cfg.scaleParam]: scale };
   } else {
-    // Modelos sem parâmetro de escala (ex: Recraft)
     input = { image: dataUrl };
   }
 
   try {
+    // wait=25 para caber no limite da Edge Function (~30s).
+    // Se não terminar a tempo, retorna predictionId para polling no cliente.
     const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
       method: 'POST',
-      signal,
+      signal: req.signal,
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'Prefer': 'wait=60',
+        'Prefer': 'wait=25',
       },
       body: JSON.stringify({ input }),
     });
@@ -88,24 +60,34 @@ export default async function handler(req) {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       return new Response(
-        JSON.stringify({ error: err.detail || `Replicate HTTP ${res.status}` }),
+        JSON.stringify({ error: err.detail || err.error || `Replicate HTTP ${res.status}` }),
         { status: res.status, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    let prediction = await res.json();
+    const prediction = await res.json();
+
+    // Se ainda não terminou, devolve o ID para o cliente fazer polling
     if (prediction.status !== 'succeeded') {
-      prediction = await pollUntilDone(token, prediction.id, signal);
+      return new Response(
+        JSON.stringify({ predictionId: prediction.id, status: prediction.status }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Terminou dentro do wait=25 — baixa e devolve base64
     const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
     if (!outputUrl) throw new Error('Replicate não retornou imagem upscalada');
 
-    // Baixa e converte para base64 (URLs do Replicate expiram)
-    const imgRes = await fetch(outputUrl, { signal });
+    const imgRes = await fetch(outputUrl, { signal: req.signal });
     if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
     const buf = await imgRes.arrayBuffer();
-    const b64 = toBase64(buf);
+    const bytes = new Uint8Array(buf);
+    let str = '';
+    for (let i = 0; i < bytes.length; i += 8192) {
+      str += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+    }
+    const b64 = btoa(str);
     const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
 
     return new Response(
@@ -118,8 +100,7 @@ export default async function handler(req) {
       return new Response(JSON.stringify({ error: 'Cancelado' }), { status: 499 });
     }
     return new Response(JSON.stringify({ error: e.message }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      status: 500, headers: { 'Content-Type': 'application/json' },
     });
   }
 }

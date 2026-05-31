@@ -1730,7 +1730,41 @@ async function confirmRefazer() {
   }
 }
 
-// ── Upscale via Replicate Real-ESRGAN ──────────────────────────────────────
+// ── Polling do lado do cliente (sem limite de tempo) ──────────────────────
+function arrayBufToBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let str = '';
+  for (let i = 0; i < bytes.length; i += 8192) {
+    str += String.fromCharCode(...bytes.subarray(i, Math.min(i + 8192, bytes.length)));
+  }
+  return btoa(str);
+}
+
+async function pollReplicateClient(predictionId, token, onStatus) {
+  for (let i = 0; i < 80; i++) {
+    await new Promise(r => setTimeout(r, 4000));
+    onStatus?.(`Processando… ${Math.round((i + 1) * 4)}s`);
+    const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.status === 'succeeded') {
+      const outputUrl = Array.isArray(data.output) ? data.output[0] : data.output;
+      if (!outputUrl) throw new Error('Replicate não retornou imagem');
+      const imgRes = await fetch(outputUrl);
+      if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
+      const buf = await imgRes.arrayBuffer();
+      const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
+      return { dataUrl: `data:${mime};base64,${arrayBufToBase64(buf)}` };
+    }
+    if (data.status === 'failed' || data.status === 'canceled') {
+      throw new Error(data.error || `Upscale ${data.status}`);
+    }
+  }
+  throw new Error('Timeout: upscale levou mais de 5 minutos');
+}
+
+// ── Upscale ────────────────────────────────────────────────────────────────
 async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
@@ -1770,7 +1804,7 @@ async function upscaleSelected(scale) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataUrl: sourceUrl, scale, token, upscaleModel }),
         });
-        const data = await res.json().catch(async () => {
+        let data = await res.json().catch(async () => {
           const txt = await res.text().catch(() => '');
           return { error: txt || `HTTP ${res.status}: resposta inválida` };
         });
@@ -1779,8 +1813,16 @@ async function upscaleSelected(scale) {
           const msg = data.error || `HTTP ${res.status}`;
           const isThrottle = msg.toLowerCase().includes('throttled') ||
                              msg.toLowerCase().includes('rate limit') || res.status === 429;
-          if (isThrottle && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
+          if ((isThrottle || res.status === 504) && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
           throw new Error(msg);
+        }
+
+        // Se a API retornou predictionId (ainda processando), faz polling no cliente
+        if (data.predictionId) {
+          pv.querySelector('span').textContent = `Upscale ${scale}× — aguardando Replicate…`;
+          data = await pollReplicateClient(data.predictionId, token,
+            txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; }
+          );
         }
 
         const upscaledUrl = data.dataUrl;
