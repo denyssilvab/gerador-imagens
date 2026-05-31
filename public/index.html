@@ -2026,17 +2026,17 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
       } else {
         // ── Lesson / Practice ─────────────────────────────────────────────
         // Header: 5mm margem + 10mm tag + 5mm espaço + linha y=20mm → conteúdo y=25mm
-        // Footer: 20mm do fundo → linha a y=277mm → zona: y=25mm–y=275mm
+        // Footer: 15mm do fundo → zona conteúdo: y=25mm–y=275mm
         const cTop = my(25), cH = H - my(25) - my(22);
         ctx.drawImage(img, 0, cTop, W, cH);
 
-        // Limpa margem direita (x=190mm+)
+        // Limpa margem direita (x=200mm+) — 10mm de buffer igual ao Lesson Plan
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(mx(190), 0, W, H);
+        ctx.fillRect(mx(200), 0, W, H);
 
-        // Sidebar verde: 15mm × altura total (full page), dots 3mm diâmetro / 8mm espaço
+        // Sidebar verde: 15mm × altura total (full page), 3 colunas de dots (5mm espaço)
         ctx.fillStyle = '#89c13b'; ctx.fillRect(0, 0, mx(15), H);
-        _halftone(ctx, 0, 0, mx(15), H, mx(1.5), mx(8), '#a8c735');
+        _halftone(ctx, 0, 0, mx(15), H, mx(1.5), mx(5), '#a8c735');
 
         // Fundo branco na zona do header (x=15mm+, y=0–25mm)
         ctx.fillStyle = '#ffffff';
@@ -2056,18 +2056,15 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         // Linha pontilhada separadora: y=20mm, x=25mm–x=200mm
         _dottedLine(ctx, mx(25), my(20), mx(200), lw, mx(3), mx(2));
 
-        // Garante 10mm de espaço entre sidebar e conteúdo (y=25mm até footer)
-        const fY = H - my(20);
+        // ── Footer: 15mm do fundo, preserva sidebar verde ─────────────────
+        const fY = H - my(15);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(mx(15), my(25), mx(10), fY - my(25));
-
-        // ── Footer: 20mm do fundo, preserva sidebar verde ─────────────────
-        ctx.fillRect(mx(15), fY, W - mx(15), my(20));
+        ctx.fillRect(mx(15), fY, W - mx(15), my(15));
         _dottedLine(ctx, mx(25), fY, mx(200), lw, mx(3), mx(2));
         ctx.fillStyle = '#666666';
         ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-        ctx.fillText(footerText, W / 2, fY + my(10));
+        ctx.fillText(footerText, W / 2, fY + my(7.5));
         ctx.textAlign = 'left';
       }
 
