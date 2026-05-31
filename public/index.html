@@ -1285,6 +1285,7 @@ async function handleEvent(ev) {
       const domKey = ck(currentGen, ev.index);
       const result = {
         url: displayUrl,
+        originalUrl: displayUrl,  // preservado para upscale sempre partir da original
         filename: ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`,
         pageNum: ev.pageNum,
         title: ev.title || '',
@@ -1381,7 +1382,7 @@ function makeCard(gen, idx, num, title) {
 
 function makePersistedCard(r) {
   const domKey = `db_${r.id}`;
-  results[domKey] = { url: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '' };
+  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '' };
   const d = document.createElement('div');
   d.className = 'icard';
   d.innerHTML = `
@@ -1459,16 +1460,18 @@ function downloadByKey(key, btnEl) {
   const r = results[key];
   if (!r) return;
 
-  // Se tem versão upscaled, mostra picker
-  if (r.upscaledUrl) {
+  // Se tem versões upscaladas, mostra picker com todas as opções por modelo
+  if (r.upscales && Object.keys(r.upscales).length > 0) {
     if (_openMenu) { _openMenu.remove(); _openMenu = null; }
     const menu = document.createElement('div');
     menu.className = 'dl-menu';
-    menu.innerHTML = `
-      <div class="dl-label">Escolha a versão</div>
-      <button onclick="triggerDownload('${key}','original')">📄 Original</button>
-      <button onclick="triggerDownload('${key}','upscaled')">🔍 Upscaled ${r.upscaleApplied}×</button>
-    `;
+    const upscaleButtons = Object.entries(r.upscales).map(([modelKey, v]) => {
+      const label = modelKey
+        .replace(/^topaz:/, 'Topaz ').replace('nightmareai/', '').replace('recraft-ai/', 'Recraft ')
+        .replace('philz1337x/', '').replace('afiaka87/', '').replace('prunaai/', 'PrunaAI ').replace('google/', 'Google ');
+      return `<button onclick="triggerDownload('${key}','${modelKey.replace(/'/g,"\\'")}')">🔍 ${label}</button>`;
+    }).join('');
+    menu.innerHTML = `<div class="dl-label">Escolha a versão</div><button onclick="triggerDownload('${key}','original')">📄 Original</button>${upscaleButtons}`;
     const foot = btnEl?.closest('.icard-foot') || document.body;
     foot.appendChild(menu);
     _openMenu = menu;
@@ -1484,7 +1487,13 @@ function triggerDownload(key, version) {
   const r = results[key];
   if (!r) return;
   if (_openMenu) { _openMenu.remove(); _openMenu = null; }
-  if (version === 'upscaled' && r.upscaledUrl) {
+  if (version === 'original') {
+    doDownload(r.originalUrl || r.url, r.filename);
+  } else if (r.upscales?.[version]) {
+    const v = r.upscales[version];
+    doDownload(v.url, v.filename);
+  } else if (version === 'upscaled' && r.upscaledUrl) {
+    // retrocompatibilidade
     doDownload(r.upscaledUrl, r.upscaleFilename || r.filename.replace('.png','_upscaled.png'));
   } else {
     doDownload(r.url, r.filename);
@@ -1754,10 +1763,12 @@ async function upscaleSelected(scale) {
         }
 
         const upscaleModel = document.getElementById('upscale-model')?.value ?? 'nightmareai/real-esrgan';
+        // Sempre usa a imagem original como fonte (nunca a versão já upscalada)
+        const sourceUrl = r.originalUrl || r.url;
         const res  = await fetch('/api/upscale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dataUrl: r.url, scale, token, upscaleModel }),
+          body: JSON.stringify({ dataUrl: sourceUrl, scale, token, upscaleModel }),
         });
         const data = await res.json();
 
@@ -1770,11 +1781,21 @@ async function upscaleSelected(scale) {
         }
 
         const upscaledUrl = data.dataUrl;
-        const filename = r.filename.replace('.png', `_${scale}x.png`);
-        results[key] = { ...r, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale };
+        const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
+        const filename = r.filename.replace('.png', `_${modelSlug}_${scale}x.png`);
+        const modelKey = `${upscaleModel}:${scale}x`;
+        const upscales = { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } };
+        results[key] = {
+          ...r,
+          originalUrl: r.originalUrl || r.url,  // preserva original para próximos upscales
+          upscaledUrl,                            // mais recente (para PDF e visualização)
+          upscaleFilename: filename,
+          upscaleApplied: scale,
+          upscales,
+        };
         pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
         await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
-        toast(`Pág. ${r.pageNum} — upscale ${scale}× concluído!`, 'ok');
+        toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
 
       } catch (e) {
