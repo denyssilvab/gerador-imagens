@@ -933,10 +933,11 @@ USABLE WIDTH: 170mm (x=20mm to x=190mm)
 ⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
 They are added programmatically after generation.
 
-CONTENT AREA (draw ONLY inside this zone):
-• Top: leave y=0mm to y=52mm completely white (header zone — do not draw anything here)
-• Bottom: leave y=275mm to y=297mm completely white (footer zone)
-• Left: x=20mm | Right: x=190mm — NO content, lines or borders outside these bounds
+CONTENT AREA — draw ONLY inside this zone, strictly:
+• Top: leave y=0mm to y=27mm completely WHITE (header zone — absolutely nothing here)
+• Bottom: leave y=272mm to y=297mm completely WHITE (footer zone — absolutely nothing here)
+• Left margin: x=20mm | Right margin: x=190mm — NO lines, borders or content outside
+• ALL content must fit within these bounds — reduce font/spacing if needed, never overflow
 
 TYPOGRAPHY:
 • Page titles: 24pt Bold #092964
@@ -1127,7 +1128,9 @@ function buildPrompt(page) {
     '',
     page.content,
     '',
-    `CRITICAL: Use EXACTLY the header tag "${tagText}" and footer "${footerText}". Follow all format specs above.`
+    `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
+    `CRITICAL: ALL content MUST fit within y=27mm to y=272mm. If content is too long, reduce spacing and font size slightly. NEVER let content go below y=272mm or it will be cut off.`,
+    `CRITICAL: NO lines, borders or decorations outside x=20mm–x=190mm margins.`
   ].join('\n');
 }
 
@@ -1856,37 +1859,37 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
       const mpt = p => W * p / 595.28;
       const lw = mpt(2);
 
-      // ── Limpa margem direita (remove linhas finas geradas pela IA) ──────────
+      // ── Limpa margem direita (x=200mm em diante) ────────────────────────────
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(mx(190), 0, W, H);
+      ctx.fillRect(mx(200), 0, W, H);
 
       if (type === 'lessonplan') {
         // ── Lessonplan header ───────────────────────────────────────────────
-        // Wipe zona completa do header (y=0 a y=52mm) — remove qualquer elemento da IA
-        ctx.fillRect(0, 0, W, my(52));
+        // Wipe: y=0 a y=25mm (cobre header + gap até a linha pontilhada)
+        ctx.fillRect(0, 0, W, my(25));
 
-        const hY = my(20);   // header começa em y=20mm (margem superior)
+        const hY = my(5);    // header começa em y=5mm
         const hH = my(12);   // altura da barra: 12mm
 
-        // Retângulo verde: x=20mm, y=20mm, w=25mm, h=12mm — cantos retos
+        // Retângulo verde: x=20mm, y=5mm, w=25mm, h=12mm — cantos retos
         const gX = mx(20), gW = mx(25);
         ctx.fillStyle = '#89c13b';
         ctx.fillRect(gX, hY, gW, hH);
         _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
 
-        // Barra laranja: x=46mm (1mm de separação), y=20mm, até x=190mm — cantos retos
+        // Barra laranja: x=46mm (1mm de gap), y=5mm, até x=190mm — cantos retos
         const oX = mx(46), oW = mx(190) - mx(46);
         ctx.fillStyle = '#ff6b35';
         ctx.fillRect(oX, hY, oW, hH);
 
-        // Texto na barra laranja
+        // Texto na barra laranja: x=50mm, centralizado verticalmente
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-        ctx.fillText(headerText, mx(56), hY + hH / 2);
+        ctx.fillText(headerText, mx(50), hY + hH / 2);
 
-        // Linha pontilhada a y=50mm (conforme spec original)
-        _dottedLine(ctx, mx(20), my(50), mx(190), lw, mx(3), mx(2));
+        // Linha pontilhada: x=20mm → x=200mm, y=25mm
+        _dottedLine(ctx, mx(20), my(25), mx(200), lw, mx(3), mx(2));
 
       } else {
         // ── Lesson / Practice header ────────────────────────────────────────
