@@ -1877,8 +1877,8 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         ctx.fillRect(gX, hY, gW, hH);
         _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
 
-        // Barra laranja: x=46mm (1mm gap), y=5mm, até x=190mm, h=10mm — cantos retos
-        const oX = mx(46), oW = mx(190) - mx(46);
+        // Barra laranja: x=46mm (1mm gap), y=5mm, até x=200mm, h=10mm — cantos retos
+        const oX = mx(46), oW = mx(200) - mx(46);
         ctx.fillStyle = '#ff6b35';
         ctx.fillRect(oX, hY, oW, hH);
 
@@ -1915,14 +1915,17 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         _dottedLine(ctx, mx(25), my(38), mx(190), lw, mx(3), mx(2));
       }
 
-      // ── Footer (igual em todos os tipos) ───────────────────────────────────
-      const footerY = H - my(20);
-      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(22), W, my(22));
-      _dottedLine(ctx, mx(20), footerY, mx(190), lw, mx(3), mx(2));
+      // ── Footer: zona total = 15mm, texto centralizado verticalmente ──────────
+      const footerZoneY = H - my(15);          // topo da zona do footer
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, footerZoneY, W, my(15)); // wipe exato de 15mm
+      // Linha pontilhada: mesma posição X do header (x=15mm → x=200mm)
+      _dottedLine(ctx, mx(15), footerZoneY, mx(200), lw, mx(3), mx(2));
+      // Texto centralizado verticalmente na zona de 15mm
       ctx.fillStyle = '#666666';
       ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
-      ctx.textBaseline = 'top'; ctx.textAlign = 'center';
-      ctx.fillText(footerText, W / 2, footerY + my(3));
+      ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
+      ctx.fillText(footerText, W / 2, footerZoneY + my(7.5));
       ctx.textAlign = 'left';
 
       cv.toBlob(blob => {
