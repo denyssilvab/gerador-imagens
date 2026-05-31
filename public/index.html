@@ -1730,6 +1730,22 @@ async function confirmRefazer() {
   }
 }
 
+// ── Configuração dos modelos de upscale (lado cliente, sem Vercel) ─────────
+const UPSCALE_MODELS_CLIENT = {
+  'topaz:Standard V2':        { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'Standard V2', scale: s }) },
+  'topaz:Low Resolution V2':  { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'Low Resolution V2', scale: s }) },
+  'topaz:CGI':                { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'CGI', scale: s }) },
+  'topaz:High Fidelity V2':   { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'High Fidelity V2', scale: s }) },
+  'topaz:Text Refine':        { slug: 'topazlabs/image-upscale', buildInput: (u, s) => ({ image: u, model_name: 'Text Refine', scale: s }) },
+  'google/upscaler':                     { slug: 'google/upscaler',                     buildInput: (u, s) => ({ image: u, upscale_factor: s }) },
+  'nightmareai/real-esrgan':             { slug: 'nightmareai/real-esrgan',             buildInput: (u, s) => ({ image: u, scale: s }) },
+  'philz1337x/clarity-upscaler':         { slug: 'philz1337x/clarity-upscaler',         buildInput: (u, s) => ({ image: u, scale_factor: s }) },
+  'recraft-ai/recraft-crisp-upscale':    { slug: 'recraft-ai/recraft-crisp-upscale',    buildInput: (u)    => ({ image: u }) },
+  'afiaka87/crystal-upscaler':           { slug: 'afiaka87/crystal-upscaler',           buildInput: (u, s) => ({ image: u, scale: s }) },
+  'recraft-ai/recraft-creative-upscale': { slug: 'recraft-ai/recraft-creative-upscale', buildInput: (u)    => ({ image: u }) },
+  'prunaai/image-upscale':               { slug: 'prunaai/image-upscale',               buildInput: (u, s) => ({ image: u, scale: s }) },
+};
+
 // ── Polling do lado do cliente (sem limite de tempo) ──────────────────────
 function arrayBufToBase64(buf) {
   const bytes = new Uint8Array(buf);
@@ -1797,33 +1813,39 @@ async function upscaleSelected(scale) {
         }
 
         const upscaleModel = document.getElementById('upscale-model')?.value ?? 'nightmareai/real-esrgan';
-        // Sempre usa a imagem original como fonte (nunca a versão já upscalada)
         const sourceUrl = r.originalUrl || r.url;
-        const res  = await fetch('/api/upscale', {
+        const cfg = UPSCALE_MODELS_CLIENT[upscaleModel];
+        if (!cfg) throw new Error(`Modelo desconhecido: ${upscaleModel}`);
+
+        // Chama Replicate diretamente do browser — sem passar pela Vercel (evita 504)
+        const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ dataUrl: sourceUrl, scale, token, upscaleModel }),
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ input: cfg.buildInput(sourceUrl, scale) }),
         });
-        let data = await res.json().catch(async () => {
+
+        const pred = await res.json().catch(async () => {
           const txt = await res.text().catch(() => '');
           return { error: txt || `HTTP ${res.status}: resposta inválida` };
         });
 
         if (!res.ok) {
-          const msg = String(data.error ?? `HTTP ${res.status}`);
+          const msg = String(pred.detail || pred.error || `HTTP ${res.status}`);
           const isThrottle = msg.toLowerCase().includes('throttled') ||
                              msg.toLowerCase().includes('rate limit') || res.status === 429;
-          if ((isThrottle || res.status === 504) && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
+          if (isThrottle && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
           throw new Error(msg);
         }
 
-        // Se a API retornou predictionId (ainda processando), faz polling no cliente
-        if (data.predictionId) {
-          pv.querySelector('span').textContent = `Upscale ${scale}× — aguardando Replicate…`;
-          data = await pollReplicateClient(data.predictionId, token,
-            txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; }
-          );
-        }
+        // Polling direto no Replicate até terminar (sem limite de tempo)
+        pv.querySelector('span').textContent = `Upscale ${scale}× — processando…`;
+        const data = await pollReplicateClient(
+          pred.id, token,
+          txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; }
+        );
 
         const upscaledUrl = data.dataUrl;
         const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
