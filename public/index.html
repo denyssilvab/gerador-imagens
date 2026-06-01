@@ -619,6 +619,65 @@
     </div>
   </div>
 
+  <!-- ── COFRE DE API KEYS ── -->
+  <div class="card" style="border-color:var(--border2);">
+    <div class="card-head">
+      <h2>🔑 API Keys Salvas</h2>
+      <span id="vault-status-chip" class="chip">🔒 Bloqueado</span>
+    </div>
+    <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+
+      <!-- Estado: bloqueado / sem cofre -->
+      <div id="vault-locked-ui">
+        <div class="form-row" style="align-items:flex-end;">
+          <div class="fg" style="flex:1;">
+            <label>Senha do Cofre</label>
+            <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
+              onkeydown="if(event.key==='Enter')unlockVault()" />
+          </div>
+          <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
+          <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
+        </div>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px;">
+          Esqueceu a senha?
+          <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
+          (apaga todas as keys salvas).
+        </p>
+      </div>
+
+      <!-- Estado: desbloqueado -->
+      <div id="vault-unlocked-ui" style="display:none;flex-direction:column;gap:12px;">
+        <div id="vault-keys-list"></div>
+        <details style="border-top:1px solid var(--border);padding-top:12px;">
+          <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;user-select:none;">
+            + Adicionar nova key
+          </summary>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+            <div class="form-row">
+              <div class="fg" style="flex:2;">
+                <label>Nome</label>
+                <input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" />
+              </div>
+              <div class="fg">
+                <label>Provider</label>
+                <select id="new-key-provider">
+                  <option value="openai">OpenAI</option>
+                  <option value="replicate">Replicate</option>
+                </select>
+              </div>
+            </div>
+            <div class="fg">
+              <label>API Key</label>
+              <input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" />
+            </div>
+            <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKey()">💾 Salvar Key</button>
+          </div>
+        </details>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── CONFIGURAÇÕES ── -->
   <div class="card">
     <div class="card-head"><h2>Configurações</h2></div>
@@ -894,6 +953,30 @@
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="closeRefazer()">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmRefazer()">🔄 Regenerar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Criar Cofre -->
+<div class="modal-bg" id="create-vault-modal">
+  <div class="modal">
+    <h3>🔐 Criar Cofre de API Keys</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6;">
+      As keys serão criptografadas com <strong>AES-256-GCM</strong> e armazenadas localmente.
+      Guarde bem a senha — sem ela não é possível recuperar as keys.
+    </p>
+    <div class="fg">
+      <label>Nova Senha</label>
+      <input id="new-vault-pass1" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password" />
+    </div>
+    <div class="fg">
+      <label>Confirmar Senha</label>
+      <input id="new-vault-pass2" type="password" placeholder="Repita a senha" autocomplete="new-password"
+        onkeydown="if(event.key==='Enter')createVault()" />
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeCreateVaultModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="createVault()">🔐 Criar Cofre</button>
     </div>
   </div>
 </div>
@@ -2267,6 +2350,189 @@ function toast(msg, type = '') {
 // ── Util ───────────────────────────────────────────────────────────────────
 function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Cofre de API Keys (AES-256-GCM + PBKDF2) ──────────────────────────────
+const VAULT_SALT_KEY = 'pediagov_vault_salt';
+const VAULT_DATA_KEY = 'pediagov_vault_data';
+let vaultCryptoKey = null;
+let vaultKeys = [];
+
+const b64enc = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64dec = s   => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+
+async function deriveVaultKey(password, salt) {
+  const enc = new TextEncoder();
+  const mat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    mat,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+async function encryptVault(data) {
+  const iv  = crypto.getRandomValues(new Uint8Array(12));
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, vaultCryptoKey, enc.encode(JSON.stringify(data)));
+  return JSON.stringify({ iv: b64enc(iv), data: b64enc(buf) });
+}
+
+async function decryptVault(ciphertext) {
+  const { iv, data } = JSON.parse(ciphertext);
+  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64dec(iv) }, vaultCryptoKey, b64dec(data));
+  return JSON.parse(new TextDecoder().decode(buf));
+}
+
+async function persistVault() {
+  localStorage.setItem(VAULT_DATA_KEY, await encryptVault(vaultKeys));
+}
+
+function vaultExists() { return !!localStorage.getItem(VAULT_SALT_KEY); }
+
+function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
+
+// Init: ajusta UI conforme estado do cofre
+(function initVaultUI() {
+  if (!vaultExists()) {
+    document.getElementById('vault-locked-ui').innerHTML = `
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
+        Nenhum cofre criado. Salve suas API keys com criptografia AES-256.
+      </p>
+      <button class="btn btn-primary btn-sm" onclick="showCreateVaultModal()">🔐 Criar Cofre</button>
+    `;
+  }
+})();
+
+async function unlockVault() {
+  const password = document.getElementById('vault-password')?.value;
+  if (!password) { toast('Digite a senha do cofre.', 'warn'); return;  }
+  try {
+    const salt = b64dec(localStorage.getItem(VAULT_SALT_KEY));
+    vaultCryptoKey = await deriveVaultKey(password, salt);
+    const stored = localStorage.getItem(VAULT_DATA_KEY);
+    vaultKeys = stored ? await decryptVault(stored) : [];
+    setVaultState(true);
+    document.getElementById('vault-password').value = '';
+    toast('Cofre desbloqueado!', 'ok');
+  } catch (_) {
+    toast('Senha incorreta ou cofre corrompido.', 'err');
+  }
+}
+
+async function createVault() {
+  const p1 = document.getElementById('new-vault-pass1')?.value;
+  const p2 = document.getElementById('new-vault-pass2')?.value;
+  if (!p1 || p1.length < 4) { toast('Senha mínima: 4 caracteres.', 'warn'); return; }
+  if (p1 !== p2)             { toast('As senhas não coincidem.', 'err'); return; }
+  try {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    localStorage.setItem(VAULT_SALT_KEY, b64enc(salt));
+    vaultCryptoKey = await deriveVaultKey(p1, salt);
+    vaultKeys = [];
+    await persistVault();
+    closeCreateVaultModal();
+    setVaultState(true);
+    // Restaura UI do locked state original (caso estava no modo "sem cofre")
+    document.getElementById('vault-locked-ui').innerHTML = `
+      <div class="form-row" style="align-items:flex-end;">
+        <div class="fg" style="flex:1;"><label>Senha do Cofre</label>
+          <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
+            onkeydown="if(event.key==='Enter')unlockVault()" /></div>
+        <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
+        <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
+      </div>
+      <p style="font-size:11px;color:var(--muted);margin-top:8px;">
+        Esqueceu a senha?
+        <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
+        (apaga todas as keys salvas).
+      </p>`;
+    toast('Cofre criado com sucesso!', 'ok');
+  } catch (e) { toast('Erro ao criar cofre: ' + e.message, 'err'); }
+}
+
+function setVaultState(unlocked) {
+  document.getElementById('vault-locked-ui').style.display   = unlocked ? 'none' : '';
+  document.getElementById('vault-unlocked-ui').style.display = unlocked ? 'flex' : 'none';
+  document.getElementById('vault-status-chip').textContent   = unlocked ? '🔓 Desbloqueado' : '🔒 Bloqueado';
+  if (unlocked) renderVaultKeys();
+}
+
+function renderVaultKeys() {
+  const list = document.getElementById('vault-keys-list');
+  if (!vaultKeys.length) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--muted);">Nenhuma key salva ainda. Adicione abaixo.</p>';
+    return;
+  }
+  list.innerHTML = vaultKeys.map(k => `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;flex-shrink:0;">${k.provider === 'openai' ? '🤖' : '⚡'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(k.name)}</div>
+        <div style="font-size:11px;color:var(--muted);">${k.provider === 'openai' ? 'OpenAI' : 'Replicate'} · ${esc(k.value.slice(0,10))}••••</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="useVaultKey('${k.id}')">↳ Usar</button>
+      <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);"
+        onclick="deleteVaultKey('${k.id}')">✕</button>
+    </div>
+  `).join('');
+}
+
+async function saveNewVaultKey() {
+  const name  = document.getElementById('new-key-name')?.value.trim();
+  const prov  = document.getElementById('new-key-provider')?.value;
+  const value = document.getElementById('new-key-value')?.value.trim();
+  if (!name)  { toast('Digite um nome para identificar a key.', 'warn'); return; }
+  if (!value) { toast('Cole o valor da API key.', 'warn'); return; }
+  vaultKeys.push({ id: genId(), name, provider: prov, value });
+  await persistVault();
+  renderVaultKeys();
+  document.getElementById('new-key-name').value  = '';
+  document.getElementById('new-key-value').value = '';
+  toast(`Key "${name}" salva!`, 'ok');
+}
+
+function useVaultKey(id) {
+  const k = vaultKeys.find(k => k.id === id);
+  if (!k) return;
+  if (k.provider === 'openai') {
+    document.getElementById('apiKey-openai').value = k.value;
+    if (provider !== 'openai') setProvider('openai', document.getElementById('tab-openai'));
+    toast(`OpenAI key "${k.name}" carregada no campo.`, 'ok');
+  } else {
+    document.getElementById('apiKey-replicate').value = k.value;
+    if (provider !== 'replicate') setProvider('replicate', document.getElementById('tab-replicate'));
+    toast(`Replicate key "${k.name}" carregada no campo.`, 'ok');
+  }
+}
+
+async function deleteVaultKey(id) {
+  const k = vaultKeys.find(k => k.id === id);
+  if (!k) return;
+  if (!confirm(`Remover a key "${k.name}"?`)) return;
+  vaultKeys = vaultKeys.filter(k => k.id !== id);
+  await persistVault();
+  renderVaultKeys();
+  toast(`Key "${k.name}" removida.`, 'ok');
+}
+
+function confirmResetVault() {
+  if (!confirm('Isso apagará TODAS as keys salvas e o cofre atual. Confirmar?')) return;
+  localStorage.removeItem(VAULT_SALT_KEY);
+  localStorage.removeItem(VAULT_DATA_KEY);
+  vaultCryptoKey = null; vaultKeys = [];
+  location.reload();
+}
+
+function showCreateVaultModal() {
+  document.getElementById('create-vault-modal').classList.add('open');
+  setTimeout(() => document.getElementById('new-vault-pass1')?.focus(), 100);
+}
+function closeCreateVaultModal() {
+  document.getElementById('create-vault-modal').classList.remove('open');
+  ['new-vault-pass1','new-vault-pass2'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
 }
 </script>
 </body>
