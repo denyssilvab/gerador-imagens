@@ -162,7 +162,7 @@ app.post('/api/gerar-lote', async (req, res) => {
       const filename = `${requestId}_p${String(page.num).padStart(2, '0')}.png`;
       await saveImage(imgData, path.join(GENERATED_DIR, filename), controller);
 
-      send({ type: 'image', index, pageNum: page.num, title: page.title, url: `/generated/${filename}`, filename });
+      send({ type: 'image', index, pageNum: page.num, title: page.title, url: `/generated/${filename}`, filename, docType: page.docType });
 
     } catch (e) {
       if (e.name === 'AbortError') {

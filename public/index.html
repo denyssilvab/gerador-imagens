@@ -611,7 +611,8 @@
     <div class="card-head"><h2>Tipo de Arquivo</h2></div>
     <div class="card-body">
       <div class="tabs">
-        <button class="tab-btn active" onclick="setDocType('lesson', this)">Lesson</button>
+        <button class="tab-btn active" onclick="setDocType('all', this)">All</button>
+        <button class="tab-btn" onclick="setDocType('lesson', this)">Lesson</button>
         <button class="tab-btn" onclick="setDocType('practice', this)">Practice Activities</button>
         <button class="tab-btn" onclick="setDocType('lessonplan', this)">Lesson Plan</button>
       </div>
@@ -766,9 +767,45 @@
       <span class="pg-badge" id="pg-badge">0 páginas</span>
     </div>
     <div class="card-body">
-      <textarea id="prompt" rows="18"
-        placeholder="===============================================&#10;PAGE 1 - OPENING CONTEXT&#10;===============================================&#10;&#10;HEADER: Blue tag &quot;Unit 3 | Lesson 32&quot;...&#10;&#10;===============================================&#10;PAGE 2 - SECTION TITLE&#10;===============================================&#10;..."
-        oninput="onPromptInput()"></textarea>
+      <!-- Modo individual -->
+      <div id="single-prompt-wrap" style="display:none;">
+        <textarea id="prompt" rows="18"
+          placeholder="===============================================&#10;PAGE 1 - OPENING CONTEXT&#10;===============================================&#10;&#10;HEADER: Blue tag &quot;Unit 3 | Lesson 32&quot;...&#10;&#10;===============================================&#10;PAGE 2 - SECTION TITLE&#10;===============================================&#10;..."
+          oninput="onPromptInput()"></textarea>
+      </div>
+      <!-- Modo All -->
+      <div id="all-prompts-wrap" style="display:flex;flex-direction:column;gap:16px;">
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="background:var(--surface2);padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#89c13b;">📖 Lesson</span>
+            <span class="pg-badge" id="pg-badge-lesson">0 páginas</span>
+          </div>
+          <div style="padding:10px;">
+            <textarea id="prompt-lesson" rows="10" style="margin:0;" oninput="onAllPromptInput('lesson')"
+              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="background:var(--surface2);padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#0251af;">✏️ Practice Activities</span>
+            <span class="pg-badge" id="pg-badge-practice">0 páginas</span>
+          </div>
+          <div style="padding:10px;">
+            <textarea id="prompt-practice" rows="10" style="margin:0;" oninput="onAllPromptInput('practice')"
+              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="background:var(--surface2);padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#ff6b35;">📋 Lesson Plan</span>
+            <span class="pg-badge" id="pg-badge-lessonplan">0 páginas</span>
+          </div>
+          <div style="padding:10px;">
+            <textarea id="prompt-lessonplan" rows="10" style="margin:0;" oninput="onAllPromptInput('lessonplan')"
+              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1000,7 +1037,7 @@ async function dbClear() {
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
-let docType = 'lesson';
+let docType = 'all';
 let provider = 'openai';
 let currentRequestId = null;
 let totalPages = 0;
@@ -1013,7 +1050,7 @@ const selectedKeys = new Set(); // domKeys currently selected
 let refazerTarget = null; // { domKey, gen, idx, pageNum }
 
 // ── Init ───────────────────────────────────────────────────────────────────
-document.getElementById('specs').value = SPECS.lesson;
+document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
 updateTopbarChips();
 
 // Load persisted images from IndexedDB on startup
@@ -1032,10 +1069,46 @@ updateTopbarChips();
 // ── Doc type ───────────────────────────────────────────────────────────────
 function setDocType(type, el) {
   docType = type;
-  // Only toggle doc-type tabs (first .tabs group)
   el.closest('.tabs').querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('specs').value = SPECS[type];
+  const isAll = type === 'all';
+  document.getElementById('single-prompt-wrap').style.display = isAll ? 'none' : '';
+  document.getElementById('all-prompts-wrap').style.display   = isAll ? 'flex' : 'none';
+  if (isAll) {
+    document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
+    updateAllBadge();
+  } else {
+    document.getElementById('specs').value = SPECS[type];
+    onPromptInput();
+  }
+}
+
+function onAllPromptInput(type) {
+  const pages = parsePages(document.getElementById(`prompt-${type}`)?.value || '');
+  const badge = document.getElementById(`pg-badge-${type}`);
+  if (badge) {
+    badge.textContent = pages.length > 0 ? `${pages.length} página${pages.length > 1 ? 's' : ''}` : '0 páginas';
+    badge.className   = pages.length > 0 ? 'pg-badge has' : 'pg-badge';
+  }
+  updateAllBadge();
+}
+
+function updateAllBadge() {
+  let total = 0;
+  ['lesson','practice','lessonplan'].forEach(t => {
+    total += parsePages(document.getElementById(`prompt-${t}`)?.value || '').length;
+  });
+  const badge = document.getElementById('pg-badge');
+  const btn   = document.getElementById('btn-gen');
+  if (total > 0) {
+    badge.textContent = `${total} página${total > 1 ? 's' : ''} (All)`;
+    badge.className   = 'pg-badge has';
+    btn.textContent   = `🚀 Gerar ${total} Imagem${total > 1 ? 'ns' : ''} (All)`;
+  } else {
+    badge.textContent = '0 páginas';
+    badge.className   = 'pg-badge';
+    btn.textContent   = '🚀 Gerar Imagens';
+  }
 }
 
 // ── Provider ────────────────────────────────────────────────────────────────
@@ -1112,31 +1185,45 @@ function onPromptInput() {
 }
 
 // ── Build full prompt ──────────────────────────────────────────────────────
+function buildPromptForType(page, type) {
+  const unit  = document.getElementById('unit').value.trim();
+  const lesson= document.getElementById('lesson').value.trim();
+  const ccss  = document.getElementById('ccss').value.trim();
+  const specs = SPECS[type];
+  const tagText    = type === 'lessonplan' ? `Unit ${unit} | Lesson Plan` : `Unit ${unit} | Lesson ${lesson}`;
+  const footerText = `Mathematics - 6th Grade | ${ccss}`;
+  const [zone, maxY, leftX] = type === 'lessonplan'
+    ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
+    : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
+  return [
+    specs, '',
+    `HEADER TAG TEXT: "${tagText}"`,
+    `FOOTER TEXT: "${footerText}"`,
+    `CCSS: ${ccss}`, '',
+    page.content, '',
+    `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
+    `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
+    `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
+    `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
+  ].join('\n');
+}
+
 function buildPrompt(page) {
   const unit    = document.getElementById('unit').value.trim();
   const lesson  = document.getElementById('lesson').value.trim();
   const ccss    = document.getElementById('ccss').value.trim();
   const specs   = document.getElementById('specs').value.trim();
-
-  const tagText = docType === 'lessonplan'
-    ? `Unit ${unit} | Lesson Plan`
-    : `Unit ${unit} | Lesson ${lesson}`;
-
+  const tagText = docType === 'lessonplan' ? `Unit ${unit} | Lesson Plan` : `Unit ${unit} | Lesson ${lesson}`;
   const footerText = `Mathematics - 6th Grade | ${ccss}`;
-
   const [zone, maxY, leftX] = docType === 'lessonplan'
     ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
-
   return [
-    specs,
-    '',
+    specs, '',
     `HEADER TAG TEXT: "${tagText}"`,
     `FOOTER TEXT: "${footerText}"`,
-    `CCSS: ${ccss}`,
-    '',
-    page.content,
-    '',
+    `CCSS: ${ccss}`, '',
+    page.content, '',
     `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
     `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
     `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
@@ -1212,10 +1299,23 @@ async function startGeneration() {
     return;
   }
 
-  const rawPages = parsePages(document.getElementById('prompt').value);
-  if (!rawPages.length) { toast('Nenhuma página detectada. Verifique o formato do prompt.', 'err'); return; }
-
-  const pages = rawPages.map(p => ({ ...p, content: buildPrompt(p) }));
+  let pages = [];
+  if (docType === 'all') {
+    const typeLabels = { lesson: 'Lesson', practice: 'Practice', lessonplan: 'Plan' };
+    for (const type of ['lesson', 'practice', 'lessonplan']) {
+      const raw = parsePages(document.getElementById(`prompt-${type}`)?.value || '');
+      raw.forEach(p => pages.push({
+        ...p,
+        title: `[${typeLabels[type]}] ${p.title}`,
+        content: buildPromptForType(p, type),
+        docType: type,
+      }));
+    }
+  } else {
+    const rawPages = parsePages(document.getElementById('prompt').value);
+    rawPages.forEach(p => pages.push({ ...p, content: buildPrompt(p), docType }));
+  }
+  if (!pages.length) { toast('Nenhuma página detectada. Verifique o formato do prompt.', 'err'); return; }
 
   // New generation session
   currentGen = ++genCount;
@@ -1291,8 +1391,9 @@ async function handleEvent(ev) {
       let displayUrl = ev.dataUrl || ev.url || '';
       // Aplica header/footer programático
       try {
-        const { header, footer } = _overlayTexts();
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, docType);
+        const pageDocType = ev.docType || docType;
+        const { header, footer } = _overlayTextsForType(pageDocType);
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType);
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       const domKey = ck(currentGen, ev.index);
       const result = {
@@ -2081,16 +2182,17 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
   });
 }
 
-function _overlayTexts() {
+function _overlayTextsForType(type) {
   const unit   = document.getElementById('unit')?.value.trim()   || '';
   const lesson = document.getElementById('lesson')?.value.trim() || '';
   const ccss   = document.getElementById('ccss')?.value.trim()   || '';
-  const header = docType === 'lessonplan'
+  const header = type === 'lessonplan'
     ? `Unit ${unit} | Lesson Plan`
     : `Unit ${unit} | Lesson ${lesson}`;
   const footer = `Mathematics - 6th Grade | ${ccss}`;
   return { header, footer };
 }
+function _overlayTexts() { return _overlayTextsForType(docType); }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
 async function createPDF() {
