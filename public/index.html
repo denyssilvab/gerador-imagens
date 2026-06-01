@@ -296,6 +296,32 @@
       gap: 14px;
     }
 
+    /* ── Type groups (All mode) ── */
+    .type-groups-container {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .type-group { display: flex; flex-direction: column; gap: 10px; }
+    .type-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      border-left: 4px solid var(--border);
+    }
+    .type-group-label { font-size: 13px; font-weight: 700; }
+    .type-group-count { font-size: 11px; color: var(--muted); }
+    .type-group-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
     /* ── Image card ── */
     .icard {
       background: var(--surface2);
@@ -1449,10 +1475,20 @@ async function startGeneration() {
   const empty = grid.querySelector('.empty');
   if (empty) empty.remove();
 
+  // No modo All, cria grupos separados por tipo
+  if (docType === 'all') {
+    setupTypeGroupsForGen(grid, currentGen, pages);
+  }
+
   const frag = document.createDocumentFragment();
   pages.forEach((p, i) => {
     retryData[ck(currentGen, i)] = p;
-    frag.appendChild(makeCard(currentGen, i, p.num, p.title));
+    const card = makeCard(currentGen, i, p.num, p.title);
+    if (docType === 'all' && p.docType) {
+      const groupGrid = document.getElementById(`grid-${currentGen}-${p.docType}`);
+      if (groupGrid) { groupGrid.appendChild(card); return; }
+    }
+    frag.appendChild(card);
   });
   grid.insertBefore(frag, grid.firstChild);
   updateProg();
@@ -1580,6 +1616,38 @@ function updateProg() {
   document.getElementById('prog-fill').style.width = pct + '%';
   const errs = errorCount > 0 ? ` · ${errorCount} erro${errorCount > 1 ? 's' : ''}` : '';
   document.getElementById('prog-label').textContent = `${doneCount} de ${totalPages} páginas${errs}`;
+}
+
+// ── Grupos por tipo (modo All) ─────────────────────────────────────────────
+function setupTypeGroupsForGen(grid, genId, pages) {
+  const TYPE_META = {
+    lesson:     { label: '📖 Lesson',              color: '#89c13b' },
+    practice:   { label: '✏️ Practice Activities', color: '#0251af' },
+    lessonplan: { label: '📋 Lesson Plan',         color: '#ff6b35' },
+  };
+
+  const container = document.createElement('div');
+  container.className = 'type-groups-container';
+  container.id = `gen-wrapper-${genId}`;
+
+  ['lesson', 'practice', 'lessonplan'].forEach(type => {
+    const count = pages.filter(p => p.docType === type).length;
+    if (count === 0) return; // não cria grupo vazio
+    const { label, color } = TYPE_META[type];
+    const section = document.createElement('div');
+    section.className = 'type-group';
+    section.id = `type-group-${genId}-${type}`;
+    section.innerHTML = `
+      <div class="type-group-header" style="border-left-color:${color}">
+        <span class="type-group-label" style="color:${color}">${label}</span>
+        <span class="type-group-count">${count} página${count !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="type-group-grid" id="grid-${genId}-${type}"></div>
+    `;
+    container.appendChild(section);
+  });
+
+  grid.insertBefore(container, grid.firstChild);
 }
 
 // ── Image cards ────────────────────────────────────────────────────────────
