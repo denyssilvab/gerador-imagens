@@ -1475,20 +1475,19 @@ async function startGeneration() {
   const empty = grid.querySelector('.empty');
   if (empty) empty.remove();
 
-  // No modo All, cria grupos separados por tipo
-  if (docType === 'all') {
-    setupTypeGroupsForGen(grid, currentGen, pages);
-  }
+  // No modo All, cria grupos separados por tipo e guarda referências diretas
+  const groupGrids = docType === 'all' ? setupTypeGroupsForGen(grid, pages) : {};
 
   const frag = document.createDocumentFragment();
   pages.forEach((p, i) => {
     retryData[ck(currentGen, i)] = p;
     const card = makeCard(currentGen, i, p.num, p.title);
-    if (docType === 'all' && p.docType) {
-      const groupGrid = document.getElementById(`grid-${currentGen}-${p.docType}`);
-      if (groupGrid) { groupGrid.appendChild(card); return; }
+    const targetGrid = groupGrids[p.docType];
+    if (targetGrid) {
+      targetGrid.appendChild(card);
+    } else {
+      frag.appendChild(card);
     }
-    frag.appendChild(card);
   });
   grid.insertBefore(frag, grid.firstChild);
   updateProg();
@@ -1619,7 +1618,7 @@ function updateProg() {
 }
 
 // ── Grupos por tipo (modo All) ─────────────────────────────────────────────
-function setupTypeGroupsForGen(grid, genId, pages) {
+function setupTypeGroupsForGen(grid, pages) {
   const TYPE_META = {
     lesson:     { label: '📖 Lesson',              color: '#89c13b' },
     practice:   { label: '✏️ Practice Activities', color: '#0251af' },
@@ -1628,26 +1627,37 @@ function setupTypeGroupsForGen(grid, genId, pages) {
 
   const container = document.createElement('div');
   container.className = 'type-groups-container';
-  container.id = `gen-wrapper-${genId}`;
+
+  const groupGrids = {}; // type → grid element (referência direta)
 
   ['lesson', 'practice', 'lessonplan'].forEach(type => {
     const count = pages.filter(p => p.docType === type).length;
-    if (count === 0) return; // não cria grupo vazio
+    if (count === 0) return;
     const { label, color } = TYPE_META[type];
+
     const section = document.createElement('div');
     section.className = 'type-group';
-    section.id = `type-group-${genId}-${type}`;
-    section.innerHTML = `
-      <div class="type-group-header" style="border-left-color:${color}">
-        <span class="type-group-label" style="color:${color}">${label}</span>
-        <span class="type-group-count">${count} página${count !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="type-group-grid" id="grid-${genId}-${type}"></div>
+
+    const header = document.createElement('div');
+    header.className = 'type-group-header';
+    header.style.borderLeftColor = color;
+    header.innerHTML = `
+      <span class="type-group-label" style="color:${color}">${label}</span>
+      <span class="type-group-count">${count} página${count !== 1 ? 's' : ''}</span>
     `;
+
+    const innerGrid = document.createElement('div');
+    innerGrid.className = 'type-group-grid';
+
+    groupGrids[type] = innerGrid; // guarda referência direta
+
+    section.appendChild(header);
+    section.appendChild(innerGrid);
     container.appendChild(section);
   });
 
   grid.insertBefore(container, grid.firstChild);
+  return groupGrids;
 }
 
 // ── Image cards ────────────────────────────────────────────────────────────
