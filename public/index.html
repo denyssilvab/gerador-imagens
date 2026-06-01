@@ -1220,6 +1220,7 @@ function setDocType(type, el) {
     document.getElementById('specs').value = SPECS[type];
     onPromptInput();
   }
+  saveSettings();
 }
 
 function onAllPromptInput(type) {
@@ -1258,6 +1259,7 @@ function setProvider(p, el) {
   document.getElementById('panel-openai').style.display    = p === 'openai'    ? 'flex' : 'none';
   document.getElementById('panel-replicate').style.display = p === 'replicate' ? 'flex' : 'none';
   updateTopbarChips();
+  saveSettings();
 }
 
 function onModelChange() { updateTopbarChips(); }
@@ -2560,6 +2562,82 @@ async function _buildPDF(keys, version) {
   }
 }
 
+// ── Persistência de configurações e prompts (localStorage) ────────────────
+const PERSIST_KEY = 'pediagov_v1';
+let _saveTimer = null;
+
+function saveSettings() {
+  try {
+    localStorage.setItem(PERSIST_KEY, JSON.stringify({
+      unit:                document.getElementById('unit')?.value ?? '',
+      lesson:              document.getElementById('lesson')?.value ?? '',
+      ccss:                document.getElementById('ccss')?.value ?? '',
+      provider, docType,
+      modelOpenai:         document.getElementById('model-openai')?.value,
+      quality:             document.getElementById('quality')?.value,
+      resolutionOpenai:    document.getElementById('resolution-openai')?.value,
+      modelReplicate:      document.getElementById('model-replicate')?.value,
+      resolutionReplicate: document.getElementById('resolution-replicate')?.value,
+      prompt:              document.getElementById('prompt')?.value ?? '',
+      promptLesson:        document.getElementById('prompt-lesson')?.value ?? '',
+      promptPractice:      document.getElementById('prompt-practice')?.value ?? '',
+      promptLessonplan:    document.getElementById('prompt-lessonplan')?.value ?? '',
+      apiKeyIdOpenai:      document.getElementById('apiKey-select-openai')?.value ?? '',
+      apiKeyIdReplicate:   document.getElementById('apiKey-select-replicate')?.value ?? '',
+    }));
+  } catch (_) {}
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(PERSIST_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    const set = (id, v) => { if (v != null && v !== '') { const el = document.getElementById(id); if (el) el.value = v; } };
+
+    set('unit', s.unit);
+    set('lesson', s.lesson);
+    set('ccss', s.ccss);
+    set('quality', s.quality);
+    set('model-openai', s.modelOpenai);
+    set('resolution-openai', s.resolutionOpenai);
+    set('model-replicate', s.modelReplicate);
+    set('resolution-replicate', s.resolutionReplicate);
+    set('prompt', s.prompt);
+    set('prompt-lesson', s.promptLesson);
+    set('prompt-practice', s.promptPractice);
+    set('prompt-lessonplan', s.promptLessonplan);
+
+    if (s.provider) {
+      const tabEl = document.getElementById(`tab-${s.provider}`);
+      if (tabEl) setProvider(s.provider, tabEl);
+    }
+    if (s.docType) {
+      const tabBtn = document.querySelector(`.tab-btn[onclick*="setDocType('${s.docType}'"]`);
+      if (tabBtn) setDocType(s.docType, tabBtn);
+    }
+
+    onPromptInput();
+    ['lesson','practice','lessonplan'].forEach(t => onAllPromptInput(t));
+    updateTopbarChips();
+  } catch (_) {}
+}
+
+function restoreApiKeySelections() {
+  try {
+    const s = JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}');
+    if (s.apiKeyIdOpenai)    { const el = document.getElementById('apiKey-select-openai');    if (el) el.value = s.apiKeyIdOpenai; }
+    if (s.apiKeyIdReplicate) { const el = document.getElementById('apiKey-select-replicate'); if (el) el.value = s.apiKeyIdReplicate; }
+  } catch (_) {}
+}
+
+// Salva com debounce a cada input/change
+document.addEventListener('input',  () => { clearTimeout(_saveTimer); _saveTimer = setTimeout(saveSettings, 800); });
+document.addEventListener('change', () => { clearTimeout(_saveTimer); _saveTimer = setTimeout(saveSettings, 800); });
+
+// Restaura ao carregar
+loadSettings();
+
 // ── Toast ──────────────────────────────────────────────────────────────────
 function toast(msg, type = '') {
   const c = document.getElementById('toasts');
@@ -2724,7 +2802,7 @@ function setVaultState(unlocked) {
   document.getElementById('vault-locked-ui').style.display   = unlocked ? 'none' : '';
   document.getElementById('vault-unlocked-ui').style.display = unlocked ? 'flex' : 'none';
   document.getElementById('vault-status-chip').textContent   = unlocked ? '🔓 Desbloqueado' : '🔒 Bloqueado';
-  if (unlocked) { renderVaultKeys(); updateApiKeySelects(); }
+  if (unlocked) { renderVaultKeys(); updateApiKeySelects(); restoreApiKeySelections(); }
 }
 
 function renderVaultKeys() {
