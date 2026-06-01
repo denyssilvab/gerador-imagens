@@ -620,7 +620,7 @@
   </div>
 
   <!-- ── COFRE DE API KEYS ── -->
-  <div class="card" style="border-color:var(--border2);">
+  <div class="card" id="vault-card" style="border-color:var(--border2);">
     <div class="card-head">
       <h2>🔑 API Keys Salvas</h2>
       <span id="vault-status-chip" class="chip">🔒 Bloqueado</span>
@@ -732,7 +732,9 @@
           </div>
           <div class="fg">
             <label>OpenAI API Key</label>
-            <input id="apiKey-openai" type="password" placeholder="sk-..." autocomplete="off" />
+            <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')">
+              <option value="">🔒 Desbloqueie o cofre para ver as keys</option>
+            </select>
           </div>
           <div class="form-row">
             <div class="fg span-full">
@@ -789,7 +791,9 @@
           </div>
           <div class="fg">
             <label>Replicate API Token</label>
-            <input id="apiKey-replicate" type="password" placeholder="r8_..." autocomplete="off" />
+            <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')">
+              <option value="">🔒 Desbloqueie o cofre para ver as keys</option>
+            </select>
           </div>
           <p style="font-size:11px;color:var(--muted);line-height:1.5;">
             <strong style="color:var(--warn-fg);">Dica:</strong>
@@ -1215,11 +1219,13 @@ function updateTopbarChips() {
   document.getElementById('model-chip').textContent = label;
 }
 
-function getActiveApiKey() {
-  return provider === 'openai'
-    ? document.getElementById('apiKey-openai').value.trim()
-    : document.getElementById('apiKey-replicate').value.trim();
+function getApiKeyByProvider(prov) {
+  const sel = document.getElementById(`apiKey-select-${prov}`);
+  if (!sel || !sel.value || sel.value === '__add__') return '';
+  const k = vaultKeys.find(k => k.id === sel.value);
+  return k ? k.value : '';
 }
+function getActiveApiKey() { return getApiKeyByProvider(provider); }
 
 function getActiveModel() {
   return provider === 'openai'
@@ -2001,7 +2007,7 @@ async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
 
-  const token = document.getElementById('apiKey-replicate').value.trim();
+  const token = getApiKeyByProvider('replicate');
   if (!token) {
     toast('Upscale AI requer o Replicate API Token — insira na aba Replicate.', 'err');
     return;
@@ -2394,6 +2400,47 @@ function vaultExists() { return !!localStorage.getItem(VAULT_SALT_KEY); }
 
 function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
 
+function updateApiKeySelects() {
+  ['openai', 'replicate'].forEach(prov => {
+    const sel = document.getElementById(`apiKey-select-${prov}`);
+    if (!sel) return;
+    const currentVal = sel.value;
+    sel.innerHTML = '';
+
+    if (!vaultCryptoKey) {
+      sel.innerHTML = `<option value="">🔒 Desbloqueie o cofre para ver as keys</option>`;
+      sel.disabled = true;
+      return;
+    }
+
+    sel.disabled = false;
+    const provKeys = vaultKeys.filter(k => k.provider === prov);
+
+    if (provKeys.length === 0) {
+      sel.innerHTML = `<option value="">— Nenhuma key cadastrada —</option>
+                       <option value="__add__">+ Cadastrar nova key…</option>`;
+    } else {
+      sel.innerHTML = `<option value="">— Selecione uma key —</option>`;
+      provKeys.forEach(k => {
+        sel.innerHTML += `<option value="${k.id}">${esc(k.name)}  (${k.value.slice(0,10)}••••)</option>`;
+      });
+      sel.innerHTML += `<option value="__add__">+ Cadastrar nova key…</option>`;
+      // Restaura seleção anterior se ainda existe
+      if (currentVal && provKeys.find(k => k.id === currentVal)) sel.value = currentVal;
+    }
+  });
+}
+
+function onApiKeySelect(prov) {
+  const sel = document.getElementById(`apiKey-select-${prov}`);
+  if (!sel || sel.value !== '__add__') return;
+  sel.value = '';
+  // Scroll até o cofre e abre o formulário de adição
+  document.getElementById('vault-card')?.scrollIntoView({ behavior: 'smooth' });
+  const details = document.querySelector('#vault-unlocked-ui details');
+  if (details) details.open = true;
+}
+
 // Init: ajusta UI conforme estado do cofre
 (function initVaultUI() {
   if (!vaultExists()) {
@@ -2404,6 +2451,7 @@ function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)
       <button class="btn btn-primary btn-sm" onclick="showCreateVaultModal()">🔐 Criar Cofre</button>
     `;
   }
+  updateApiKeySelects();
 })();
 
 async function unlockVault() {
@@ -2457,7 +2505,7 @@ function setVaultState(unlocked) {
   document.getElementById('vault-locked-ui').style.display   = unlocked ? 'none' : '';
   document.getElementById('vault-unlocked-ui').style.display = unlocked ? 'flex' : 'none';
   document.getElementById('vault-status-chip').textContent   = unlocked ? '🔓 Desbloqueado' : '🔒 Bloqueado';
-  if (unlocked) renderVaultKeys();
+  if (unlocked) { renderVaultKeys(); updateApiKeySelects(); }
 }
 
 function renderVaultKeys() {
@@ -2489,6 +2537,7 @@ async function saveNewVaultKey() {
   vaultKeys.push({ id: genId(), name, provider: prov, value });
   await persistVault();
   renderVaultKeys();
+  updateApiKeySelects();
   document.getElementById('new-key-name').value  = '';
   document.getElementById('new-key-value').value = '';
   toast(`Key "${name}" salva!`, 'ok');
@@ -2497,15 +2546,13 @@ async function saveNewVaultKey() {
 function useVaultKey(id) {
   const k = vaultKeys.find(k => k.id === id);
   if (!k) return;
-  if (k.provider === 'openai') {
-    document.getElementById('apiKey-openai').value = k.value;
-    if (provider !== 'openai') setProvider('openai', document.getElementById('tab-openai'));
-    toast(`OpenAI key "${k.name}" carregada no campo.`, 'ok');
-  } else {
-    document.getElementById('apiKey-replicate').value = k.value;
-    if (provider !== 'replicate') setProvider('replicate', document.getElementById('tab-replicate'));
-    toast(`Replicate key "${k.name}" carregada no campo.`, 'ok');
-  }
+  const sel = document.getElementById(`apiKey-select-${k.provider}`);
+  if (sel) sel.value = k.id;
+  if (k.provider === 'openai' && provider !== 'openai')
+    setProvider('openai', document.getElementById('tab-openai'));
+  else if (k.provider === 'replicate' && provider !== 'replicate')
+    setProvider('replicate', document.getElementById('tab-replicate'));
+  toast(`Key "${k.name}" selecionada.`, 'ok');
 }
 
 async function deleteVaultKey(id) {
@@ -2515,6 +2562,7 @@ async function deleteVaultKey(id) {
   vaultKeys = vaultKeys.filter(k => k.id !== id);
   await persistVault();
   renderVaultKeys();
+  updateApiKeySelects();
   toast(`Key "${k.name}" removida.`, 'ok');
 }
 
