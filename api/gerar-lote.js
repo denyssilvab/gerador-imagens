@@ -165,7 +165,7 @@ export default async function handler(req) {
             ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
             : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
 
-          send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl });
+          send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl, docType: page.docType });
         } catch (e) {
           if (ctrl.signal.aborted) {
             send({ type: 'cancelled', index, pageNum: page.num, title: page.title });
