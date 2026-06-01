@@ -961,6 +961,30 @@
   </div>
 </div>
 
+<!-- Modal: Versão do PDF -->
+<div class="modal-bg" id="pdf-version-modal">
+  <div class="modal">
+    <h3>📄 Versão das imagens no PDF</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6;">
+      Algumas imagens selecionadas possuem versão upscalada. Qual versão incluir no PDF?
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin:4px 0;">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+        <input type="radio" name="pdf-version" value="original" checked style="accent-color:var(--primary);width:16px;height:16px;" />
+        <div><strong>Original</strong><div style="font-size:11px;color:var(--muted);">Imagem gerada pela IA (sem upscale)</div></div>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+        <input type="radio" name="pdf-version" value="upscale" style="accent-color:var(--primary);width:16px;height:16px;" />
+        <div><strong>Upscale</strong><div style="font-size:11px;color:var(--muted);">Versão upscalada (quando disponível, senão usa original)</div></div>
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+      <button class="btn btn-ghost" onclick="closePdfVersionModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmCreatePDF()">📄 Criar PDF</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Criar Cofre -->
 <div class="modal-bg" id="create-vault-modal">
   <div class="modal">
@@ -1133,8 +1157,10 @@ let errorCount = 0;
 let genCount = 0;
 let currentGen = 0;
 const results = {};       // domKey → { url, filename, pageNum, title }
-const selectedKeys = new Set(); // domKeys currently selected
-let refazerTarget = null; // { domKey, gen, idx, pageNum }
+const selectedKeys = new Set();
+const retryData = {};     // domKey → page data para retry
+let refazerTarget = null;
+let _pdfPendingKeys = [];
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
@@ -1424,7 +1450,10 @@ async function startGeneration() {
   if (empty) empty.remove();
 
   const frag = document.createDocumentFragment();
-  pages.forEach((p, i) => frag.appendChild(makeCard(currentGen, i, p.num, p.title)));
+  pages.forEach((p, i) => {
+    retryData[ck(currentGen, i)] = p;
+    frag.appendChild(makeCard(currentGen, i, p.num, p.title));
+  });
   grid.insertBefore(frag, grid.firstChild);
   updateProg();
 
@@ -1630,6 +1659,7 @@ function cardError(gen, idx, msg) {
   const key = ck(gen, idx);
   const st = document.getElementById(`st_${key}`);
   const pv = document.getElementById(`pv_${key}`);
+  const ft = document.getElementById(`ft_${key}`);
   if (!st) return;
   st.className = 'icard-status s-err';
   st.textContent = '✗ Erro';
@@ -1639,6 +1669,10 @@ function cardError(gen, idx, msg) {
       <strong>Erro ao gerar esta página</strong>
       <div class="err-msg">${esc(msg || 'Erro desconhecido')}</div>
     </div>`;
+  if (ft) {
+    ft.style.display = 'flex';
+    ft.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="retryPage('${key}')">🔄 Tentar novamente</button>`;
+  }
 }
 
 function cardCancelled(gen, idx) {
@@ -1929,6 +1963,88 @@ async function confirmRefazer() {
     }
   } catch (e) {
     toast(`Erro ao regenerar: ${e.message}`, 'err');
+  }
+}
+
+// ── Retry de página com erro ───────────────────────────────────────────────
+async function retryPage(domKey) {
+  const pd = retryData[domKey];
+  if (!pd) { toast('Dados não disponíveis para retry.', 'warn'); return; }
+
+  const apiKey = getActiveApiKey();
+  const model  = getActiveModel();
+  const quality = document.getElementById('quality').value;
+  const size = provider === 'openai'
+    ? document.getElementById('resolution-openai').value
+    : document.getElementById('resolution-replicate').value;
+  if (!apiKey) { toast('Configure a API key antes de tentar novamente.', 'err'); return; }
+
+  const card = document.getElementById(`card_${domKey}`) ||
+    [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${domKey}'"]`));
+  const pv = card?.querySelector('.icard-preview');
+  const stEl = card?.querySelector('.icard-status');
+  const ft = document.getElementById(`ft_${domKey}`);
+
+  if (stEl) { stEl.className = 'icard-status s-gen'; stEl.textContent = 'Gerando…'; }
+  if (pv) pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Gerando novamente…</span></div>`;
+  if (ft) ft.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/gerar-lote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey, provider, model, quality, size,
+        pages: [{ num: pd.num, title: pd.title, content: pd.content, docType: pd.docType }]
+      }),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const ev = JSON.parse(line.slice(6));
+          if (ev.type === 'image') {
+            let dataUrl = ev.dataUrl || ev.url;
+            try {
+              const pageDocType = ev.docType || pd.docType || docType;
+              const { header, footer } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
+            } catch (e) { console.warn('Overlay retry:', e); }
+            const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
+            results[domKey] = { ...results[domKey], url: dataUrl, originalUrl: dataUrl, filename, pageNum: pd.num, title: pd.title };
+            if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
+            if (stEl) { stEl.className = 'icard-status s-done'; stEl.textContent = '✓ Pronta'; }
+            if (ft) {
+              ft.style.display = 'flex';
+              ft.innerHTML = `
+                <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}',this)">⬇ Baixar</button>
+                <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
+                <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pd.num})">🔄 Refazer</button>`;
+            }
+            dbSave({ dataUrl, url: dataUrl, filename, pageNum: pd.num, title: pd.title }).catch(() => {});
+            toast(`Pág. ${pd.num} regenerada!`, 'ok');
+          } else if (ev.type === 'error') {
+            if (stEl) { stEl.className = 'icard-status s-err'; stEl.textContent = '✗ Erro'; }
+            if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
+            if (ft) { ft.style.display = 'flex'; ft.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="retryPage('${domKey}')">🔄 Tentar novamente</button>`; }
+            toast(`Erro: ${ev.error}`, 'err');
+          }
+        } catch (_) {}
+      }
+    }
+  } catch (e) {
+    if (stEl) { stEl.className = 'icard-status s-err'; stEl.textContent = '✗ Erro'; }
+    if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(e.message)}</div></div>`;
+    if (ft) { ft.style.display = 'flex'; ft.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="retryPage('${domKey}')">🔄 Tentar novamente</button>`; }
+    toast(`Erro ao tentar novamente: ${e.message}`, 'err');
   }
 }
 
@@ -2289,15 +2405,35 @@ async function createPDF() {
   if (!keys.length) { toast('Selecione ao menos uma imagem para o PDF.', 'warn'); return; }
   if (typeof PDFLib === 'undefined') { toast('pdf-lib ainda carregando, aguarde.', 'warn'); return; }
 
-  const sorted = keys.map(k => results[k]).sort((a, b) => (a.pageNum||0) - (b.pageNum||0));
+  _pdfPendingKeys = keys;
 
-  // Overlay de progresso
+  // Se alguma imagem selecionada tem upscale, pede ao usuário qual versão usar
+  const hasUpscale = keys.some(k => results[k]?.upscaledUrl || Object.keys(results[k]?.upscales || {}).length > 0);
+  if (hasUpscale) {
+    document.getElementById('pdf-version-modal').classList.add('open');
+  } else {
+    await _buildPDF(keys, 'original');
+    _pdfPendingKeys = [];
+  }
+}
+
+function closePdfVersionModal() {
+  document.getElementById('pdf-version-modal').classList.remove('open');
+  _pdfPendingKeys = [];
+}
+
+async function confirmCreatePDF() {
+  const version = document.querySelector('input[name="pdf-version"]:checked')?.value || 'original';
+  document.getElementById('pdf-version-modal').classList.remove('open');
+  await _buildPDF(_pdfPendingKeys, version);
+  _pdfPendingKeys = [];
+}
+
+async function _buildPDF(keys, version) {
+  const sorted = keys.map(k => results[k]).sort((a, b) => (a.pageNum||0) - (b.pageNum||0));
   const overlay = document.createElement('div');
   overlay.className = 'pdf-overlay';
-  overlay.innerHTML = `
-    <div class="spinner"></div>
-    <p id="pdf-prog">Preparando PDF… 0 / ${sorted.length}</p>
-  `;
+  overlay.innerHTML = `<div class="spinner"></div><p id="pdf-prog">Preparando PDF… 0 / ${sorted.length}</p>`;
   document.body.appendChild(overlay);
 
   try {
@@ -2305,19 +2441,20 @@ async function createPDF() {
 
     for (let i = 0; i < sorted.length; i++) {
       const img = sorted[i];
-      // Usa versão upscaled se disponível
-      const srcUrl = img.upscaledUrl || img.url;
+      const srcUrl = version === 'upscale'
+        ? (img.upscaledUrl || img.originalUrl || img.url)
+        : (img.originalUrl || img.url);
       if (!srcUrl?.startsWith('data:')) continue;
 
       document.getElementById('pdf-prog').textContent = `Incorporando página ${i + 1} de ${sorted.length}…`;
-      await new Promise(r => setTimeout(r, 0)); // yield para atualizar UI
+      await new Promise(r => setTimeout(r, 0));
 
       const imgData = await imgBytesForPdf(srcUrl);
       if (!imgData) continue;
       const pdfImg = imgData.fmt === 'jpeg'
         ? await pdfDoc.embedJpg(imgData.bytes)
         : await pdfDoc.embedPng(imgData.bytes);
-      const page = pdfDoc.addPage([595.28, 841.89]); // A4 em pontos PDF (72 dpi)
+      const page = pdfDoc.addPage([595.28, 841.89]);
       page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
     }
 
@@ -2328,7 +2465,7 @@ async function createPDF() {
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'material-pedagogico.pdf';
+    a.download = `material-pedagogico${version === 'upscale' ? '_upscale' : ''}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
