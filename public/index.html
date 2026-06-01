@@ -1475,8 +1475,12 @@ async function startGeneration() {
   const empty = grid.querySelector('.empty');
   if (empty) empty.remove();
 
-  // No modo All, cria grupos separados por tipo e guarda referências diretas
-  const groupGrids = docType === 'all' ? setupTypeGroupsForGen(grid, pages) : {};
+  // Agrupa por tipo se houver mais de um docType nas pages
+  const uniqueTypes = [...new Set(pages.map(p => p.docType).filter(Boolean))];
+  const useGroups   = uniqueTypes.length > 1;
+  console.log('[gerador] docType:', docType, '| uniqueTypes:', uniqueTypes, '| useGroups:', useGroups);
+  const groupGrids  = useGroups ? setupTypeGroupsForGen(grid, pages) : {};
+  console.log('[gerador] groupGrids keys:', Object.keys(groupGrids));
 
   const frag = document.createDocumentFragment();
   pages.forEach((p, i) => {
