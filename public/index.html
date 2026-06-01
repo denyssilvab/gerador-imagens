@@ -1338,11 +1338,9 @@ function buildPromptForType(page, type) {
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
   return [
     specs, '',
-    `HEADER TAG TEXT: "${tagText}"`,
-    `FOOTER TEXT: "${footerText}"`,
     `CCSS: ${ccss}`, '',
     page.content, '',
-    `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
+    `CRITICAL: Header and footer are added programmatically — do NOT draw them, and do NOT include unit/lesson labels or footer text anywhere in the body.`,
     `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
     `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
     `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
@@ -1354,18 +1352,14 @@ function buildPrompt(page) {
   const lesson  = document.getElementById('lesson').value.trim();
   const ccss    = document.getElementById('ccss').value.trim();
   const specs   = document.getElementById('specs').value.trim();
-  const tagText = docType === 'lessonplan' ? `Unit ${unit} | Lesson Plan` : `Unit ${unit} | Lesson ${lesson}`;
-  const footerText = `Mathematics - 6th Grade | ${ccss}`;
   const [zone, maxY, leftX] = docType === 'lessonplan'
     ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
   return [
     specs, '',
-    `HEADER TAG TEXT: "${tagText}"`,
-    `FOOTER TEXT: "${footerText}"`,
     `CCSS: ${ccss}`, '',
     page.content, '',
-    `CRITICAL: Header and footer are added automatically — do NOT draw them.`,
+    `CRITICAL: Header and footer are added programmatically — do NOT draw them, and do NOT include unit/lesson labels or footer text anywhere in the body.`,
     `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
     `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
     `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
@@ -1555,10 +1549,11 @@ async function handleEvent(ev) {
       const domKey = ck(currentGen, ev.index);
       const result = {
         url: displayUrl,
-        originalUrl: displayUrl,  // preservado para upscale sempre partir da original
+        originalUrl: displayUrl,
         filename: ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`,
         pageNum: ev.pageNum,
         title: ev.title || '',
+        docType: ev.docType || (docType !== 'all' ? docType : undefined),
       };
       results[domKey] = result;
       dbSave({ ...result, dataUrl: displayUrl }).catch(() => {});
@@ -1993,9 +1988,14 @@ async function confirmRefazer() {
 
   if (!apiKey) { toast('Insira a chave de API antes de regenerar.', 'err'); return; }
 
-  // Build full prompt with specs
+  // Usa o docType correto da página (retryData ou results, nunca o global 'all')
+  const pageDocType = retryData[domKey]?.docType
+    || results[domKey]?.docType
+    || (docType !== 'all' ? docType : 'lesson');
+
+  // Build full prompt com specs do tipo correto
   const fakePage = { num: pageNum, title: '', content: promptText };
-  const fullPrompt = buildPrompt(fakePage);
+  const fullPrompt = buildPromptForType(fakePage, pageDocType);
 
   // Find or create card element to show progress
   const card = document.querySelector(`[id="card_${domKey}"]`) ||
@@ -2009,7 +2009,7 @@ async function confirmRefazer() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         apiKey, provider, model, quality, size,
-        pages: [{ num: pageNum, title: '', content: fullPrompt }]
+        pages: [{ num: pageNum, title: '', content: fullPrompt, docType: pageDocType }]
       }),
     });
 
@@ -2028,11 +2028,11 @@ async function confirmRefazer() {
           if (ev.type === 'image') {
             let dataUrl = ev.dataUrl || ev.url;
             try {
-              const { header, footer } = _overlayTexts();
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, docType);
+              const { header, footer } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
-            results[domKey] = { ...results[domKey], url: dataUrl, filename };
+            results[domKey] = { ...results[domKey], url: dataUrl, filename, docType: pageDocType };
             if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
             await dbSave({ dataUrl, url: dataUrl, filename, pageNum, title: '', ts: Date.now() }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
