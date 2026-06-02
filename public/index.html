@@ -2485,29 +2485,29 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         ctx.fillRect(0, 0, W, my(20)); // garante fundo branco no header
         const hY = my(5), hH = my(10);
 
-        // Verde: x=15mm, y=5mm, 30×10mm
-        const gX = mx(15), gW = mx(30);
+        // Verde: x=10mm, y=5mm, 30×10mm (10mm esquerdo = 10mm direito)
+        const gX = mx(10), gW = mx(30);
         ctx.fillStyle = '#89c13b';
         ctx.fillRect(gX, hY, gW, hH);
         _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
 
-        // Laranja: x=46mm, y=5mm, →x=200mm, h=10mm
+        // Laranja: x=41mm, y=5mm, →x=200mm, h=10mm
         ctx.fillStyle = '#ff6b35';
-        ctx.fillRect(mx(46), hY, mx(200) - mx(46), hH);
+        ctx.fillRect(mx(41), hY, mx(200) - mx(41), hH);
 
         // Texto na barra laranja
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-        ctx.fillText(headerText, mx(50), hY + hH / 2);
+        ctx.fillText(headerText, mx(45), hY + hH / 2);
 
-        // Linha pontilhada: x=15mm→x=200mm, y=20mm
-        _dottedLine(ctx, mx(15), my(20), mx(200), lw, mx(3), mx(2));
+        // Linha pontilhada: x=10mm→x=200mm, y=20mm (simétrico)
+        _dottedLine(ctx, mx(10), my(20), mx(200), lw, mx(3), mx(2));
 
         // ── Footer lessonplan: 15mm, texto centralizado ─────────────────────
         const fY = H - my(15);
         ctx.fillStyle = '#ffffff'; ctx.fillRect(0, fY, W, my(15));
-        _dottedLine(ctx, mx(15), fY, mx(200), lw, mx(3), mx(2));
+        _dottedLine(ctx, mx(10), fY, mx(200), lw, mx(3), mx(2));
         ctx.fillStyle = '#666666';
         ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
