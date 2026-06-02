@@ -1042,15 +1042,15 @@
 const SPECS = {
 lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
-Header and footer are added automatically after generation.
+⚠️ CRITICAL — Header and footer are added programmatically after generation.
+• DO NOT draw headers, footers, page borders or side lines of any kind.
+• DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=25mm (top) to y=275mm (bottom) — leave everything outside this range WHITE
 • Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
-• COMPACT LAYOUT: max 4–6mm vertical spacing between sections
-• ALL content MUST fit within y=25mm–y=275mm — reduce spacing if needed, never overflow
-• Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
+• Spacing: max 4–6mm between sections — never overflow past y=275mm
+• Use the FULL horizontal width — text must reach close to x=190mm
 
 TYPOGRAPHY (NEVER SMALLER THAN):
 • Titles: 20pt Bold #092964
@@ -1069,23 +1069,19 @@ LAYOUT PRINCIPLES:
 ✓ Text aligned LEFT only
 ✓ Rounded boxes: 5mm corners, 15mm padding
 ✓ White space is acceptable — do NOT stretch content to fill page
-
-⚠️ TEXT RENDERING:
-✓ NEVER stretch or distort text vertically or horizontally
-✓ Natural typography — letter aspect ratios unchanged from standard font
-✓ Text boxes auto-size to content, NOT forced to fill box`,
+✓ NEVER stretch or distort text — natural typography, letter aspect ratios unchanged`,
 
 practice: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
-Header and footer are added automatically after generation.
+⚠️ CRITICAL — Header and footer are added programmatically after generation.
+• DO NOT draw headers, footers, page borders or side lines of any kind.
+• DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=25mm (top) to y=275mm (bottom) — leave everything outside this range WHITE
 • Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
-• COMPACT LAYOUT: max 4–6mm vertical spacing between sections
-• ALL content MUST fit within y=25mm–y=275mm — reduce spacing if needed, never overflow
-• Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
+• Spacing: max 4–6mm between sections — never overflow past y=275mm
+• Use the FULL horizontal width — text must reach close to x=190mm
 
 TYPOGRAPHY (NEVER SMALLER THAN):
 • Section titles: 20pt Bold #092964
@@ -1102,22 +1098,19 @@ EXERCISE LAYOUT:
 ✓ Answer blanks: dotted or solid underlines
 ✓ Rounded boxes: 5mm corners, 12mm padding
 ✓ Progressive difficulty within the page
-
-⚠️ TEXT RENDERING:
-✓ NEVER stretch or distort text vertically or horizontally
-✓ Natural typography — letter aspect ratios unchanged from standard font`,
+✓ NEVER stretch or distort text — natural typography, letter aspect ratios unchanged`,
 
 lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
-⚠️ CRITICAL — DO NOT draw headers, footers, page borders or side lines of any kind.
-Header and footer are added automatically after generation.
+⚠️ CRITICAL — Header and footer are added programmatically after generation.
+• DO NOT draw headers, footers, page borders or side lines of any kind.
+• DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
 • Horizontal: x=35mm (left) to x=190mm (right) — NO content, lines or borders outside
-• COMPACT LAYOUT: max 4–6mm vertical spacing between sections
-• ALL content MUST fit within y=20mm–y=278mm — reduce spacing if needed, never overflow
-• Use the FULL horizontal width — text must reach close to x=190mm, do not break lines early
+• Spacing: max 4–6mm between sections — never overflow past y=278mm
+• Use the FULL horizontal width — text must reach close to x=190mm
 
 TYPOGRAPHY:
 • Page titles: 24pt Bold #092964
@@ -1339,34 +1332,13 @@ function buildPromptForType(page, type) {
   const [zone, maxY, leftX] = type === 'lessonplan'
     ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
-  return [
-    specs, '',
-    `CCSS: ${ccss}`, '',
-    page.content, '',
-    `CRITICAL: Header and footer are added programmatically — do NOT draw them, and do NOT include unit/lesson labels or footer text anywhere in the body.`,
-    `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
-    `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
-    `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
-  ].join('\n');
+  return [specs, '', `CCSS: ${ccss}`, '', page.content].join('\n');
 }
 
 function buildPrompt(page) {
-  const unit    = document.getElementById('unit').value.trim();
-  const lesson  = document.getElementById('lesson').value.trim();
-  const ccss    = document.getElementById('ccss').value.trim();
-  const specs   = document.getElementById('specs').value.trim();
-  const [zone, maxY, leftX] = docType === 'lessonplan'
-    ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
-    : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
-  return [
-    specs, '',
-    `CCSS: ${ccss}`, '',
-    page.content, '',
-    `CRITICAL: Header and footer are added programmatically — do NOT draw them, and do NOT include unit/lesson labels or footer text anywhere in the body.`,
-    `CRITICAL: Content zone is ${zone}. NOTHING outside. If too long, reduce spacing (4–6mm between blocks max) — never past y=${maxY}mm.`,
-    `CRITICAL: Use COMPACT vertical spacing — similar to a printed textbook. Avoid large gaps between sections. Every mm counts.`,
-    `CRITICAL: Use the FULL horizontal width x=${leftX}mm to x=190mm. Text must reach close to x=190mm — do not break lines early.`
-  ].join('\n');
+  const ccss  = document.getElementById('ccss').value.trim();
+  const specs = document.getElementById('specs').value.trim();
+  return [specs, '', `CCSS: ${ccss}`, '', page.content].join('\n');
 }
 
 // ── Card timers ────────────────────────────────────────────────────────────
