@@ -859,7 +859,7 @@
       <!-- Modo individual -->
       <div id="single-prompt-wrap" style="display:none;">
         <textarea id="prompt" rows="18"
-          placeholder="===============================================&#10;PAGE 1 - OPENING CONTEXT&#10;===============================================&#10;&#10;HEADER: Blue tag &quot;Unit 3 | Lesson 32&quot;...&#10;&#10;===============================================&#10;PAGE 2 - SECTION TITLE&#10;===============================================&#10;..."
+          placeholder="--PAGE 1 - OPENING CONTEXT--&#10;&#10;Conteúdo da página 1...&#10;&#10;--PAGE 2 - SECTION TITLE--&#10;&#10;Conteúdo da página 2..."
           oninput="onPromptInput()"></textarea>
       </div>
       <!-- Modo All -->
@@ -871,7 +871,7 @@
           </div>
           <div style="padding:10px;">
             <textarea id="prompt-lesson" rows="10" style="margin:0;" oninput="onAllPromptInput('lesson')"
-              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+              placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
           </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -881,7 +881,7 @@
           </div>
           <div style="padding:10px;">
             <textarea id="prompt-practice" rows="10" style="margin:0;" oninput="onAllPromptInput('practice')"
-              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+              placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
           </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -891,7 +891,7 @@
           </div>
           <div style="padding:10px;">
             <textarea id="prompt-lessonplan" rows="10" style="margin:0;" oninput="onAllPromptInput('lessonplan')"
-              placeholder="===============================================&#10;PAGE 1 - TÍTULO&#10;===============================================&#10;..."></textarea>
+              placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
           </div>
         </div>
       </div>
@@ -979,7 +979,7 @@
   <div class="modal">
     <h3>Refazer — Página <span id="refazer-num"></span></h3>
     <p style="font-size:12px;color:var(--muted);">Cole o prompt modificado para esta página. As especificações de layout e cabeçalho serão aplicadas automaticamente.</p>
-    <textarea id="refazer-prompt" rows="12" style="font-family:monospace;font-size:12px;" placeholder="PAGE X - TÍTULO&#10;&#10;HEADER: ...&#10;TITLE: ...&#10;..."></textarea>
+    <textarea id="refazer-prompt" rows="12" style="font-family:monospace;font-size:12px;" placeholder="Descreva o conteúdo desta página..."></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="closeRefazer()">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmRefazer()">🔄 Regenerar</button>
@@ -1297,11 +1297,12 @@ function toggleSpecs(btn) {
 
 // ── Page parsing ───────────────────────────────────────────────────────────
 function parsePages(text) {
-  const re = /={10,}\s*\n(PAGE\s+(\d+)\s*[-–]?\s*([^\n]*))\s*\n={10,}/gi;
+  // Formato: --PAGE X-- ou --PAGE X - Título--
+  const re = /--PAGE\s+(\d+)\s*(?:[-–]\s*([^\n-][^\n]*?))?--/gi;
   const markers = [];
   let m;
   while ((m = re.exec(text)) !== null) {
-    markers.push({ index: m.index, end: m.index + m[0].length, num: parseInt(m[2]), title: m[3].trim() });
+    markers.push({ index: m.index, end: m.index + m[0].length, num: parseInt(m[1]), title: (m[2] || '').trim() });
   }
   if (!markers.length) return [];
   const pages = [];
