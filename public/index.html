@@ -1048,7 +1048,7 @@ lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-• Horizontal: x=35mm (left) to x=190mm (right) — NO content, lines or borders outside
+• Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
 • Spacing: max 4–6mm between sections — never overflow past y=278mm
 • Use the FULL horizontal width — text must reach close to x=190mm
 
@@ -1079,7 +1079,7 @@ practice: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-• Horizontal: x=35mm (left) to x=190mm (right) — NO content, lines or borders outside
+• Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
 • Spacing: max 4–6mm between sections — never overflow past y=278mm
 • Use the FULL horizontal width — text must reach close to x=190mm
 
@@ -1108,7 +1108,7 @@ lessonplan: `FORMAT: A4 (210mm × 297mm), 300 DPI
 
 CONTENT AREA — draw ONLY inside this zone:
 • Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-• Horizontal: x=35mm (left) to x=190mm (right) — NO content, lines or borders outside
+• Horizontal: x=25mm (left) to x=190mm (right) — NO content, lines or borders outside
 • Spacing: max 4–6mm between sections — never overflow past y=278mm
 • Use the FULL horizontal width — text must reach close to x=190mm
 
@@ -2393,7 +2393,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         const cTop = my(20), cH = H - my(20) - my(15);
         ctx.drawImage(img, 0, cTop, W, cH);
 
-        // Limpa margem direita (x=200mm+)
+        // Limpa margem direita (x=200mm+) — 10mm de cada lado para simetria
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(mx(200), 0, W, H);
 
@@ -2401,29 +2401,29 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         ctx.fillRect(0, 0, W, my(20));
         const hY = my(5), hH = my(10);
 
-        // Verde: x=15mm, y=5mm, 30×10mm
-        const gX = mx(15), gW = mx(30);
+        // Verde: x=10mm, y=5mm, 30×10mm (10mm esquerdo = 10mm direito)
+        const gX = mx(10), gW = mx(30);
         ctx.fillStyle = '#89c13b';
         ctx.fillRect(gX, hY, gW, hH);
         _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
 
-        // Barra colorida: x=46mm → x=200mm
+        // Barra colorida: x=41mm → x=200mm
         ctx.fillStyle = barColor;
-        ctx.fillRect(mx(46), hY, mx(200) - mx(46), hH);
+        ctx.fillRect(mx(41), hY, mx(200) - mx(41), hH);
 
-        // Texto na barra
+        // Texto na barra (5mm após o início da barra colorida)
         ctx.fillStyle = '#ffffff';
         ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-        ctx.fillText(headerText, mx(50), hY + hH / 2);
+        ctx.fillText(headerText, mx(45), hY + hH / 2);
 
-        // Linha pontilhada: y=20mm, x=15mm→x=200mm
-        _dottedLine(ctx, mx(15), my(20), mx(200), lw, mx(3), mx(2));
+        // Linha pontilhada: y=20mm, x=10mm→x=200mm (simétrico)
+        _dottedLine(ctx, mx(10), my(20), mx(200), lw, mx(3), mx(2));
 
-        // Footer: 15mm do fundo
+        // Footer: 15mm do fundo, linha também simétrica x=10mm→x=200mm
         const fY = H - my(15);
         ctx.fillStyle = '#ffffff'; ctx.fillRect(0, fY, W, my(15));
-        _dottedLine(ctx, mx(15), fY, mx(200), lw, mx(3), mx(2));
+        _dottedLine(ctx, mx(10), fY, mx(200), lw, mx(3), mx(2));
         ctx.fillStyle = '#666666';
         ctx.font = `${mpt(11)}px Arial,Helvetica,sans-serif`;
         ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
