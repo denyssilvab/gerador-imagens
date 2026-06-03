@@ -107,10 +107,21 @@ export default async function handler(req) {
       }),
     });
 
-    const data = await res.json();
+    const rawText = await res.text();
+    let data;
+    try { data = JSON.parse(rawText); }
+    catch {
+      return new Response(
+        JSON.stringify({ error: rawText.slice(0, 300) || `Claude API error ${res.status}` }),
+        { status: res.status, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     if (!res.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message || `Claude API error ${res.status}` }),
-        { status: res.status, headers: { 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({ error: data.error?.message || data.error || `Claude API error ${res.status}` }),
+        { status: res.status, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(

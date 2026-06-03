@@ -2107,7 +2107,10 @@ async function callClaudeAPI(docType, userInput, systemPrompt) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, model, docType, userInput, systemPrompt }),
   });
-  const data = await res.json();
+  const raw = await res.text();
+  let data;
+  try { data = JSON.parse(raw); }
+  catch { throw new Error(raw.slice(0, 200) || `Erro inesperado na API (${docType})`); }
   if (!res.ok) throw new Error(data.error || `Erro na API Claude (${docType})`);
   return data.content || '';
 }
