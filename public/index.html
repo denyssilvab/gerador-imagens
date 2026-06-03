@@ -881,15 +881,46 @@
       <!-- ── SIDEBAR DIREITA ── -->
       <div class="gerar-sidebar">
 
+        <!-- Dados da Aula -->
+        <div class="card">
+          <div class="card-head"><h2>Dados da Aula</h2></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="fg">
+                <label>Unit</label>
+                <input id="content-unit" type="number" min="1" value="3" placeholder="3" style="padding:6px 8px;font-size:12px;" />
+              </div>
+              <div class="fg">
+                <label>Lesson</label>
+                <input id="content-lesson" type="number" min="1" value="32" placeholder="32" style="padding:6px 8px;font-size:12px;" />
+              </div>
+            </div>
+            <div class="fg">
+              <label>CCSS</label>
+              <input id="content-ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" style="padding:6px 8px;font-size:12px;" />
+            </div>
+            <div class="fg">
+              <label>Contexto da aula</label>
+              <textarea id="content-context" rows="3" placeholder="Tópico, conceitos-chave, pré-requisitos dos alunos…" style="font-size:12px;padding:6px 8px;resize:vertical;"></textarea>
+            </div>
+          </div>
+        </div>
+
         <!-- Tipo de Documento -->
         <div class="card">
           <div class="card-head"><h2>Tipo de Documento</h2></div>
-          <div class="card-body" style="padding:8px;">
+          <div class="card-body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
             <div class="claude-doc-tabs tabs" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
-              <button class="tab-btn active" onclick="setContentDocType('all',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
-              <button class="tab-btn" onclick="setContentDocType('lesson',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
-              <button class="tab-btn" onclick="setContentDocType('practice',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Activities</button>
-              <button class="tab-btn" onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson Plan</button>
+              <button id="cdtab-all"       class="tab-btn active"  onclick="setContentDocType('all',this)"        style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
+              <button id="cdtab-lesson"    class="tab-btn"         onclick="setContentDocType('lesson',this)"     style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
+              <button id="cdtab-practice"  class="tab-btn"         onclick="setContentDocType('practice',this)"   style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson gerada">Activities</button>
+              <button id="cdtab-lessonplan" class="tab-btn"        onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson + Activities geradas">Lesson Plan</button>
+            </div>
+            <!-- Status das dependências -->
+            <div id="content-dep-status" style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px;padding:6px 2px 0;">
+              <span id="dep-lesson"    >⬜ Lesson</span>
+              <span id="dep-practice"  >⬜ Activities <span style="opacity:.5;">(requer Lesson)</span></span>
+              <span id="dep-lessonplan">⬜ Lesson Plan <span style="opacity:.5;">(requer Lesson + Activities)</span></span>
             </div>
           </div>
         </div>
@@ -2014,8 +2045,43 @@ Rules:
 
 let contentDocType = 'all';
 let claudeAbortCtrl = null;
+const savedContent = { lesson: null, practice: null, lessonplan: null };
+
+function updateContentTabs() {
+  const hasLesson   = !!savedContent.lesson;
+  const hasPractice = !!savedContent.practice;
+
+  // Status indicators
+  const dl  = document.getElementById('dep-lesson');
+  const dp  = document.getElementById('dep-practice');
+  const dlp = document.getElementById('dep-lessonplan');
+  if (dl)  dl.innerHTML  = hasLesson   ? '✅ Lesson gerada'    : '⬜ Lesson';
+  if (dp)  dp.innerHTML  = hasPractice ? '✅ Activities gerada' : `⬜ Activities <span style="opacity:.5;">(requer Lesson)</span>`;
+  if (dlp) dlp.innerHTML = (hasLesson && hasPractice) ? '✅ Lesson Plan gerada' : `⬜ Lesson Plan <span style="opacity:.5;">(requer Lesson + Activities)</span>`;
+
+  // Lock/unlock tabs
+  const tPractice   = document.getElementById('cdtab-practice');
+  const tLessonPlan = document.getElementById('cdtab-lessonplan');
+  if (tPractice) {
+    tPractice.disabled = !hasLesson;
+    tPractice.style.opacity = hasLesson ? '1' : '0.4';
+    tPractice.title = hasLesson ? '' : 'Gere a Lesson primeiro';
+  }
+  if (tLessonPlan) {
+    tLessonPlan.disabled = !(hasLesson && hasPractice);
+    tLessonPlan.style.opacity = (hasLesson && hasPractice) ? '1' : '0.4';
+    tLessonPlan.title = (hasLesson && hasPractice) ? '' : 'Gere a Lesson e Activities primeiro';
+  }
+}
 
 function setContentDocType(type, el) {
+  // Check dependencies
+  if (type === 'practice' && !savedContent.lesson) {
+    toast('Gere a Lesson primeiro antes de criar as Activities.', 'warn'); return;
+  }
+  if (type === 'lessonplan' && !(savedContent.lesson && savedContent.practice)) {
+    toast('Gere a Lesson e as Activities primeiro antes de criar o Lesson Plan.', 'warn'); return;
+  }
   contentDocType = type;
   document.querySelectorAll('.claude-doc-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
@@ -2039,17 +2105,38 @@ function getClaudeApiKey() {
   return key?.value || null;
 }
 
+function buildClaudeUserPrompt(baseInput) {
+  const unit    = document.getElementById('content-unit')?.value    || document.getElementById('unit')?.value    || '';
+  const lesson  = document.getElementById('content-lesson')?.value  || document.getElementById('lesson')?.value  || '';
+  const ccss    = document.getElementById('content-ccss')?.value    || document.getElementById('ccss')?.value    || '';
+  const context = document.getElementById('content-context')?.value || '';
+
+  let prompt = `Unit ${unit} | Lesson ${lesson} | CCSS: ${ccss}\n`;
+  if (context) prompt += `\nContexto da aula:\n${context}\n`;
+  prompt += `\nInstruções adicionais:\n${baseInput}`;
+
+  // Inject dependencies
+  if (contentDocType === 'practice' && savedContent.lesson) {
+    prompt += `\n\n---\nLESSON CONTENT (use as context to create aligned activities):\n${savedContent.lesson}`;
+  }
+  if (contentDocType === 'lessonplan') {
+    if (savedContent.lesson)   prompt += `\n\n---\nLESSON CONTENT:\n${savedContent.lesson}`;
+    if (savedContent.practice) prompt += `\n\n---\nPRACTICE ACTIVITIES CONTENT:\n${savedContent.practice}`;
+  }
+  return prompt;
+}
+
 async function generateContent() {
   const apiKey = getClaudeApiKey();
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
-  const input = document.getElementById('claude-input')?.value.trim();
-  if (!input) { toast('Descreva o conteúdo da aula primeiro.', 'warn'); return; }
+  const baseInput = document.getElementById('claude-input')?.value.trim();
+  if (!baseInput && !document.getElementById('content-context')?.value.trim()) {
+    toast('Preencha o contexto da aula ou as instruções adicionais.', 'warn'); return;
+  }
 
   const model        = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
-  const unit         = document.getElementById('unit')?.value   || '';
-  const lesson       = document.getElementById('lesson')?.value || '';
-  const ccss         = document.getElementById('ccss')?.value   || '';
   const systemPrompt = document.getElementById('content-specs')?.value.trim() || '';
+  const userInput    = buildClaudeUserPrompt(baseInput || '');
 
   // UI: loading
   const btnGen  = document.getElementById('btn-claude-gen');
@@ -2066,20 +2153,28 @@ async function generateContent() {
       method: 'POST',
       signal: claudeAbortCtrl.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput: input, unit, lesson, ccss, systemPrompt }),
+      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput, systemPrompt }),
     });
     const data = await res.json();
 
     if (!res.ok) { toast(data.error || 'Erro na API Claude.', 'err'); return; }
 
-    const output = document.getElementById('claude-output');
-    const card   = document.getElementById('claude-output-card');
-    if (output) output.value = data.content || '';
+    const content = data.content || '';
+    const output  = document.getElementById('claude-output');
+    const card    = document.getElementById('claude-output-card');
+    if (output) output.value = content;
     if (card)   card.style.display = '';
+
+    // Salva conteúdo gerado para uso como contexto
+    if (contentDocType === 'lesson')     savedContent.lesson    = content;
+    if (contentDocType === 'practice')   savedContent.practice  = content;
+    if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
+    if (contentDocType === 'all')        savedContent.lesson    = content;
+    updateContentTabs();
 
     const badge = document.getElementById('conteudo-badge');
     if (badge) {
-      const pages = (data.content.match(/^--PAGE /gm) || []).length;
+      const pages = (content.match(/^--PAGE /gm) || []).length;
       badge.textContent = `${pages} página${pages !== 1 ? 's' : ''}`;
       badge.style.display = pages ? '' : 'none';
       badge.className = 'pg-badge' + (pages ? ' has' : '');
@@ -2639,6 +2734,7 @@ let _pdfPendingKeys = [];
 document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
 const _csEl = document.getElementById('content-specs');
 if (_csEl) _csEl.value = CONTENT_SPECS['all'];
+updateContentTabs();
 updateTopbarChips();
 
 // Load persisted images from IndexedDB on startup
