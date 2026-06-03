@@ -614,36 +614,213 @@
       .form-row.api-row { grid-template-columns: 1fr; }
       .img-grid { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ── Sidebar layout ────────────────────────────────── */
+    html, body { height: 100%; overflow: hidden; }
+    .app-wrap { display: flex; height: 100vh; overflow: hidden; }
+
+    .sidebar {
+      width: 220px; min-width: 220px; flex-shrink: 0;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+    }
+    .sidebar-brand {
+      display: flex; align-items: center; gap: 10px;
+      padding: 15px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .brand-logo {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--green), var(--primary));
+      border-radius: 7px; display: flex; align-items: center;
+      justify-content: center; font-size: 15px; flex-shrink: 0;
+    }
+    .brand-text { display: flex; flex-direction: column; min-width: 0; }
+    .brand-text span { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand-text small { font-size: 10px; color: var(--muted); }
+    .sidebar-nav { flex: 1; display: flex; flex-direction: column; padding: 10px 8px; gap: 2px; overflow-y: auto; }
+    .nav-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 8px 10px; border-radius: 8px; background: none; border: none;
+      color: var(--muted); font-size: 13px; font-weight: 500;
+      font-family: inherit; cursor: pointer; width: 100%; text-align: left;
+      transition: background .15s, color .15s;
+    }
+    .nav-item:hover { background: var(--surface2); color: var(--text); }
+    .nav-item.active { background: rgba(99,102,241,.15); color: var(--primary); }
+    .nav-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
+    .nav-divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+    .nav-spacer { flex: 1; }
+
+    .content-area { flex: 1; height: 100vh; overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+    .chips-bar {
+      display: flex; align-items: center; gap: 8px; padding: 9px 20px;
+      background: var(--surface); border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .chips-bar-title { font-size: 13px; font-weight: 700; color: var(--text); margin-right: auto; }
+
+    /* ── Pages ── */
+    .pg { display: none; flex: 1; overflow-y: auto; padding: 22px 24px 60px; flex-direction: column; }
+    .pg.active { display: flex; }
+    .pg-content { display: flex; flex-direction: column; gap: 18px; max-width: 980px; width: 100%; }
+
+    /* ── Dashboard ── */
+    .dash-layout { display: flex; flex: 1; min-height: 0; margin: -22px -24px -60px; }
+    .dash-sub {
+      width: 240px; min-width: 240px; flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow-y: auto;
+    }
+    .dash-folders-head { display: flex; align-items: center; justify-content: space-between; }
+    .dash-folders-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .folder-item {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--muted);
+      transition: background .15s, color .15s;
+    }
+    .folder-item:hover, .folder-item.active { background: var(--surface2); color: var(--text); }
+    .dash-main { flex: 1; overflow-y: auto; padding: 20px; }
+
+    /* ── Upscale page ── */
+    .upscale-img-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 10px;
+    }
+    .upscale-img-row img { width: 44px; height: 62px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+    .upscale-img-info { flex: 1; min-width: 0; }
+    .upscale-img-title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .upscale-img-status { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Combinar page ── */
+    .combinar-layout { display: flex; gap: 0; flex: 1; min-height: 0; margin: -22px -24px -60px; }
+    .combinar-left { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; gap: 12px; min-width: 0; }
+    .combinar-right {
+      width: 230px; min-width: 230px; flex-shrink: 0;
+      border-left: 1px solid var(--border); padding: 20px;
+      display: flex; flex-direction: column; gap: 14px; overflow-y: auto;
+    }
+    .combinar-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 12px; cursor: grab; user-select: none;
+      transition: border-color .15s, opacity .15s;
+    }
+    .combinar-item.dragging { opacity: .35; cursor: grabbing; }
+    .combinar-item.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.2); }
+    .drag-handle { color: var(--muted); font-size: 15px; cursor: grab; flex-shrink: 0; line-height: 1; }
+    .combinar-item img { width: 36px; height: 51px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+    .combinar-item-label { flex: 1; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+    .combinar-item-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
+    .combinar-item-remove:hover { color: var(--error-fg); background: rgba(239,68,68,.1); }
+    .combinar-preview-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+    .combinar-preview-wrap img { width: 100%; height: 100%; object-fit: contain; }
+    .combinar-right-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
   </style>
 </head>
 <body>
 
-<header class="topbar">
-  <div class="topbar-logo">📚</div>
-  <div>
-    <h1>Gerador de Material Pedagógico</h1>
-    <div class="sub">Geração paralela via OpenAI &amp; Replicate</div>
+<div class="app-wrap">
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">📚</div>
+    <div class="brand-text">
+      <span>Gerador Pedagógico</span>
+      <small>Material Didático</small>
+    </div>
   </div>
-  <div class="topbar-right">
+  <nav class="sidebar-nav">
+    <button class="nav-item" onclick="setPage('dashboard',this)">
+      <span class="nav-icon">⊞</span><span>Dashboard</span>
+    </button>
+    <button class="nav-item active" onclick="setPage('gerar',this)">
+      <span class="nav-icon">✦</span><span>Gerar</span>
+    </button>
+    <button class="nav-item" onclick="setPage('upscale',this)">
+      <span class="nav-icon">⬆</span><span>Upscale</span>
+    </button>
+    <button class="nav-item" onclick="setPage('combinar',this)">
+      <span class="nav-icon">📄</span><span>Combinar Arquivos</span>
+    </button>
+    <div class="nav-spacer"></div>
+    <hr class="nav-divider" />
+    <button class="nav-item" onclick="setPage('config',this)">
+      <span class="nav-icon">⚙</span><span>Configurações</span>
+    </button>
+  </nav>
+</aside>
+
+<!-- ── CONTENT AREA ── -->
+<div class="content-area">
+
+  <!-- Chips bar fixa (persiste em todas as páginas) -->
+  <div class="chips-bar">
+    <span class="chips-bar-title" id="page-title">Gerar</span>
     <span class="chip" id="provider-chip">OpenAI</span>
     <span class="chip" id="model-chip">gpt-image-2</span>
   </div>
-</header>
 
-<div class="page">
-
-  <!-- ── TIPO DE ARQUIVO ── -->
-  <div class="card">
-    <div class="card-head"><h2>Tipo de Arquivo</h2></div>
-    <div class="card-body">
-      <div class="tabs">
-        <button class="tab-btn active" onclick="setDocType('all', this)">All</button>
-        <button class="tab-btn" onclick="setDocType('lesson', this)">Lesson</button>
-        <button class="tab-btn" onclick="setDocType('practice', this)">Practice Activities</button>
-        <button class="tab-btn" onclick="setDocType('lessonplan', this)">Lesson Plan</button>
+  <!-- ══════════════════════════════════════════════
+       PAGE: DASHBOARD
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-dashboard">
+    <div class="dash-layout">
+      <!-- Sub-sidebar -->
+      <div class="dash-sub">
+        <input type="search" id="dash-search" placeholder="🔍 Pesquisar arquivos…" oninput="dashSearch(this.value)" />
+        <div class="dash-folders-head">
+          <span class="dash-folders-title">Pastas</span>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="dashCreateFolder()">+ Nova</button>
+        </div>
+        <div id="folder-tree">
+          <div class="folder-item active" onclick="filterDashboard('all',this)">
+            <span>📁</span><span>Todos os arquivos</span>
+          </div>
+          <div class="folder-item" onclick="filterDashboard('lesson',this)">
+            <span>📖</span><span>Lesson</span>
+          </div>
+          <div class="folder-item" onclick="filterDashboard('practice',this)">
+            <span>✏️</span><span>Practice Activities</span>
+          </div>
+          <div class="folder-item" onclick="filterDashboard('lessonplan',this)">
+            <span>📋</span><span>Lesson Plan</span>
+          </div>
+          <div id="custom-folders"></div>
+        </div>
+      </div>
+      <!-- Main preview -->
+      <div class="dash-main">
+        <div id="dash-grid" class="img-grid">
+          <div class="empty">
+            <span class="ico">📂</span>
+            <p>Gere imagens na página <strong>Gerar</strong> para visualizá-las aqui</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
+
+  <!-- ══════════════════════════════════════════════
+       PAGE: GERAR
+  ══════════════════════════════════════════════ -->
+  <div class="pg active" id="pg-gerar">
+    <div class="pg-content">
+
+      <!-- ── TIPO DE ARQUIVO ── -->
+      <div class="card">
+        <div class="card-head"><h2>Tipo de Arquivo</h2></div>
+        <div class="card-body">
+          <div class="tabs">
+            <button class="tab-btn active" onclick="setDocType('all', this)">All</button>
+            <button class="tab-btn" onclick="setDocType('lesson', this)">Lesson</button>
+            <button class="tab-btn" onclick="setDocType('practice', this)">Practice Activities</button>
+            <button class="tab-btn" onclick="setDocType('lessonplan', this)">Lesson Plan</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ESPECIFICAÇÕES ── (movido do bloco original) -->
 
   <!-- ── COFRE DE API KEYS ── -->
   <div class="card" id="vault-card" style="border-color:var(--border2);">
@@ -966,10 +1143,160 @@
           <p>As imagens aparecerão aqui conforme forem geradas</p>
         </div>
       </div>
+    </div><!-- /pg-content -->
+  </div><!-- /pg-gerar -->
+
+  <!-- ══════════════════════════════════════════════
+       PAGE: UPSCALE
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-upscale">
+    <div class="pg-content">
+
+      <div class="card">
+        <div class="card-head"><h2>⬆ Upscale de Imagens</h2></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+          <p class="hint">Selecione imagens abaixo e escolha o fator de escala. Gere imagens primeiro na página <strong>Gerar</strong>.</p>
+
+          <!-- Modelo e botões -->
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;color:var(--muted);white-space:nowrap;">Modelo:</span>
+              <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();" style="font-size:12px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
+                <optgroup label="Topaz Image Upscale">
+                  <option value="topaz:Standard V2">Topaz — Standard V2</option>
+                  <option value="topaz:Low Resolution V2">Topaz — Low Res V2</option>
+                  <option value="topaz:CGI">Topaz — CGI</option>
+                  <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
+                  <option value="topaz:Text Refine">Topaz — Text Refine</option>
+                </optgroup>
+                <optgroup label="Outros Modelos">
+                  <option value="google/upscaler">Google Upscaler</option>
+                  <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
+                  <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
+                  <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
+                  <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
+                  <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
+                  <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
+                </optgroup>
+              </select>
+            </label>
+            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(2)">⬆ 2×</button>
+            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(4)">⬆ 4×</button>
+            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(6)">⬆ 6×</button>
+            <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="selectAllUpscale(true)">Selecionar todas</button>
+          </div>
+
+          <!-- Lista de imagens -->
+          <div id="upscale-img-list" style="display:flex;flex-direction:column;gap:8px;">
+            <div class="empty"><span class="ico">🖼</span><p>Nenhuma imagem gerada ainda</p></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-</div>
+  <!-- ══════════════════════════════════════════════
+       PAGE: COMBINAR ARQUIVOS
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-combinar">
+    <div class="combinar-layout">
+
+      <!-- Esquerda: lista ordenável -->
+      <div class="combinar-left">
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <h2 style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Páginas do PDF</h2>
+          <span style="flex:1;"></span>
+          <button class="btn btn-ghost btn-sm" onclick="combinarAddAll()">+ Adicionar todas</button>
+          <button class="btn btn-ghost btn-sm" onclick="combinarClear()">🗑 Limpar</button>
+          <button class="btn btn-primary btn-sm" onclick="combinarCreatePDF()">📄 Criar PDF</button>
+        </div>
+        <p class="hint" style="flex-shrink:0;">Arraste para reordenar as páginas antes de gerar o PDF.</p>
+        <div id="combinar-list" style="display:flex;flex-direction:column;gap:8px;overflow-y:auto;">
+          <div class="empty"><span class="ico">📄</span><p>Adicione imagens usando o botão acima</p></div>
+        </div>
+      </div>
+
+      <!-- Direita: preview da página selecionada -->
+      <div class="combinar-right">
+        <span class="combinar-right-title">Pré-visualização</span>
+        <div class="combinar-preview-wrap" id="combinar-preview-wrap">
+          <div class="empty" style="padding:20px;"><span class="ico" style="font-size:28px;">👁</span><p style="font-size:12px;">Clique em uma página para pré-visualizar</p></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);text-align:center;" id="combinar-count">0 páginas</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════
+       PAGE: CONFIGURAÇÕES
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-config">
+    <div class="pg-content">
+
+      <!-- ── COFRE DE API KEYS ── -->
+      <div class="card" id="vault-card-cfg" style="border-color:var(--border2);">
+        <div class="card-head">
+          <h2>🔑 API Keys Salvas</h2>
+          <span id="vault-status-chip2" class="chip">🔒 Bloqueado</span>
+        </div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+          <div id="vault-locked-ui2">
+            <div class="form-row" style="align-items:flex-end;">
+              <div class="fg" style="flex:1;">
+                <label>Senha do Cofre</label>
+                <input id="vault-password2" type="password" placeholder="Digite a senha…" autocomplete="off"
+                  onkeydown="if(event.key==='Enter')unlockVaultCfg()" />
+              </div>
+              <button class="btn btn-primary" onclick="unlockVaultCfg()">🔓 Desbloquear</button>
+              <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
+            </div>
+            <p style="font-size:11px;color:var(--muted);margin-top:8px;">
+              Esqueceu a senha?
+              <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
+              (apaga todas as keys salvas).
+            </p>
+          </div>
+          <div id="vault-unlocked-ui2" style="display:none;flex-direction:column;gap:12px;">
+            <div id="vault-keys-list2"></div>
+            <details style="border-top:1px solid var(--border);padding-top:12px;">
+              <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;user-select:none;">
+                + Adicionar nova key
+              </summary>
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+                <div class="form-row">
+                  <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name2" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
+                  <div class="fg"><label>Provider</label>
+                    <select id="new-key-provider2"><option value="openai">OpenAI</option><option value="replicate">Replicate</option></select>
+                  </div>
+                </div>
+                <div class="fg"><label>API Key</label><input id="new-key-value2" type="password" placeholder="sk-… ou r8_…" autocomplete="off" /></div>
+                <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKeyCfg()">💾 Salvar Key</button>
+              </div>
+            </details>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CONFIGURAÇÕES DE GERAÇÃO ── -->
+      <div class="card">
+        <div class="card-head"><h2>Configurações de Geração</h2></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
+          <div class="form-row">
+            <div class="fg"><label>Unidade</label><input id="unit-cfg" type="number" min="1" value="3" placeholder="Ex: 3" onchange="syncCfg('unit')" /></div>
+            <div class="fg"><label>Lição (Lesson)</label><input id="lesson-cfg" type="number" min="1" value="32" placeholder="Ex: 32" onchange="syncCfg('lesson')" /></div>
+            <div class="fg"><label>Código CCSS</label><input id="ccss-cfg" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" onchange="syncCfg('ccss')" /></div>
+          </div>
+          <p class="hint">As alterações aqui são sincronizadas com a página Gerar.</p>
+        </div>
+      </div>
+
+    </div>
+  </div><!-- /pg-config -->
+
+</div><!-- /content-area -->
+</div><!-- /app-wrap -->
 
 <!-- Toasts -->
 <div class="toasts" id="toasts"></div>
@@ -1037,6 +1364,197 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
+// ── Navegação entre páginas ────────────────────────────────────────────────
+
+const PAGE_TITLES = { dashboard:'Dashboard', gerar:'Gerar', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
+
+function setPage(name, el) {
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('active'));
+  if (el) el.classList.add('active');
+  const pg = document.getElementById('pg-' + name);
+  if (pg) pg.classList.add('active');
+  const title = document.getElementById('page-title');
+  if (title) title.textContent = PAGE_TITLES[name] || name;
+  if (name === 'dashboard')  refreshDashboard();
+  if (name === 'upscale')    refreshUpscalePage();
+  if (name === 'combinar')   refreshCombinarPage();
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+let dashFilter = 'all';
+function filterDashboard(type, el) {
+  dashFilter = type;
+  document.querySelectorAll('#folder-tree .folder-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  refreshDashboard();
+}
+function dashSearch(q) { refreshDashboard(q.toLowerCase()); }
+function dashCreateFolder() { toast('Pastas personalizadas em breve!', 'warn'); }
+
+function refreshDashboard(search) {
+  const grid = document.getElementById('dash-grid');
+  if (!grid) return;
+  const items = Object.values(results).filter(r => r && r.url);
+  const filtered = items.filter(r => {
+    const matchType = dashFilter === 'all' || r.docType === dashFilter;
+    const matchSearch = !search || (r.title || '').toLowerCase().includes(search) || String(r.pageNum).includes(search);
+    return matchType && matchSearch;
+  });
+  if (!filtered.length) {
+    grid.innerHTML = '<div class="empty"><span class="ico">📂</span><p>Nenhuma imagem encontrada</p></div>';
+    return;
+  }
+  grid.innerHTML = '';
+  filtered.forEach(r => {
+    const div = document.createElement('div');
+    div.className = 'icard';
+    div.style.cursor = 'pointer';
+    div.innerHTML = `
+      <div class="icard-head"><span class="icard-num">Pág. ${r.pageNum}</span><span class="icard-title">${r.title||r.docType||''}</span></div>
+      <div class="icard-preview"><img src="${r.url}" loading="lazy" /></div>`;
+    div.onclick = () => window.open(r.url, '_blank');
+    grid.appendChild(div);
+  });
+}
+
+// ── Upscale page ───────────────────────────────────────────────────────────
+let upscaleSelection = new Set();
+function refreshUpscalePage() {
+  const list = document.getElementById('upscale-img-list');
+  if (!list) return;
+  const items = Object.entries(results).filter(([k,r]) => r && r.url);
+  if (!items.length) {
+    list.innerHTML = '<div class="empty"><span class="ico">🖼</span><p>Nenhuma imagem gerada ainda — vá para <strong>Gerar</strong></p></div>';
+    return;
+  }
+  list.innerHTML = '';
+  items.forEach(([key, r]) => {
+    const row = document.createElement('div');
+    row.className = 'upscale-img-row';
+    const hasUpscale = r.upscaleUrl;
+    row.innerHTML = `
+      <input type="checkbox" style="accent-color:var(--primary);flex-shrink:0;" onchange="toggleUpscaleSel('${key}',this.checked)" ${upscaleSelection.has(key)?'checked':''} />
+      <img src="${r.url}" />
+      <div class="upscale-img-info">
+        <div class="upscale-img-title">Pág. ${r.pageNum} — ${r.title||r.docType||''}</div>
+        <div class="upscale-img-status">${hasUpscale ? '✅ Upscale disponível' : '⏳ Aguardando upscale'}</div>
+      </div>
+      ${hasUpscale ? `<a href="${r.upscaleUrl}" download style="font-size:11px;color:var(--primary);">⬇ DL</a>` : ''}
+    `;
+    list.appendChild(row);
+  });
+}
+function toggleUpscaleSel(key, checked) {
+  if (checked) upscaleSelection.add(key); else upscaleSelection.delete(key);
+}
+function selectAllUpscale(val) {
+  upscaleSelection = val ? new Set(Object.keys(results).filter(k => results[k]?.url)) : new Set();
+  refreshUpscalePage();
+}
+function upscaleSelectedPg(factor) {
+  // Sincroniza seleção com o toolbar da página Gerar e dispara upscale
+  selectedKeys.clear();
+  upscaleSelection.forEach(k => selectedKeys.add(k));
+  document.querySelectorAll('.icard').forEach(c => {
+    const cb = c.querySelector('.icard-check');
+    if (cb) { const key = cb.onchange?.toString().match(/'([^']+)'/)?.[1]; if(key && selectedKeys.has(key)) cb.checked = true; }
+  });
+  updateSelectionUI();
+  upscaleSelected(factor);
+}
+
+// ── Combinar (PDF builder) ─────────────────────────────────────────────────
+let combinarItems = []; // [{ key, pageNum, title, url, docType }]
+let combinarDragSrc = null;
+
+function refreshCombinarPage() { renderCombinarList(); }
+
+function combinarAddAll() {
+  const items = Object.entries(results).filter(([k,r]) => r && r.url);
+  if (!items.length) { toast('Nenhuma imagem gerada ainda.', 'warn'); return; }
+  combinarItems = items.map(([k,r]) => ({ key:k, pageNum:r.pageNum, title:r.title||'', url:r.upscaleUrl||r.url, docType:r.docType||'' }));
+  combinarItems.sort((a,b) => a.pageNum - b.pageNum);
+  renderCombinarList();
+}
+function combinarClear() { combinarItems = []; renderCombinarList(); }
+
+function renderCombinarList() {
+  const list = document.getElementById('combinar-list');
+  const countEl = document.getElementById('combinar-count');
+  if (!list) return;
+  if (!combinarItems.length) {
+    list.innerHTML = '<div class="empty"><span class="ico">📄</span><p>Adicione imagens com o botão acima</p></div>';
+    if (countEl) countEl.textContent = '0 páginas';
+    return;
+  }
+  if (countEl) countEl.textContent = `${combinarItems.length} página${combinarItems.length>1?'s':''}`;
+  list.innerHTML = '';
+  combinarItems.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'combinar-item';
+    div.draggable = true;
+    div.dataset.index = i;
+    div.innerHTML = `
+      <span class="drag-handle">⋮⋮</span>
+      <img src="${item.url}" />
+      <span class="combinar-item-label">Pág. ${item.pageNum}${item.title ? ' — '+item.title : ''}</span>
+      <button class="combinar-item-remove" onclick="combinarRemove(${i})">×</button>`;
+    div.addEventListener('click', (e) => { if (!e.target.closest('button')) combinarPreview(item.url); });
+    div.addEventListener('dragstart', e => { combinarDragSrc = i; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+    div.addEventListener('dragend',   () => { div.classList.remove('dragging'); document.querySelectorAll('.combinar-item').forEach(d=>d.classList.remove('drag-over')); });
+    div.addEventListener('dragover',  e => { e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', e => {
+      e.preventDefault(); div.classList.remove('drag-over');
+      if (combinarDragSrc === null || combinarDragSrc === i) return;
+      const moved = combinarItems.splice(combinarDragSrc, 1)[0];
+      combinarItems.splice(i, 0, moved);
+      combinarDragSrc = null;
+      renderCombinarList();
+    });
+    list.appendChild(div);
+  });
+}
+
+function combinarRemove(i) { combinarItems.splice(i, 1); renderCombinarList(); }
+
+function combinarPreview(url) {
+  const wrap = document.getElementById('combinar-preview-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:contain;" />`;
+}
+
+async function combinarCreatePDF() {
+  if (!combinarItems.length) { toast('Adicione imagens primeiro.', 'warn'); return; }
+  // Reutiliza a lógica de PDF existente com os itens do combinar
+  selectedKeys.clear();
+  combinarItems.forEach(item => selectedKeys.add(item.key));
+  // Sobrescreve versão com as urls do combinar (que já incluem upscale se disponível)
+  updateSelectionUI();
+  document.getElementById('btn-pdf')?.click();
+}
+
+// ── Sync config page ────────────────────────────────────────────────────────
+function syncCfg(field) {
+  const cfgEl = document.getElementById(field + '-cfg');
+  const mainEl = document.getElementById(field);
+  if (cfgEl && mainEl) { mainEl.value = cfgEl.value; saveSettings(); }
+}
+function unlockVaultCfg() {
+  const pw = document.getElementById('vault-password2')?.value;
+  if (pw) { document.getElementById('vault-password').value = pw; unlockVault(); }
+}
+function saveNewVaultKeyCfg() {
+  const n = document.getElementById('new-key-name2')?.value;
+  const p = document.getElementById('new-key-provider2')?.value;
+  const v = document.getElementById('new-key-value2')?.value;
+  if (n) document.getElementById('new-key-name').value = n;
+  if (p) document.getElementById('new-key-provider').value = p;
+  if (v) document.getElementById('new-key-value').value = v;
+  saveNewVaultKey();
+}
+
 // ── Specs por tipo ─────────────────────────────────────────────────────────
 
 const SPECS = {
