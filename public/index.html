@@ -684,17 +684,54 @@
     }
     .folder-item:hover { background: var(--surface2); color: var(--text); }
     .folder-item.active { background: rgba(99,102,241,.15); color: var(--primary); font-weight: 600; }
-    .folder-item-del {
-      margin-left: auto; opacity: 0; font-size: 11px; padding: 1px 4px;
-      border-radius: 4px; border: none; background: none; color: #f87171; cursor: pointer;
-      transition: opacity .12s;
+    .folder-item-actions {
+      margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity .12s;
     }
-    .folder-item:hover .folder-item-del { opacity: 1; }
+    .folder-item:hover .folder-item-actions { opacity: 1; }
+    .folder-item-btn {
+      font-size: 11px; padding: 1px 5px; border-radius: 4px; border: none;
+      background: none; color: var(--muted); cursor: pointer; transition: color .1s, background .1s;
+    }
+    .folder-item-btn:hover { background: var(--surface); color: var(--text); }
+    .folder-item-btn.del:hover { color: #f87171; }
+    .folder-children { margin-left: 14px; border-left: 1px solid var(--border); padding-left: 4px; }
+    .folder-toggle { font-size: 10px; width: 14px; text-align: center; flex-shrink: 0; color: var(--muted); cursor: pointer; }
     .dash-create-folder-form {
       display: none; flex-direction: column; gap: 6px;
       background: var(--surface2); border-radius: 8px; padding: 8px; margin-top: 4px;
     }
     .dash-create-folder-form input { font-size: 12px; padding: 6px 8px; }
+    /* File context menu */
+    .file-ctx-menu {
+      position: fixed; z-index: 600; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,.45); min-width: 180px;
+    }
+    .file-ctx-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; font-size: 13px; border-radius: 6px; cursor: pointer; color: var(--text);
+      transition: background .1s;
+    }
+    .file-ctx-item:hover { background: var(--surface2); }
+    .file-ctx-item.danger { color: #f87171; }
+    .file-ctx-item.danger:hover { background: rgba(239,68,68,.1); }
+    .file-ctx-sep { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+    /* Move modal */
+    .move-modal-bg {
+      position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.55);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .move-modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      padding: 24px; width: 340px; max-height: 60vh; display: flex; flex-direction: column; gap: 14px;
+    }
+    .move-modal h3 { font-size: 15px; font-weight: 700; margin: 0; }
+    .move-folder-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .move-folder-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+      border-radius: 7px; cursor: pointer; font-size: 13px;
+      transition: background .1s;
+    }
+    .move-folder-item:hover, .move-folder-item.selected { background: rgba(99,102,241,.15); color: var(--primary); }
     .dash-main { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
     /* Filter bar */
     .dash-filter-bar {
@@ -1000,15 +1037,15 @@
 
         <div class="dash-section-label">
           PASTAS
-          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="dashToggleCreateFolder()">+ Nova</button>
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="dashToggleCreateFolder(null)">+ Nova</button>
         </div>
         <div id="custom-folders"></div>
         <div class="dash-create-folder-form" id="create-folder-form">
           <input id="new-folder-name" placeholder="Nome da pasta…"
-            onkeydown="if(event.key==='Enter')dashCreateFolder();if(event.key==='Escape')dashToggleCreateFolder()" />
+            onkeydown="if(event.key==='Enter')dashCreateFolder();if(event.key==='Escape')dashToggleCreateFolder(null)" />
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-primary btn-sm" onclick="dashCreateFolder()">Criar</button>
-            <button class="btn btn-ghost btn-sm" onclick="dashToggleCreateFolder()">Cancelar</button>
+            <button class="btn btn-primary btn-sm" id="create-folder-btn" onclick="dashCreateFolder()">Criar</button>
+            <button class="btn btn-ghost btn-sm" onclick="dashToggleCreateFolder(null)">Cancelar</button>
           </div>
         </div>
       </div>
@@ -1040,9 +1077,30 @@
 
     </div>
   </div>
-  <!-- Folder context menu (shared) -->
+  <!-- Folder assign menu (old, kept for back-compat) -->
   <div class="dash-folder-menu" id="dash-folder-menu" style="display:none">
     <div id="dash-folder-menu-items"></div>
+  </div>
+
+  <!-- File context menu -->
+  <div class="file-ctx-menu" id="file-ctx-menu" style="display:none">
+    <div class="file-ctx-item" onclick="fileCtxRename()">✏️ &nbsp;Renomear</div>
+    <div class="file-ctx-item" onclick="fileCtxDuplicate()">📋 &nbsp;Duplicar</div>
+    <div class="file-ctx-item" onclick="fileCtxMove()">📁 &nbsp;Mover para…</div>
+    <hr class="file-ctx-sep">
+    <div class="file-ctx-item danger" onclick="fileCtxDelete()">🗑 &nbsp;Excluir</div>
+  </div>
+
+  <!-- Move modal -->
+  <div class="move-modal-bg" id="move-modal" style="display:none" onclick="if(event.target===this)closeMoveModal()">
+    <div class="move-modal">
+      <h3>📁 Mover para…</h3>
+      <div class="move-folder-list" id="move-folder-list"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeMoveModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="confirmMove()">Mover</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══════════════════════════════════════════════
@@ -2376,6 +2434,8 @@ function setDashSort(sort, el) {
 function dashSearch(q) { refreshDashboard(); }
 
 // ── Folders ────────────────────────────────────────────────────────────────
+let _createFolderParentId = null;
+
 async function loadFolders() {
   try {
     const res  = await authFetch('/api/db?action=load-folders');
@@ -2384,81 +2444,246 @@ async function loadFolders() {
   } catch (e) { console.warn('[folders]', e); }
 }
 
+// Build nested tree from flat array
+function _buildTree(folders, parentId = null) {
+  return folders
+    .filter(f => (f.parent_id || null) === parentId)
+    .map(f => ({ ...f, children: _buildTree(folders, f.id) }));
+}
+
+function _renderFolderNode(f, depth = 0) {
+  const hasChildren = f.children?.length > 0;
+  const indent = depth * 14;
+  return `
+    <div class="folder-item" style="padding-left:${10 + indent}px;" onclick="filterDashboardFolder(${f.id},this)" id="fitem-${f.id}">
+      <span class="folder-toggle" onclick="event.stopPropagation();toggleFolderNode(${f.id})">${hasChildren ? '▶' : ' '}</span>
+      <span>📂</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(f.name)}</span>
+      <div class="folder-item-actions">
+        <button class="folder-item-btn" onclick="event.stopPropagation();dashToggleCreateFolder(${f.id})" title="Criar subpasta">+</button>
+        <button class="folder-item-btn" onclick="event.stopPropagation();dashRenameFolder(${f.id})" title="Renomear">✏</button>
+        <button class="folder-item-btn del" onclick="event.stopPropagation();dashDeleteFolder(${f.id})" title="Excluir">✕</button>
+      </div>
+    </div>
+    <div id="fchildren-${f.id}" style="display:none;">
+      ${(f.children || []).map(c => _renderFolderNode(c, depth + 1)).join('')}
+    </div>`;
+}
+
 function renderFolders() {
   const el = document.getElementById('custom-folders');
   if (!el) return;
   if (!dashFolders.length) {
-    el.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 10px;">
-      Nenhuma pasta ainda.</div>`;
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 10px;">Nenhuma pasta ainda.</div>';
     return;
   }
-  el.innerHTML = dashFolders.map(f => `
-    <div class="folder-item" onclick="filterDashboardFolder(${f.id},this)">
-      <span>📂</span><span style="flex:1;">${esc(f.name)}</span>
-      <button class="folder-item-del" onclick="event.stopPropagation();dashDeleteFolder(${f.id})" title="Excluir pasta">✕</button>
-    </div>`).join('');
+  const tree = _buildTree(dashFolders);
+  el.innerHTML = tree.map(f => _renderFolderNode(f, 0)).join('');
 }
 
-function dashToggleCreateFolder() {
-  const form = document.getElementById('create-folder-form');
-  const open = form.style.display !== 'none' && form.style.display !== '';
-  form.style.display = open ? 'none' : 'flex';
-  if (!open) setTimeout(() => document.getElementById('new-folder-name')?.focus(), 50);
+function toggleFolderNode(id) {
+  const ch  = document.getElementById(`fchildren-${id}`);
+  const btn = document.querySelector(`#fitem-${id} .folder-toggle`);
+  if (!ch) return;
+  const open = ch.style.display !== 'none';
+  ch.style.display  = open ? 'none' : '';
+  if (btn) btn.textContent = open ? '▶' : '▼';
+}
+
+function dashToggleCreateFolder(parentId) {
+  _createFolderParentId = parentId;
+  const form  = document.getElementById('create-folder-form');
+  const isOpen = form.style.display === 'flex';
+  const sameParent = form.dataset.parentId === String(parentId);
+  if (isOpen && sameParent) { form.style.display = 'none'; return; }
+  form.dataset.parentId = String(parentId);
+  form.style.display = 'flex';
+  const label = parentId
+    ? `Subpasta em "${dashFolders.find(f => f.id === parentId)?.name || ''}"`
+    : 'Nova pasta raiz';
+  document.getElementById('new-folder-name').placeholder = label + '…';
+  setTimeout(() => document.getElementById('new-folder-name')?.focus(), 50);
 }
 
 async function dashCreateFolder() {
   const name = document.getElementById('new-folder-name')?.value.trim();
   if (!name) { toast('Digite um nome para a pasta.', 'warn'); return; }
+  const parentId = _createFolderParentId || null;
   try {
-    const res  = await authFetch('/api/db?action=create-folder', { method: 'POST', body: JSON.stringify({ name }) });
+    const res  = await authFetch('/api/db?action=create-folder', { method: 'POST', body: JSON.stringify({ name, parentId }) });
     const data = await res.json();
     if (!data.ok) throw new Error(data.error);
     dashFolders.push(data.folder);
     renderFolders();
+    // Auto-expand parent if subfolder
+    if (parentId) {
+      const ch = document.getElementById(`fchildren-${parentId}`);
+      const btn = document.querySelector(`#fitem-${parentId} .folder-toggle`);
+      if (ch) { ch.style.display = ''; if (btn) btn.textContent = '▼'; }
+    }
     document.getElementById('new-folder-name').value = '';
-    dashToggleCreateFolder();
+    document.getElementById('create-folder-form').style.display = 'none';
     toast(`Pasta "${name}" criada!`, 'ok');
-  } catch (e) { toast(e.message === 'duplicate key value violates unique constraint' ? 'Já existe uma pasta com esse nome.' : `Erro: ${e.message}`, 'err'); }
+  } catch (e) {
+    toast(String(e.message).includes('unique') ? 'Já existe uma pasta com esse nome.' : `Erro: ${e.message}`, 'err');
+  }
+}
+
+async function dashRenameFolder(id) {
+  const f = dashFolders.find(f => f.id === id);
+  if (!f) return;
+  const name = prompt(`Novo nome para "${f.name}":`, f.name);
+  if (!name || name === f.name) return;
+  try {
+    await authFetch('/api/db?action=rename-folder', { method: 'POST', body: JSON.stringify({ folderId: id, name }) });
+    f.name = name;
+    renderFolders();
+    toast('Pasta renomeada.', 'ok');
+  } catch (e) { toast('Erro ao renomear pasta.', 'err'); }
 }
 
 async function dashDeleteFolder(id) {
   const f = dashFolders.find(f => f.id === id);
-  if (!f || !confirm(`Excluir a pasta "${f.name}"? As imagens não serão apagadas.`)) return;
+  if (!f || !confirm(`Excluir "${f.name}"?\n\nSubpastas e imagens dentro dela não serão apagadas.`)) return;
   try {
     await authFetch('/api/db?action=delete-folder', { method: 'POST', body: JSON.stringify({ folderId: id }) });
-    dashFolders = dashFolders.filter(f => f.id !== id);
+    // Remove folder and all its descendants from dashFolders
+    const toRemove = new Set();
+    const collect = (pid) => { dashFolders.filter(x => x.parent_id === pid).forEach(x => { toRemove.add(x.id); collect(x.id); }); };
+    toRemove.add(id); collect(id);
+    dashFolders = dashFolders.filter(f => !toRemove.has(f.id));
     renderFolders();
-    if (dashFolderFilter === id) filterDashboard('all', document.querySelector('#pg-dashboard .folder-item'));
+    if (toRemove.has(dashFolderFilter)) filterDashboard('all', document.querySelector('#pg-dashboard .folder-item'));
     else refreshDashboard();
-    toast(`Pasta "${f.name}" excluída.`, 'ok');
+    toast(`Pasta excluída.`, 'ok');
   } catch (e) { toast('Erro ao excluir pasta.', 'err'); }
 }
 
-function showFolderAssign(evt, key) {
-  const menu = document.getElementById('dash-folder-menu');
-  const list = document.getElementById('dash-folder-menu-items');
-  _dashFolderMenuKey = key;
-  list.innerHTML = [
-    ...dashFolders.map(f => `<div class="dash-folder-menu-item" onclick="assignFolder('${key}',${f.id})">${esc(f.name)}</div>`),
-    `<div class="dash-folder-menu-item" style="color:var(--muted);" onclick="assignFolder('${key}',null)">Remover da pasta</div>`,
-  ].join('');
+// ── File context menu ───────────────────────────────────────────────────────
+let _fileCtxKey = null;
+let _moveSelectedFolderId = null;
+
+function showFileCtxMenu(evt, key) {
+  evt.stopPropagation();
+  _fileCtxKey = key;
+  const menu = document.getElementById('file-ctx-menu');
   menu.style.display = '';
-  menu.style.left    = `${Math.min(evt.clientX, window.innerWidth - 170)}px`;
-  menu.style.top     = `${Math.min(evt.clientY, window.innerHeight - (dashFolders.length+1)*36 - 10)}px`;
-  setTimeout(() => document.addEventListener('click', _closeFolderMenu, { once: true }), 10);
+  const x = Math.min(evt.clientX, window.innerWidth  - 195);
+  const y = Math.min(evt.clientY, window.innerHeight - 180);
+  menu.style.left = `${x}px`;
+  menu.style.top  = `${y}px`;
+  setTimeout(() => document.addEventListener('click', _closeFileCtx, { once: true }), 10);
+}
+function _closeFileCtx() { document.getElementById('file-ctx-menu').style.display = 'none'; }
+
+async function fileCtxRename() {
+  _closeFileCtx();
+  const r = results[_fileCtxKey];
+  if (!r) return;
+  const current = r.customTitle || r.title || `Pág. ${r.pageNum}`;
+  const name = prompt('Novo nome:', current);
+  if (!name || name === current) return;
+  try {
+    await authFetch('/api/db?action=rename-image', { method: 'POST', body: JSON.stringify({ key: _fileCtxKey, title: name }) });
+    results[_fileCtxKey] = { ...r, customTitle: name, title: name };
+    refreshDashboard();
+    toast('Arquivo renomeado.', 'ok');
+  } catch (e) { toast('Erro ao renomear.', 'err'); }
 }
 
-function _closeFolderMenu() { document.getElementById('dash-folder-menu').style.display = 'none'; }
+async function fileCtxDuplicate() {
+  _closeFileCtx();
+  const key = _fileCtxKey;
+  try {
+    const res  = await authFetch('/api/db?action=duplicate-image', { method: 'POST', body: JSON.stringify({ key }) });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    const img = data.image;
+    const newKey = img.key;
+    results[newKey] = {
+      url: img.url, originalUrl: img.original_url || img.url,
+      filename: img.filename, pageNum: img.page_num,
+      title: img.custom_title || img.title || '',
+      docType: img.doc_type, folderId: img.folder_id,
+      ts: new Date(img.created_at).getTime(),
+    };
+    refreshDashboard();
+    toast('Arquivo duplicado.', 'ok');
+  } catch (e) { toast(`Erro ao duplicar: ${e.message}`, 'err'); }
+}
 
-async function assignFolder(key, folderId) {
-  _closeFolderMenu();
+function fileCtxMove() {
+  _closeFileCtx();
+  openMoveModal(_fileCtxKey);
+}
+
+async function fileCtxDelete() {
+  _closeFileCtx();
+  const key = _fileCtxKey;
+  const r = results[key];
+  if (!confirm(`Excluir "${r?.title || r?.filename || 'este arquivo'}"?`)) return;
+  try {
+    await authFetch('/api/db?action=delete-image', { method: 'POST', body: JSON.stringify({ key }) });
+    delete results[key];
+    // Remove from gerar grid too
+    const card = document.getElementById(`card_${key}`) ||
+      [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
+    if (card) card.remove();
+    refreshDashboard();
+    toast('Arquivo excluído.', 'ok');
+  } catch (e) { toast('Erro ao excluir.', 'err'); }
+}
+
+// ── Move modal ───────────────────────────────────────────────────────────────
+function _renderMoveFolderList(folders, parentId = null, depth = 0) {
+  return folders
+    .filter(f => (f.parent_id || null) === parentId)
+    .map(f => `
+      <div class="move-folder-item" style="padding-left:${10 + depth*16}px" id="mfitem-${f.id}"
+        onclick="selectMoveFolder(${f.id})">
+        <span>📂</span><span>${esc(f.name)}</span>
+      </div>
+      ${_renderMoveFolderList(folders, f.id, depth + 1)}
+    `).join('');
+}
+
+function openMoveModal(key) {
+  _fileCtxKey   = key;
+  _moveSelectedFolderId = results[key]?.folderId || null;
+  const list = document.getElementById('move-folder-list');
+  list.innerHTML = `
+    <div class="move-folder-item ${!_moveSelectedFolderId ? 'selected' : ''}" id="mfitem-null" onclick="selectMoveFolder(null)">
+      <span>📁</span><span style="color:var(--muted);">Sem pasta (raiz)</span>
+    </div>
+    ${_renderMoveFolderList(dashFolders)}`;
+  if (_moveSelectedFolderId) {
+    setTimeout(() => document.getElementById(`mfitem-${_moveSelectedFolderId}`)?.classList.add('selected'), 0);
+  }
+  document.getElementById('move-modal').style.display = 'flex';
+}
+
+function selectMoveFolder(id) {
+  _moveSelectedFolderId = id;
+  document.querySelectorAll('.move-folder-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`mfitem-${id}`)?.classList.add('selected');
+}
+
+function closeMoveModal() { document.getElementById('move-modal').style.display = 'none'; }
+
+async function confirmMove() {
+  const key = _fileCtxKey;
+  const folderId = _moveSelectedFolderId;
+  closeMoveModal();
   try {
     await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ key, folderId }) });
     if (results[key]) results[key].folderId = folderId;
     refreshDashboard();
-    toast(folderId ? 'Imagem movida para a pasta.' : 'Imagem removida da pasta.', 'ok');
-  } catch (e) { toast('Erro ao mover imagem.', 'err'); }
+    toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
+  } catch (e) { toast('Erro ao mover arquivo.', 'err'); }
 }
+
+function showFolderAssign(evt, key) { showFileCtxMenu(evt, key); }
+async function assignFolder(key, folderId) { await confirmMove(); }
 
 // ── Main refresh ────────────────────────────────────────────────────────────
 function refreshDashboard() {
@@ -2507,21 +2732,22 @@ function refreshDashboard() {
   const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
   grid.innerHTML = '';
   items.forEach(r => {
-    const s   = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
-    const fmt = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
-    const typ = typeLabel[r.docType] || '';
-    const div = document.createElement('div');
+    const s    = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
+    const fmt  = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
+    const typ  = typeLabel[r.docType] || '';
+    const disp = r.customTitle || r.title || (r.pageNum ? `Pág. ${r.pageNum}` : '');
+    const div  = document.createElement('div');
     div.className = 'dash-thumb';
     div.innerHTML = `
-      <img src="${esc(r.url)}" loading="lazy" alt="${r.pageNum ? `Pág. ${r.pageNum}` : ''}" />
+      <img src="${esc(r.url)}" loading="lazy" alt="${esc(disp)}" />
       <div class="dash-thumb-label">
-        <b>${r.pageNum ? `Pág. ${r.pageNum}` : ''}${r.title ? ` — ${esc(r.title)}` : ''}</b>
+        <b>${esc(disp)}</b>
         <span>${typ}${typ && fmt ? ' · ' : ''}${fmt}</span>
       </div>
       <div class="dash-thumb-overlay">
         <button onclick="event.stopPropagation();window.open('${esc(r.url)}','_blank')" title="Abrir">🔗</button>
         <button onclick="event.stopPropagation();doDownload('${esc(r.url)}','${esc(r.filename||'image.png')}')" title="Baixar">⬇</button>
-        ${dashFolders.length ? `<button onclick="event.stopPropagation();showFolderAssign(event,'${r.key}')" title="Mover para pasta">📁</button>` : ''}
+        <button onclick="showFileCtxMenu(event,'${r.key}')" title="Mais opções">⋯</button>
       </div>`;
     div.onclick = () => window.open(r.url, '_blank');
     grid.appendChild(div);
@@ -3146,7 +3372,8 @@ async function dbLoadAll() {
         pageNum:     r.page_num,
         title:       r.title,
         docType:     r.doc_type,
-        folderId:    r.folder_id || null,
+        folderId:    r.folder_id    || null,
+        customTitle: r.custom_title || null,
         ts:          new Date(r.created_at).getTime(),
       }));
     }

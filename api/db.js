@@ -165,11 +165,23 @@ module.exports = async function handler(req, res) {
     if (action === 'create-folder') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-      const { name } = req.body;
+      const { name, parentId } = req.body;
       if (!name?.trim()) return res.status(400).json({ error: 'Nome obrigatório' });
-      const { data, error } = await sb.from('folders').insert({ user_id: userId, name: name.trim() }).select().single();
+      const { data, error } = await sb.from('folders')
+        .insert({ user_id: userId, name: name.trim(), parent_id: parentId || null })
+        .select().single();
       if (error) throw error;
       return res.json({ ok: true, folder: data });
+    }
+
+    if (action === 'rename-folder') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { folderId, name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: 'Nome obrigatório' });
+      const { error } = await sb.from('folders').update({ name: name.trim() }).eq('id', folderId).eq('user_id', userId);
+      if (error) throw error;
+      return res.json({ ok: true });
     }
 
     if (action === 'delete-folder') {
@@ -179,6 +191,39 @@ module.exports = async function handler(req, res) {
       const { error } = await sb.from('folders').delete().eq('id', folderId).eq('user_id', userId);
       if (error) throw error;
       return res.json({ ok: true });
+    }
+
+    if (action === 'rename-image') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { key, title } = req.body;
+      const { error } = await sb.from('images').update({ custom_title: title, title }).eq('key', key).eq('user_id', userId);
+      if (error) throw error;
+      return res.json({ ok: true });
+    }
+
+    if (action === 'duplicate-image') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { key } = req.body;
+      const { data: orig } = await sb.from('images').select('*').eq('key', key).eq('user_id', userId).single();
+      if (!orig) return res.status(404).json({ error: 'Imagem não encontrada' });
+      const newKey = `${key}_copy_${Date.now()}`;
+      const { data, error } = await sb.from('images').insert({
+        user_id:      userId,
+        key:          newKey,
+        url:          orig.url,
+        storage_path: orig.storage_path,
+        filename:     orig.filename?.replace(/(\.\w+)$/, '_cópia$1') || orig.filename,
+        page_num:     orig.page_num,
+        title:        orig.title ? `${orig.title} (cópia)` : null,
+        custom_title: orig.custom_title ? `${orig.custom_title} (cópia)` : null,
+        doc_type:     orig.doc_type,
+        folder_id:    orig.folder_id,
+        original_url: orig.original_url,
+      }).select().single();
+      if (error) throw error;
+      return res.json({ ok: true, image: data });
     }
 
     if (action === 'assign-folder') {
