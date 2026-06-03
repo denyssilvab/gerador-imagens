@@ -800,6 +800,16 @@
     .dash-card.txt-card .dash-card-thumb { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 38px; }
     .dash-card.txt-card .dash-card-thumb img { display: none; }
     .dash-card.txt-card .dash-card-thumb::before { content: '📄'; }
+    /* Folder cards in dashboard grid */
+    .dash-card.folder-card { cursor: pointer; }
+    .dash-card.folder-card .dash-card-thumb {
+      background: linear-gradient(135deg, #ffd87a 0%, #ffb833 100%);
+      display: flex; align-items: center; justify-content: center; font-size: 44px;
+    }
+    .dash-card.folder-card .dash-card-thumb img { display: none; }
+    .dash-card.folder-card .dash-card-thumb::before { content: '📁'; }
+    .dash-card.folder-card .dash-card-meta { color: var(--muted); font-size: 11px; }
+    .dash-card-grid.list-view .dash-card.folder-card .dash-card-thumb { background: transparent; font-size: 22px; }
     /* Content-page generated-files section */
     .content-file-entry {
       display: flex; align-items: center; gap: 10px;
@@ -1323,6 +1333,13 @@
     <div class="file-ctx-item danger" onclick="fileCtxDelete()">🗑 &nbsp;Excluir</div>
   </div>
 
+  <!-- Folder card context menu -->
+  <div class="file-ctx-menu" id="folder-card-menu" style="display:none">
+    <div class="file-ctx-item" onclick="folderCardRename()">✏️ &nbsp;Renomear</div>
+    <hr class="file-ctx-sep">
+    <div class="file-ctx-item danger" onclick="folderCardDelete()">🗑 &nbsp;Excluir pasta</div>
+  </div>
+
   <!-- Move modal -->
   <div class="move-modal-bg" id="move-modal" style="display:none" onclick="if(event.target===this)closeMoveModal()">
     <div class="move-modal">
@@ -1653,31 +1670,6 @@
       </label>
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
-      <label style="display:flex;align-items:center;gap:5px;color:var(--muted);">
-        <span style="white-space:nowrap;font-size:12px;">⬆ Modelo:</span>
-        <select id="upscale-model" onchange="onUpscaleModelChange()" title="Modelo de Upscale AI" style="width:auto;font-size:12px;padding:3px 8px;background:var(--surface);border:1px solid var(--primary);border-radius:6px;color:var(--text);cursor:pointer;">
-          <optgroup label="Topaz Image Upscale">
-            <option value="topaz:Standard V2">Topaz — Standard V2</option>
-            <option value="topaz:Low Resolution V2">Topaz — Low Res V2</option>
-            <option value="topaz:CGI">Topaz — CGI</option>
-            <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
-            <option value="topaz:Text Refine">Topaz — Text Refine</option>
-          </optgroup>
-          <optgroup label="Outros Modelos">
-            <option value="google/upscaler">Google Upscaler</option>
-            <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
-            <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
-            <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
-            <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
-            <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
-            <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
-          </optgroup>
-        </select>
-      </label>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale2" onclick="upscaleSelected(2)" disabled>⬆ 2×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale4" onclick="upscaleSelected(4)" disabled>⬆ 4×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-upscale6" onclick="upscaleSelected(6)" disabled>⬆ 6×</button>
-      <button class="btn btn-ghost btn-sm" id="btn-pdf" onclick="createPDF()" disabled>📄 Criar PDF</button>
       <button class="btn btn-sm" id="btn-del" onclick="deleteSelected()" disabled style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
       <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
@@ -1890,7 +1882,7 @@
       <!-- Discrete footer bar: model · scale · action -->
       <div class="upscale-footer">
         <span class="upscale-footer-label">Modelo</span>
-        <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();">
+        <select id="upscale-model-pg" onchange="onUpscaleModelChange();">
           <optgroup label="Topaz">
             <option value="topaz:Standard V2">Topaz Standard V2</option>
             <option value="topaz:Low Resolution V2">Topaz Low Res V2</option>
@@ -3074,6 +3066,7 @@ async function dashRenameFolder(id) {
     await authFetch('/api/db?action=rename-folder', { method: 'POST', body: JSON.stringify({ folderId: id, name }) });
     f.name = name;
     renderFolders();
+    refreshDashboard();
     toast('Pasta renomeada.', 'ok');
   } catch (e) { toast('Erro ao renomear pasta.', 'err'); }
 }
@@ -3093,6 +3086,28 @@ async function dashDeleteFolder(id) {
     else refreshDashboard();
     toast(`Pasta excluída.`, 'ok');
   } catch (e) { toast('Erro ao excluir pasta.', 'err'); }
+}
+
+// ── Folder card context menu ───────────────────────────────────────────────
+let _folderCardMenuId = null;
+
+function showFolderCardMenu(evt, folderId) {
+  evt.stopPropagation();
+  _folderCardMenuId = folderId;
+  const menu = document.getElementById('folder-card-menu');
+  menu.style.display = '';
+  const x = Math.min(evt.clientX, window.innerWidth  - 195);
+  const y = Math.min(evt.clientY, window.innerHeight - 100);
+  menu.style.left = `${x}px`; menu.style.top = `${y}px`;
+  setTimeout(() => document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true }), 10);
+}
+
+function folderCardRename() {
+  if (_folderCardMenuId !== null) dashRenameFolder(_folderCardMenuId);
+}
+
+function folderCardDelete() {
+  if (_folderCardMenuId !== null) dashDeleteFolder(_folderCardMenuId);
 }
 
 // ── File context menu ───────────────────────────────────────────────────────
@@ -3279,6 +3294,33 @@ function refreshDashboard() {
 
   const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
   grid.innerHTML = '';
+
+  // ── Folder cards (Google Drive style) ──
+  // Show top-level folders as cards when NOT inside a folder view
+  if (dashFilter !== 'folder' && dashFolders.length) {
+    const topFolders = dashFolders.filter(f => !f.parent_id);
+    topFolders.forEach(f => {
+      const fileCount = Object.values(results).filter(r => r && r.folderId === f.id).length;
+      const div = document.createElement('div');
+      div.className = 'dash-card folder-card';
+      div.innerHTML = `
+        <div class="dash-card-thumb"></div>
+        <div class="dash-card-info">
+          <div class="dash-card-text">
+            <div class="dash-card-title">${esc(f.name)}</div>
+            <div class="dash-card-meta">${fileCount} arquivo${fileCount !== 1 ? 's' : ''}</div>
+          </div>
+          <button class="dash-card-more" onclick="event.stopPropagation();showFolderCardMenu(event,${f.id})" title="Opções">···</button>
+        </div>`;
+      div.onclick = (e) => {
+        if (!e.target.closest('.dash-card-more')) {
+          filterDashboardFolder(f.id, document.getElementById(`fitem-${f.id}`));
+        }
+      };
+      grid.appendChild(div);
+    });
+  }
+
   allItems.forEach(r => {
     if (r.kind === 'txt') {
       const typ  = typeLabel[r.type] || '';
@@ -4841,13 +4883,8 @@ function updateSelectionUI() {
   const has   = n > 0;
   count.style.display = has ? '' : 'none';
   count.textContent   = `${n} selecionada${n !== 1 ? 's' : ''}`;
-  ['btn-upscale2','btn-upscale4','btn-pdf','btn-del'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.disabled = !has;
-  });
-  const model6 = document.getElementById('upscale-model')?.value ?? '';
-  const btn6 = document.getElementById('btn-upscale6');
-  if (btn6) btn6.disabled = !has || !UPSCALE_SUPPORTS_6X.has(model6);
+  const btnDel = document.getElementById('btn-del');
+  if (btnDel) btnDel.disabled = !has;
   const chkAll = document.getElementById('chk-all');
   const total  = document.querySelectorAll('.icard-check').length;
   if (chkAll) { chkAll.checked = n === total && total > 0; chkAll.indeterminate = n > 0 && n < total; }
@@ -5172,7 +5209,7 @@ async function upscaleSelected(scale) {
           pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
         }
 
-        const upscaleModel = document.getElementById('upscale-model')?.value ?? 'nightmareai/real-esrgan';
+        const upscaleModel = document.getElementById('upscale-model-pg')?.value ?? 'nightmareai/real-esrgan';
         const sourceUrl = r.originalUrl || r.url;
 
         // Comprime para JPEG antes de enviar (PNG ~4MB → JPEG ~300KB, evita timeout)
@@ -5413,7 +5450,7 @@ function _overlayTextsForType(type) {
   const lesson = document.getElementById('lesson')?.value.trim() || '';
   const ccss   = document.getElementById('ccss')?.value.trim()   || '';
   const header = type === 'lessonplan'
-    ? `Unit ${unit} | Lesson Plan`
+    ? `Unit ${unit} | Lesson ${lesson} | Lesson Plan`
     : `Unit ${unit} | Lesson ${lesson}`;
   const footer = `Mathematics - 6th Grade | ${ccss}`;
   return { header, footer };
