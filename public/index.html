@@ -1964,6 +1964,9 @@
         <button class="btn btn-primary btn-sm" id="btn-run-upscale" onclick="runUpscaleQueue()" disabled>
           ⬆ Fazer Upscale
         </button>
+        <button class="btn btn-sm" id="btn-stop-upscale" onclick="stopUpscale()" style="display:none;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">
+          ⏹ Parar
+        </button>
       </div>
 
       <div id="upscale-img-list" style="display:none;"></div>
@@ -2228,16 +2231,7 @@ Você é um especialista em design instrucional CCSS. Gere um prompt completo co
 - É desafiadora mas acessível ao nível de grade
 - Está pronta para ser passada para a API de geração de imagens
 
----
-
 ## IDIOMA: 100% ENGLISH
-
-**OBRIGATÓRIO:**
-- ✅ Todas as questões em inglês
-- ✅ Todos os enunciados em inglês
-- ✅ Instruções em inglês
-
----
 
 ## QUANDO ESPECIFICAR ILUSTRAÇÃO NO TEXTO
 
@@ -2258,120 +2252,402 @@ Quando uma questão REALMENTE PRECISA de ilustração para ser compreendida, inc
 - ❌ Questão é clara sem imagem
 - ❌ Imagem seria decorativa ou "nice to have"
 
----
+## EXEMPLOS DE ESPECIFICAÇÃO CORRETA
+
+### Exemplo 1: COM ilustração necessária
+
+\`\`\`
+7. The digital scale below shows the weight of apples. Apples cost $2.50 per pound. 
+   Write an expression for the total cost.
+
+[IMAGE: Photo of digital scale showing "3.5 lbs" on display, 
+close-up with clear numbers visible, professional product photography, 
+realistic lighting, high contrast]
+\`\`\`
+
+### Exemplo 2: COM ilustração necessária (tabela)
+
+\`\`\`
+9. Use the table to write an expression for the total earnings for h hours 
+   in each job.
+
+[IMAGE: Clean technical table with borders showing:
+Jobs | Hourly Rate
+Babysitting | $15/hour
+Tutoring | $20/hour
+Dog walking | $12/hour
+High contrast, clean typography, professional formatting]
+\`\`\`
+
+### Exemplo 3: SEM ilustração (não necessária)
+
+\`\`\`
+3. True or False: The expression 3x + 2 means "multiply x by 3, then add 2."
+\`\`\`
+
+(Nenhuma imagem adicionada porque questão é conceitual e clara)
+
+### Exemplo 4: SEM ilustração (contexto suficiente)
+
+\`\`\`
+5. Marcus earns $15 per hour at his part-time job. Write an expression 
+   for his total earnings after h hours of work.
+\`\`\`
+
+(Nenhuma imagem - contexto é claro no enunciado)
 
 ## VARIAÇÃO DE FORMATOS (Obrigatório misturar)
 
 **Total: 10-15 questões, distribuídas entre:**
 
-1. **Multiple Choice** (2-3 questões)
-2. **Open-Ended** (3-4 questões)
-3. **True or False** (1-2 questões)
-4. **Fill-in-the-Blank** (1-2 questões)
-5. **Matching** (1 questão)
-6. **Problem-Solving with Steps** (2-3 questões)
-7. **Real-World Scenario with Data** (1-2 questões)
-8. **Error Identification** (1 questão)
+**Multiple Choice** (2-3 questões)
+\`\`\`
+Which expression means "8 times a number x, plus 5"?
+
+a) 8 + x + 5
+b) 8x + 5
+c) 8(x + 5)
+d) (8 + x) × 5
+\`\`\`
+
+**Open-Ended** (3-4 questões)
+\`\`\`
+Write an algebraic expression for: A phone costs $200. Every year, 
+   it loses $50 in value. Write an expression for its value after y years.
+\`\`\`
+
+**True or False** (1-2 questões)
+\`\`\`
+The expression 3x + 2 means "multiply x by 3, then add 2." 
+   True or False?
+\`\`\`
+
+**Fill-in-the-Blank** (1-2 questões)
+\`\`\`
+The expression _____ represents "8 times a number n."
+\`\`\`
+
+**Matching** (1 questão)
+\`\`\`
+Match each situation with its expression:
+
+___ A ticket costs $8.
+___ A ticket costs $8 more than a soda.
+
+a) 8 + t
+b) 8t
+c) s + 8
+\`\`\`
+
+**Problem-Solving with Steps** (2-3 questões)
+\`\`\`
+A store charges $12 per item plus a $5 shipping fee.
+
+a) Write an expression for the total cost of buying i items.
+b) If someone buys 3 items, what is the total cost?
+c) If the total cost was $65, how many items were bought?
+\`\`\`
+
+**Real-World Scenario with Data** (1-2 questões)
+\`\`\`
+The table shows hourly wages for different jobs. Write an expression 
+    for the total earnings for h hours in each job:
+
+[IMAGE: Table with Jobs and Hourly Rates - ESSENCIAL]
+\`\`\`
+
+**Error Identification** (1 questão)
+\`\`\`
+Marcus wrote the expression 2x + 3x = 5x. Is this correct? 
+    If not, explain the mistake.
+\`\`\`
 
 ---
 
 ## ESTRUTURA DO DOCUMENTO
 
-Formatação obrigatória:
+### Formatação obrigatória
 
+\`\`\`
 --PAGE 1--
 
 Practice Activities
 
 1. [Questão 1]
+
 2. [Questão 2]
+
+3. [Questão 3]
+
 [Continua até 5-6 questões por página]
 
 --PAGE 2--
 
 [Questões 6-11 ou 7-12]
 
+[Continua se necessário]
+
 --PAGE FINAL--
 
 ANSWER KEY
 
-1. [Resposta comentada e argumentada]
-2. [Resposta comentada e argumentada]
+1. [Resposta 1]
+2. [Resposta 2]
 ...
-
-Se o Answer Key ficar extenso, divida em duas páginas.
+\`\`\`
+- As resoluções precisam ser comentadas, dando um argumento para a resolução.
+- Se o conteúdo dessa página ficar muito extenso, divida em duas páginas.
 
 ---
 
 ## DISTRIBUIÇÃO DE QUESTÕES POR PÁGINA
 
+**Parâmetro de referência:**
+
+Distribuição por página:
 - PAGE 1: Questões 1-5/6 (~220-240mm conteúdo)
 - PAGE 2: Questões 6/7-11/12 (~220-240mm conteúdo)
 - PAGE 3+: Questões restantes (~160-200mm)
-- ÚLTIMA PAGE: Answer Key separada (~240-260mm)
+- ÚLTIMA PAGE: Answer Key (separada, ~240-260mm)
 
-⚠️ Se conteúdo em página < 120mm: Deixe espaço em branco (NORMAL, não preencha)
+⚠️ **Se conteúdo em página < 120mm: Deixe espaço em branco (NORMAL, não preencha)**
 
 ---
 
 ## PROGRESSÃO DE DIFICULDADE
 
-**Questões 1-5:** Iniciante — Identificar variáveis, expressões simples, componentes básicos
-**Questões 6-10:** Intermediário — Múltiplas operações, verificar expressões, 2-3 passos
-**Questões 11-15:** Avançado — Expressões complexas, análise crítica, situações multi-etapa
+**Questões 1-5:** Iniciante
+- Identificar variáveis
+- Escrever expressões simples
+- Reconhecer componentes básicos
+
+**Questões 6-10:** Intermediário
+- Escrever expressões com múltiplas operações
+- Analisar e verificar expressões
+- Resolver problemas com 2-3 passos
+
+**Questões 11-15:** Avançado
+- Expressões complexas
+- Análise crítica e erro identification
+- Situações multi-etapa
+- Síntese de conceitos
 
 ---
 
 ## CONTEXTO: 100% AMERICANO
 
+Todas as questões devem usar:
 - ✅ Moeda: US Dollar ($)
 - ✅ Medidas: inches, feet, miles, pounds, Fahrenheit
-- ✅ Nomes: Maya, Marcus, Alex, Jordan, etc.
 - ✅ Contextos: escolas americanas, lojas, situações USA
-- ❌ Sem outras moedas, medidas métricas ou contextos estrangeiros
+- ✅ Nomes: nomes americanos (Maya, Marcus, Alex, etc.)
+- ✅ Produtos/serviços: coisas que existem nos EUA
+
+**Evitar:**
+- ❌ Outras moedas
+- ❌ Contextos estrangeiros
+- ❌ Medidas métricas
+- ❌ Situações fora dos EUA
 
 ---
 
 ## ESPECIFICAÇÃO DE ILUSTRAÇÕES
 
-Quando incluir [IMAGE: ...], descrever com detalhe técnico:
+### Quando incluir [IMAGE: ...]
 
-[IMAGE: Photo of digital kitchen scale showing 3.5 lbs on large LED display, white background, clear numbers visible, professional product photography, realistic lighting, high contrast]
+A ilustração DEVE ser especificada NO TEXTO da questão quando:
 
-[IMAGE: Clean technical table with borders showing: Job | Hourly Rate / Babysitting | $15/hour / Tutoring | $20/hour / Dog walking | $12/hour — Black text on white background, professional typography, clear grid lines]
+\`\`\`
+[IMAGE: Detailed technical description for API generation]
+\`\`\`
 
----
+**Componentes da descrição:**
+1. **Tipo:** (Photo of..., Screenshot of..., Technical diagram of...)
+2. **Conteúdo específico:** (what exactly should be shown)
+3. **Contexto:** (what is the setting/background)
+4. **Qualidade técnica:** (professional lighting, clear detail, high contrast, etc.)
+5. **Tamanho implicado:** (será renderizado em 70-90mm de altura)
+
+**Exemplos bem especificados:**
+
+\`\`\`
+[IMAGE: Photo of digital kitchen scale showing 3.5 lbs on large LED display, 
+white background, clear numbers visible, professional product photography, 
+realistic lighting, high contrast]
+
+[IMAGE: Clean technical table with borders showing:
+Job         | Hourly Rate
+Babysitting | $15/hour
+Tutoring    | $20/hour
+Dog walking | $12/hour
+Black text on white background, professional typography, clear grid lines]
+
+[IMAGE: Blueprint-style diagram of a rectangle with labeled dimensions: 
+length = 5 in, width = 3 in, clean lines, professional engineering-style 
+drawing, clear measurements]
+\`\`\`
 
 ## RESPOSTA E ESPAÇO
 
-❌ NUNCA inclua: linhas em branco, sublinhados, parênteses vazios, pontilhados, caixas para preenchimento, qualquer espaço para escrita.
+### Proibição absoluta
 
-✅ SEMPRE termine questão com ponto final ou última opção (sem espaço após).
+❌ **NUNCA inclua:**
+- Linhas em branco
+- Sublinhados para resposta
+- Parênteses vazios
+- Pontilhados
+- Caixas para preenchimento
+- Qualquer espaço para escrita
+
+✅ **SEMPRE termine questão com:**
+- Múltipla escolha: Última opção (letra)
+- Aberta: Ponto final (.)
+- Matching: Último item
+- Nenhum espaço após
 
 ---
 
 ## ANSWER KEY (ÚLTIMA PÁGINA)
 
 - Separada das questões
-- Respostas completas, comentadas e argumentadas
-- Inclui passos para problem-solving
+- Respostas completas e explicadas
+- Inclui passos para problema-solving
 - Não aparece nas páginas de questões
 
 ---
 
 ## RESULTADO ESPERADO
 
-1. ✓ 10-15 questões variadas
+Um documento que:
+
+1. ✓ Contém 10-15 questões variadas
 2. ✓ 100% em inglês
 3. ✓ Mistura múltiplos formatos
-4. ✓ [IMAGE: ...] APENAS quando essencial
+4. ✓ Especifica [IMAGE: ...] APENAS quando essencial
 5. ✓ Nenhum espaço para resposta
-6. ✓ Distribuído em 2-3 páginas + Answer Key separada
-7. ✓ Progressão de dificuldade
-8. ✓ Contexto 100% americano
-9. ✓ Pronto para API de geração de imagens (A4, 300 DPI)`,
+6. ✓ Distribuído em 2-3 páginas
+7. ✓ Cada página ~200-240mm de conteúdo
+8. ✓ Progressão de dificuldade
+9. ✓ Contexto 100% americano
+10. ✓ Answer Key separada
+11. ✓ Pronto para passar à API de geração de imagens
+12. ✓ Pronto para impressão A4, 300 DPI
+13. ✓ Complementa a LESSON correspondente
+
+---
+
+## NOTAS FINAIS
+
+**Sobre [IMAGE: ...] especificações:**
+- Descrever com DETALHE TÉCNICO para API gerar bem
+- Incluir contexto, composição, iluminação, qualidade
+- Não decorativo - apenas essencial
+- Frequência varia conforme necessário (pode ser 0, pode ser 5)
+
+**Sobre distribuição:**
+- Página com pouco conteúdo deixa branco (é normal)
+- Não aumentar fonte para preencher
+- Respeitar respiro visual
+
+**Sobre formato:**
+- Questões numeradas 1, 2, 3, etc.
+- Opções de múltipla escolha em a), b), c), d)
+- Questões abertas terminam com ponto final
+- Nenhuma área para resposta`,
 
 lessonplan: `## Você é um especialista instrucional da CCSS (Common Core State Standards) e precisa criar um prompt completo com o conteúdo de uma Lesson Plan baseada na lesson e practice activities fornecida.
+
+## CRÍTICO
+
+**Máximo de conteúdo por página: 120-140mm**
+
+Isso é não-negociável. Se passar de 140mm, DIVIDIR em 2 páginas.
+
+---
+
+## SEM ESTRUTURAS NUMERADAS
+
+Remover TUDO que pareça "estrutura":
+
+❌ NÃO FAZER:
+- Step 1: Discovering the pattern
+- Problem 1: (reference PRACTICE ACTIVITIES, Q1)
+- Question 1: A ticket costs...
+- 1. Identify variables
+- Teacher actions:
+- Ask during modeling:
+- What to watch for:
+
+✅ FAZER:
+- Discovering the pattern
+- The first example (reference PRACTICE ACTIVITIES, Q1): A soccer ball costs...
+- A ticket costs...
+- Identifying variables is the first step
+- What the teacher does during this phase
+- During the lesson, listen for these responses
+- Look carefully for these student errors
+
+---
+
+## SEM CAIXA ALTA
+
+**Remover QUALQUER palavra inteira em maiúsculas:**
+
+❌ NÃO: "ALWAYS:", "NEVER:", "IMPORTANT:"
+✅ SIM: "Always do this:", "Never do this:", "Important note:"
+
+❌ NÃO: "Q7:", "PAGE 1:", "CCSS"
+✅ SIM: "Question 7:", "Page 1:", "CCSS code"
+
+---
+
+## SEM ÍCONES E SEM ESTRUTURAS
+
+**Remover:**
+- Bullets numerados ou símbolos
+- "a)", "b)", "c)"
+- Listas estruturadas
+- Colunas | de tabela
+- Hífens que parecem listas
+
+**Se for uma lista de 3 itens:**
+
+❌ ERRADO:
+\`\`\`
+Teacher actions:
+- Let students attempt first
+- Ask: "What's the unknown?"
+- Watch for confusion
+\`\`\`
+
+✅ CERTO:
+\`\`\`
+The teacher lets students attempt the problem first. Then ask them what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
+\`\`\`
+
+---
+
+## MÁXIMO 120-140mm POR PÁGINA
+
+Conteúdo deve caber em ~120-140mm de altura.
+
+**Distribuição de páginas:**
+
+Se tem 3 misconceptions, não coloca os 3 na mesma página.
+
+Exemplo CORRETO:
+\`\`\`
+PAGE 7: Misconception 1 (120mm)
+PAGE 8: Misconception 2 (130mm)
+PAGE 9: Misconceptions 3 e 4 (140mm)
+\`\`\`
+
+Exemplo ERRADO:
+\`\`\`
+PAGE 7: Misconceptions 1, 2, 3, 4, 5 (400mm!)
+\`\`\`
+
+---
 
 ## FORMATO OBRIGATÓRIO DE PÁGINAS
 
@@ -2389,72 +2665,14 @@ NÃO use **PAGE X**, *PAGE X*, ## PAGE X ou qualquer outra variação. APENAS --
 
 ---
 
-## CRÍTICO
-
-**Máximo de conteúdo por página: 120-140mm**
-
-Isso é não-negociável. Se passar de 140mm, DIVIDIR em 2 páginas.
-
----
-
-## SEM ESTRUTURAS NUMERADAS
-
-Remover TUDO que pareça "estrutura":
-
-❌ NÃO FAZER:
-- Step 1: Discovering the pattern
-- Problem 1: (reference PRACTICE ACTIVITIES, Q1)
-- Teacher actions:
-- Ask during modeling:
-
-✅ FAZER:
-- Discovering the pattern
-- The first example references Practice Activities, question 1
-- What the teacher does during this phase
-- During the lesson, listen for these responses
-
----
-
-## SEM CAIXA ALTA
-
-Remover qualquer palavra inteira em maiúsculas:
-
-❌ NÃO: "ALWAYS:", "NEVER:", "LESSON 28", "CCSS"
-✅ SIM: "Always do this:", "Never do this:", "Lesson 28", "CCSS code"
-
----
-
-## SEM ÍCONES E SEM LISTAS
-
-Remover bullets, "a)", "b)", hífens como lista, colunas de tabela.
-
-Ao invés de lista com hífens, usar prosa narrativa fluida:
-
-❌ ERRADO:
-Teacher actions:
-- Let students attempt first
-- Ask: "What's the unknown?"
-- Watch for confusion
-
-✅ CERTO:
-The teacher lets students attempt the problem first. Then ask them what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
-
----
-
-## MÁXIMO 120-140mm POR PÁGINA
-
-Se tem 3 misconceptions, não coloca os 3 na mesma página.
-
-Exemplo correto:
-PAGE 7: Misconception 1 (120mm)
-PAGE 8: Misconception 2 (130mm)
-PAGE 9: Misconceptions 3 e 4 (140mm)
-
----
-
 ## ESTRUTURA FINAL: 15-17 PÁGINAS
 
-PAGE 1: Unit, grade, CCSS, objectives + materials (120mm)
+\`\`\`
+PAGE 1:
+- Título: Lesson Overview
+- Subtítulo: Nome da aula
+- Duration, Unit, grade, Standard, Lesson X + Name Lesson, objectives + materials
+- Tudo isso ficará organizado em um único box.
 PAGE 2: Prior knowledge (100mm)
 PAGE 3: Key vocabulary (110mm)
 PAGE 4: Warm-up activity (120mm)
@@ -2471,42 +2689,83 @@ PAGE 14: Closure and exit ticket (130mm)
 PAGE 15: Common misconception 1 + 2 (140mm max)
 PAGE 16: Common misconception 3 + 4 (140mm max)
 PAGE 17: Differentiation + connections (140mm max)
+\`\`\`
 
-Total: 17 páginas, todas balanceadas.
+Total: 15-17 páginas, TODAS balanceadas.
 
 ---
 
 ## COMO ESCREVER SEM ESTRUTURAS
 
-Ao invés de:
+**Ao invés de:**
+\`\`\`
 Step 1: Discovering the pattern
-Teacher models with think-aloud: "..."
+
+Teacher models with think-aloud:
+"Let's look at Maya's earnings again..."
+
 Ask during modeling:
 - "What does b stand for?"
 - "What does 5 mean?"
+\`\`\`
 
-Escrever:
+**Escrever:**
+\`\`\`
 Discovering the pattern
 
-The teacher models with a think-aloud. "Let's look at Maya's earnings again. I notice we're always multiplying 5 by the number of bracelets." During this modeling, ask students what the letter b stands for. Ask what the number 5 represents. Listen for their explanations.
+The teacher models with a think-aloud. "Let's look at Maya's earnings again. I notice we're always multiplying 5 by the number of bracelets. 1 bracelet: 5 × 1 = $5. 2 bracelets: 5 × 2 = $10. The number changes, but the operation stays the same."
+
+During this modeling, ask students what the letter b stands for. Ask what the number 5 represents. Listen for their explanations.
+\`\`\`
 
 ---
 
 ## TÍTULOS
 
-Sempre Sentence case:
+**SEMPRE Sentence case:**
+
 - Discovering the pattern
+- Introduction and problem disparador
 - Guided practice with real examples
+- Independent practice assignment
 - Closure with exit ticket
 - Common misconception about variables
 
-Nunca: "DISCOVERING THE PATTERN", "Step 1: Discovering"
+**NUNCA:**
+- DISCOVERING THE PATTERN
+- Discovery Pattern
+- Step 1: Discovering
 
 ---
 
 ## CONTEÚDO DEVE FLUIR
 
-Parágrafos conectados, narrativos. Cada página é um bloco de prosa coesa, sem listas.
+Parágrafos conectados, narrativos.
+
+**ERRADO (parece lista/estrutura):**
+\`\`\`
+Warm-up activity
+
+Display on board:
+If your friend Maya sells bracelets for $5 each:
+- How much does she earn if she sells 10?
+- How much if she sells 20?
+- How much if she sells 100?
+
+Teacher actions:
+- Ask students to calculate answers
+- Write answers on board
+- Ask: "How did you figure these out?"
+\`\`\`
+
+**CERTO (narrativo, fluido):**
+\`\`\`
+Warm-up activity
+
+Display on the board a simple question: If your friend Maya sells bracelets for $5 each, how much does she earn if she sells 10? How much if she sells 20? How much if she sells 100?
+
+Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."
+\`\`\`
 
 ---
 
@@ -2514,10 +2773,12 @@ Parágrafos conectados, narrativos. Cada página é um bloco de prosa coesa, sem
 
 - 15-17 páginas bem distribuídas
 - Máximo 120-140mm de conteúdo por página
-- Sem "Step 1:", "Problem 1:", listas com hífens, bullets, caixa alta
+- Sem "Step 1:", "Problem 1:", "Question 1:"
+- Sem listas com hífens ou bullets
+- Sem estruturas numeradas
+- Sem caixa alta (nem uma letra)
 - Conteúdo narrativo e fluido
 - Títulos em Sentence case
-- 100% em inglês
 - Pronto para impressão A4, 300 DPI`,
 
 all: `You are an expert 6th grade mathematics educator. Generate a complete lesson package.
@@ -5407,19 +5668,21 @@ function arrayBufToBase64(buf) {
   return btoa(str);
 }
 
-async function pollReplicateClient(predictionId, token, onStatus) {
+async function pollReplicateClient(predictionId, token, onStatus, signal) {
   for (let i = 0; i < 80; i++) {
+    if (signal?.aborted) throw new Error('Upscale interrompido pelo usuário');
     await new Promise(r => setTimeout(r, 4000));
+    if (signal?.aborted) throw new Error('Upscale interrompido pelo usuário');
     onStatus?.(`Processando… ${Math.round((i + 1) * 4)}s`);
 
     // Proxy via Vercel (evita CORS do Replicate)
-    const res = await fetch(`/api/upscale-status?id=${encodeURIComponent(predictionId)}&token=${encodeURIComponent(token)}`);
+    const res = await fetch(`/api/upscale-status?id=${encodeURIComponent(predictionId)}&token=${encodeURIComponent(token)}`, { signal });
     const data = await res.json().catch(() => ({}));
 
     if (data.status === 'succeeded') {
       if (!data.outputUrl) throw new Error('Replicate não retornou imagem');
       // CDN do Replicate é público — download direto sem CORS
-      const imgRes = await fetch(data.outputUrl);
+      const imgRes = await fetch(data.outputUrl, { signal });
       if (!imgRes.ok) throw new Error('Falha ao baixar imagem upscalada');
       const buf = await imgRes.arrayBuffer();
       const mime = (imgRes.headers.get('content-type') || 'image/png').split(';')[0].trim();
@@ -5433,6 +5696,18 @@ async function pollReplicateClient(predictionId, token, onStatus) {
 }
 
 // ── Upscale ────────────────────────────────────────────────────────────────
+let _upscaleAbortCtrl = null;
+
+function stopUpscale() {
+  if (_upscaleAbortCtrl) {
+    _upscaleAbortCtrl.abort();
+    _upscaleAbortCtrl = null;
+  }
+  document.getElementById('btn-stop-upscale').style.display = 'none';
+  document.getElementById('btn-run-upscale').disabled = false;
+  toast('Upscale interrompido.', 'warn');
+}
+
 async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
@@ -5443,9 +5718,15 @@ async function upscaleSelected(scale) {
     return;
   }
 
+  _upscaleAbortCtrl = new AbortController();
+  const signal = _upscaleAbortCtrl.signal;
+  document.getElementById('btn-stop-upscale').style.display = '';
+  document.getElementById('btn-run-upscale').disabled = true;
+
   toast(`Upscale ${scale}× em ${keys.length} imagem${keys.length > 1 ? 'ns' : ''} simultaneamente…`, '');
 
-  await Promise.allSettled(keys.map(async (key) => {
+  try { await Promise.allSettled(keys.map(async (key) => {
+    if (signal.aborted) return;
     const r    = results[key];
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
@@ -5457,10 +5738,12 @@ async function upscaleSelected(scale) {
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
+        if (signal.aborted) { pv.innerHTML = prev; return; }
         if (attempt > 0) {
           const wait = attempt * 15;
           pv.querySelector('span').textContent = `Aguardando ${wait}s (retry ${attempt})…`;
           await new Promise(r => setTimeout(r, wait * 1000));
+          if (signal.aborted) { pv.innerHTML = prev; return; }
           pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
         }
 
@@ -5470,6 +5753,7 @@ async function upscaleSelected(scale) {
         // Comprime para JPEG antes de enviar (PNG ~4MB → JPEG ~300KB, evita timeout)
         pv.querySelector('span').textContent = `Comprimindo imagem…`;
         const compressedUrl = await compressForUpscale(sourceUrl);
+        if (signal.aborted) { pv.innerHTML = prev; return; }
 
         // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
         pv.querySelector('span').textContent = `Upscale ${scale}× — iniciando…`;
@@ -5477,6 +5761,7 @@ async function upscaleSelected(scale) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ dataUrl: compressedUrl, scale, token, upscaleModel }),
+          signal,
         });
 
         const pred = await res.json().catch(async () => {
@@ -5496,7 +5781,8 @@ async function upscaleSelected(scale) {
         pv.querySelector('span').textContent = `Upscale ${scale}× — processando…`;
         const data = await pollReplicateClient(
           pred.predictionId || pred.id, token,
-          txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; }
+          txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; },
+          signal
         );
 
         const upscaledUrl = data.dataUrl;
@@ -5519,12 +5805,18 @@ async function upscaleSelected(scale) {
 
       } catch (e) {
         if (e.retry) continue;
-        pv.innerHTML = prev;
-        toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err');
+        if (!signal.aborted) { pv.innerHTML = prev; toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err'); }
+        else pv.innerHTML = prev;
         return;
       }
     }
-  }));
+  })); } finally {
+    _upscaleAbortCtrl = null;
+    const stopBtn = document.getElementById('btn-stop-upscale');
+    if (stopBtn) stopBtn.style.display = 'none';
+    const runBtn = document.getElementById('btn-run-upscale');
+    if (runBtn) runBtn.disabled = upscaleQueue.length === 0;
+  }
 }
 
 // Detecta PNG/JPEG pelos magic bytes; converte WebP/outros via canvas → PNG
