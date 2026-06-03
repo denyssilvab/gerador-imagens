@@ -823,64 +823,6 @@
       <!-- ── ESPECIFICAÇÕES ── (movido do bloco original) -->
 
   <!-- ── COFRE DE API KEYS ── -->
-  <div class="card" id="vault-card" style="border-color:var(--border2);">
-    <div class="card-head">
-      <h2>🔑 API Keys Salvas</h2>
-      <span id="vault-status-chip" class="chip">🔒 Bloqueado</span>
-    </div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-
-      <!-- Estado: bloqueado / sem cofre -->
-      <div id="vault-locked-ui">
-        <div class="form-row" style="align-items:flex-end;">
-          <div class="fg" style="flex:1;">
-            <label>Senha do Cofre</label>
-            <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
-              onkeydown="if(event.key==='Enter')unlockVault()" />
-          </div>
-          <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
-          <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
-        </div>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px;">
-          Esqueceu a senha?
-          <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
-          (apaga todas as keys salvas).
-        </p>
-      </div>
-
-      <!-- Estado: desbloqueado -->
-      <div id="vault-unlocked-ui" style="display:none;flex-direction:column;gap:12px;">
-        <div id="vault-keys-list"></div>
-        <details style="border-top:1px solid var(--border);padding-top:12px;">
-          <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;user-select:none;">
-            + Adicionar nova key
-          </summary>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-            <div class="form-row">
-              <div class="fg" style="flex:2;">
-                <label>Nome</label>
-                <input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" />
-              </div>
-              <div class="fg">
-                <label>Provider</label>
-                <select id="new-key-provider">
-                  <option value="openai">OpenAI</option>
-                  <option value="replicate">Replicate</option>
-                </select>
-              </div>
-            </div>
-            <div class="fg">
-              <label>API Key</label>
-              <input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" />
-            </div>
-            <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKey()">💾 Salvar Key</button>
-          </div>
-        </details>
-      </div>
-
-    </div>
-  </div>
-
   <!-- ── CONFIGURAÇÕES ── -->
   <div class="card">
     <div class="card-head"><h2>Configurações</h2></div>
@@ -1236,20 +1178,20 @@
     <div class="pg-content">
 
       <!-- ── COFRE DE API KEYS ── -->
-      <div class="card" id="vault-card-cfg" style="border-color:var(--border2);">
+      <div class="card" id="vault-card" style="border-color:var(--border2);">
         <div class="card-head">
           <h2>🔑 API Keys Salvas</h2>
-          <span id="vault-status-chip2" class="chip">🔒 Bloqueado</span>
+          <span id="vault-status-chip" class="chip">🔒 Bloqueado</span>
         </div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-          <div id="vault-locked-ui2">
+          <div id="vault-locked-ui">
             <div class="form-row" style="align-items:flex-end;">
               <div class="fg" style="flex:1;">
                 <label>Senha do Cofre</label>
-                <input id="vault-password2" type="password" placeholder="Digite a senha…" autocomplete="off"
-                  onkeydown="if(event.key==='Enter')unlockVaultCfg()" />
+                <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
+                  onkeydown="if(event.key==='Enter')unlockVault()" />
               </div>
-              <button class="btn btn-primary" onclick="unlockVaultCfg()">🔓 Desbloquear</button>
+              <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
               <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
             </div>
             <p style="font-size:11px;color:var(--muted);margin-top:8px;">
@@ -1258,21 +1200,21 @@
               (apaga todas as keys salvas).
             </p>
           </div>
-          <div id="vault-unlocked-ui2" style="display:none;flex-direction:column;gap:12px;">
-            <div id="vault-keys-list2"></div>
+          <div id="vault-unlocked-ui" style="display:none;flex-direction:column;gap:12px;">
+            <div id="vault-keys-list"></div>
             <details style="border-top:1px solid var(--border);padding-top:12px;">
               <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;user-select:none;">
                 + Adicionar nova key
               </summary>
               <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
                 <div class="form-row">
-                  <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name2" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
+                  <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
                   <div class="fg"><label>Provider</label>
-                    <select id="new-key-provider2"><option value="openai">OpenAI</option><option value="replicate">Replicate</option></select>
+                    <select id="new-key-provider"><option value="openai">OpenAI</option><option value="replicate">Replicate</option></select>
                   </div>
                 </div>
-                <div class="fg"><label>API Key</label><input id="new-key-value2" type="password" placeholder="sk-… ou r8_…" autocomplete="off" /></div>
-                <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKeyCfg()">💾 Salvar Key</button>
+                <div class="fg"><label>API Key</label><input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" /></div>
+                <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKey()">💾 Salvar Key</button>
               </div>
             </details>
           </div>
@@ -3393,6 +3335,7 @@ function onApiKeySelect(prov) {
   if (!sel || sel.value !== '__add__') return;
   sel.value = '';
   // Scroll até o cofre e abre o formulário de adição
+  setPage('config', document.querySelector('.nav-item[onclick*="config"]'));
   document.getElementById('vault-card')?.scrollIntoView({ behavior: 'smooth' });
   const details = document.querySelector('#vault-unlocked-ui details');
   if (details) details.open = true;
