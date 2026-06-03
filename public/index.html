@@ -1083,6 +1083,18 @@
             <p class="hint">Descreva o tema, objetivos e contexto da aula. O Claude vai gerar o conteúdo formatado pronto para gerar as imagens.</p>
             <textarea id="claude-input" rows="6"
               placeholder="Ex: Expressões algébricas — introduzir variáveis, coeficientes e como escrever expressões a partir de situações reais. Os alunos já sabem multiplicação e adição..."></textarea>
+            <!-- Context fields (shown conditionally) -->
+            <div id="ctx-lesson-wrap" style="display:none;flex-direction:column;gap:6px;">
+              <label style="font-size:12px;font-weight:600;color:var(--muted);">Conteúdo da Lesson (contexto opcional)</label>
+              <textarea id="ctx-lesson" rows="5" style="font-family:monospace;font-size:12px;"
+                placeholder="Cole aqui o conteúdo da Lesson gerada anteriormente. Usado como contexto para gerar as Activities."></textarea>
+            </div>
+            <div id="ctx-practice-wrap" style="display:none;flex-direction:column;gap:6px;">
+              <label style="font-size:12px;font-weight:600;color:var(--muted);">Conteúdo das Activities (contexto opcional)</label>
+              <textarea id="ctx-practice" rows="5" style="font-family:monospace;font-size:12px;"
+                placeholder="Cole aqui o conteúdo das Activities geradas anteriormente. Usado como contexto para gerar o Lesson Plan."></textarea>
+            </div>
+
             <div style="display:flex;align-items:center;gap:10px;">
               <button class="btn btn-primary" id="btn-claude-gen" onclick="generateContent()">✦ Gerar com Claude</button>
               <button class="btn btn-danger" id="btn-claude-stop" style="display:none;" onclick="stopClaudeGeneration()">⏹ Parar</button>
@@ -1143,10 +1155,10 @@
           <div class="card-head"><h2>Tipo de Documento</h2></div>
           <div class="card-body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
             <div class="claude-doc-tabs tabs" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
-              <button id="cdtab-all"       class="tab-btn active"  onclick="setContentDocType('all',this)"        style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
-              <button id="cdtab-lesson"    class="tab-btn"         onclick="setContentDocType('lesson',this)"     style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
-              <button id="cdtab-practice"  class="tab-btn"         onclick="setContentDocType('practice',this)"   style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson gerada">Activities</button>
-              <button id="cdtab-lessonplan" class="tab-btn"        onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson + Activities geradas">Lesson Plan</button>
+              <button id="cdtab-all"        class="tab-btn active" onclick="setContentDocType('all',this)"        style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
+              <button id="cdtab-lesson"     class="tab-btn"        onclick="setContentDocType('lesson',this)"     style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
+              <button id="cdtab-practice"   class="tab-btn"        onclick="setContentDocType('practice',this)"   style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Activities</button>
+              <button id="cdtab-lessonplan" class="tab-btn"        onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson Plan</button>
             </div>
           </div>
         </div>
@@ -2059,36 +2071,34 @@ let claudeAbortCtrl = null;
 const savedContent = { lesson: null, practice: null, lessonplan: null };
 
 function updateContentTabs() {
-  const hasLesson   = !!savedContent.lesson;
-  const hasPractice = !!savedContent.practice;
+  // When content is generated, pre-fill context fields so they're always in sync
+  if (savedContent.lesson) {
+    const el = document.getElementById('ctx-lesson');
+    if (el && !el.value) el.value = savedContent.lesson;
+  }
+  if (savedContent.practice) {
+    const el = document.getElementById('ctx-practice');
+    if (el && !el.value) el.value = savedContent.practice;
+  }
+  _updateContextVisibility();
+}
 
-  const tPractice   = document.getElementById('cdtab-practice');
-  const tLessonPlan = document.getElementById('cdtab-lessonplan');
-  if (tPractice) {
-    tPractice.disabled = !hasLesson;
-    tPractice.style.opacity = hasLesson ? '1' : '0.4';
-    tPractice.title = hasLesson ? '' : 'Gere a Lesson primeiro';
-  }
-  if (tLessonPlan) {
-    tLessonPlan.disabled = !(hasLesson && hasPractice);
-    tLessonPlan.style.opacity = (hasLesson && hasPractice) ? '1' : '0.4';
-    tLessonPlan.title = (hasLesson && hasPractice) ? '' : 'Gere a Lesson e Activities primeiro';
-  }
+function _updateContextVisibility() {
+  const showLesson   = (contentDocType === 'practice'   || contentDocType === 'lessonplan');
+  const showPractice = (contentDocType === 'lessonplan');
+  const wL = document.getElementById('ctx-lesson-wrap');
+  const wP = document.getElementById('ctx-practice-wrap');
+  if (wL) wL.style.display = showLesson   ? 'flex' : 'none';
+  if (wP) wP.style.display = showPractice ? 'flex' : 'none';
 }
 
 function setContentDocType(type, el) {
-  // Check dependencies
-  if (type === 'practice' && !savedContent.lesson) {
-    toast('Gere a Lesson primeiro antes de criar as Activities.', 'warn'); return;
-  }
-  if (type === 'lessonplan' && !(savedContent.lesson && savedContent.practice)) {
-    toast('Gere a Lesson e as Activities primeiro antes de criar o Lesson Plan.', 'warn'); return;
-  }
   contentDocType = type;
   document.querySelectorAll('.claude-doc-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   const specs = document.getElementById('content-specs');
   if (specs) specs.value = CONTENT_SPECS[type] || CONTENT_SPECS.all;
+  _updateContextVisibility();
 }
 
 function toggleContentSpecs(btn) {
@@ -2239,9 +2249,11 @@ async function generateContent() {
     } else {
       // ── Geração individual ──────────────────────────────────────────────
       if (label) label.textContent = 'Gerando com Claude…';
+      const ctxLesson   = savedContent.lesson   || document.getElementById('ctx-lesson')?.value.trim()   || null;
+      const ctxPractice = savedContent.practice || document.getElementById('ctx-practice')?.value.trim() || null;
       const userInput    = buildClaudeUserPrompt(baseInput,
-        contentDocType === 'practice'   ? savedContent.lesson   : null,
-        contentDocType === 'lessonplan' ? savedContent.practice : null);
+        contentDocType === 'practice'   ? ctxLesson   : null,
+        contentDocType === 'lessonplan' ? ctxPractice : null);
       const systemPrompt = document.getElementById('content-specs')?.value.trim() || CONTENT_SPECS[contentDocType];
 
       if (card) card.style.display = '';
