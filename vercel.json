@@ -3,6 +3,8 @@
   "buildCommand": null,
   "outputDirectory": "public",
   "functions": {
-    "api/db.js": { "memory": 512, "maxDuration": 30 }
+    "api/db.js":    { "memory": 512, "maxDuration": 30 },
+    "api/claude.js":     { "maxDuration": 60 },
+    "api/gerar-lote.js": { "maxDuration": 60 }
   }
 }
