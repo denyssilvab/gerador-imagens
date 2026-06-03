@@ -916,12 +916,6 @@
               <button id="cdtab-practice"  class="tab-btn"         onclick="setContentDocType('practice',this)"   style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson gerada">Activities</button>
               <button id="cdtab-lessonplan" class="tab-btn"        onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);" title="Requer Lesson + Activities geradas">Lesson Plan</button>
             </div>
-            <!-- Status das dependências -->
-            <div id="content-dep-status" style="font-size:11px;color:var(--muted);display:flex;flex-direction:column;gap:3px;padding:6px 2px 0;">
-              <span id="dep-lesson"    >⬜ Lesson</span>
-              <span id="dep-practice"  >⬜ Activities <span style="opacity:.5;">(requer Lesson)</span></span>
-              <span id="dep-lessonplan">⬜ Lesson Plan <span style="opacity:.5;">(requer Lesson + Activities)</span></span>
-            </div>
           </div>
         </div>
 
@@ -2051,15 +2045,6 @@ function updateContentTabs() {
   const hasLesson   = !!savedContent.lesson;
   const hasPractice = !!savedContent.practice;
 
-  // Status indicators
-  const dl  = document.getElementById('dep-lesson');
-  const dp  = document.getElementById('dep-practice');
-  const dlp = document.getElementById('dep-lessonplan');
-  if (dl)  dl.innerHTML  = hasLesson   ? '✅ Lesson gerada'    : '⬜ Lesson';
-  if (dp)  dp.innerHTML  = hasPractice ? '✅ Activities gerada' : `⬜ Activities <span style="opacity:.5;">(requer Lesson)</span>`;
-  if (dlp) dlp.innerHTML = (hasLesson && hasPractice) ? '✅ Lesson Plan gerada' : `⬜ Lesson Plan <span style="opacity:.5;">(requer Lesson + Activities)</span>`;
-
-  // Lock/unlock tabs
   const tPractice   = document.getElementById('cdtab-practice');
   const tLessonPlan = document.getElementById('cdtab-lessonplan');
   if (tPractice) {
@@ -2105,43 +2090,47 @@ function getClaudeApiKey() {
   return key?.value || null;
 }
 
-function buildClaudeUserPrompt(baseInput) {
+function buildClaudeUserPrompt(baseInput, lessonCtx, practiceCtx) {
   const unit    = document.getElementById('content-unit')?.value    || document.getElementById('unit')?.value    || '';
   const lesson  = document.getElementById('content-lesson')?.value  || document.getElementById('lesson')?.value  || '';
   const ccss    = document.getElementById('content-ccss')?.value    || document.getElementById('ccss')?.value    || '';
   const context = document.getElementById('content-context')?.value || '';
 
   let prompt = `Unit ${unit} | Lesson ${lesson} | CCSS: ${ccss}\n`;
-  if (context) prompt += `\nContexto da aula:\n${context}\n`;
-  prompt += `\nInstruções adicionais:\n${baseInput}`;
-
-  // Inject dependencies
-  if (contentDocType === 'practice' && savedContent.lesson) {
-    prompt += `\n\n---\nLESSON CONTENT (use as context to create aligned activities):\n${savedContent.lesson}`;
-  }
-  if (contentDocType === 'lessonplan') {
-    if (savedContent.lesson)   prompt += `\n\n---\nLESSON CONTENT:\n${savedContent.lesson}`;
-    if (savedContent.practice) prompt += `\n\n---\nPRACTICE ACTIVITIES CONTENT:\n${savedContent.practice}`;
-  }
+  if (context)    prompt += `\nContexto da aula:\n${context}\n`;
+  if (baseInput)  prompt += `\nInstruções adicionais:\n${baseInput}`;
+  if (lessonCtx)  prompt += `\n\n---\nLESSON CONTENT (use as context):\n${lessonCtx}`;
+  if (practiceCtx) prompt += `\n\n---\nPRACTICE ACTIVITIES CONTENT (use as context):\n${practiceCtx}`;
   return prompt;
+}
+
+// Chama a API Claude e retorna o texto gerado (ou lança erro)
+async function callClaudeAPI(docType, userInput, systemPrompt) {
+  const apiKey = getClaudeApiKey();
+  const model  = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    signal: claudeAbortCtrl.signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey, model, docType, userInput, systemPrompt }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Erro na API Claude (${docType})`);
+  return data.content || '';
 }
 
 async function generateContent() {
   const apiKey = getClaudeApiKey();
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
-  const baseInput = document.getElementById('claude-input')?.value.trim();
+  const baseInput = document.getElementById('claude-input')?.value.trim() || '';
   if (!baseInput && !document.getElementById('content-context')?.value.trim()) {
     toast('Preencha o contexto da aula ou as instruções adicionais.', 'warn'); return;
   }
 
-  const model        = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
-  const systemPrompt = document.getElementById('content-specs')?.value.trim() || '';
-  const userInput    = buildClaudeUserPrompt(baseInput || '');
-
-  // UI: loading
   const btnGen  = document.getElementById('btn-claude-gen');
   const btnStop = document.getElementById('btn-claude-stop');
   const prog    = document.getElementById('claude-prog-wrap');
+  const label   = document.getElementById('claude-prog-label');
   btnGen.style.display  = 'none';
   btnStop.style.display = '';
   prog.style.display    = '';
@@ -2149,43 +2138,81 @@ async function generateContent() {
   claudeAbortCtrl = new AbortController();
 
   try {
-    const res = await fetch('/api/claude', {
-      method: 'POST',
-      signal: claudeAbortCtrl.signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput, systemPrompt }),
-    });
-    const data = await res.json();
+    if (contentDocType === 'all') {
+      // ── Geração sequencial: Lesson → Activities → Lesson Plan ──────────
+      const outputEl = document.getElementById('claude-output');
+      const card     = document.getElementById('claude-output-card');
+      let combined   = '';
 
-    if (!res.ok) { toast(data.error || 'Erro na API Claude.', 'err'); return; }
+      // 1. Lesson
+      if (label) label.textContent = 'Gerando Lesson… (1/3)';
+      const lessonPrompt = buildClaudeUserPrompt(baseInput, null, null);
+      const lessonContent = await callClaudeAPI('lesson', lessonPrompt, CONTENT_SPECS.lesson);
+      savedContent.lesson = lessonContent;
+      combined = `${'─'.repeat(60)}\nLESSON\n${'─'.repeat(60)}\n\n${lessonContent}`;
+      if (outputEl) outputEl.value = combined;
+      if (card) card.style.display = '';
+      updateContentTabs();
 
-    const content = data.content || '';
-    const output  = document.getElementById('claude-output');
-    const card    = document.getElementById('claude-output-card');
-    if (output) output.value = content;
-    if (card)   card.style.display = '';
+      // 2. Activities
+      if (label) label.textContent = 'Gerando Activities… (2/3)';
+      const practicePrompt = buildClaudeUserPrompt(baseInput, lessonContent, null);
+      const practiceContent = await callClaudeAPI('practice', practicePrompt, CONTENT_SPECS.practice);
+      savedContent.practice = practiceContent;
+      combined += `\n\n${'─'.repeat(60)}\nACTIVITIES\n${'─'.repeat(60)}\n\n${practiceContent}`;
+      if (outputEl) outputEl.value = combined;
+      updateContentTabs();
 
-    // Salva conteúdo gerado para uso como contexto
-    if (contentDocType === 'lesson')     savedContent.lesson    = content;
-    if (contentDocType === 'practice')   savedContent.practice  = content;
-    if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
-    if (contentDocType === 'all')        savedContent.lesson    = content;
-    updateContentTabs();
+      // 3. Lesson Plan
+      if (label) label.textContent = 'Gerando Lesson Plan… (3/3)';
+      const planPrompt = buildClaudeUserPrompt(baseInput, lessonContent, practiceContent);
+      const planContent = await callClaudeAPI('lessonplan', planPrompt, CONTENT_SPECS.lessonplan);
+      savedContent.lessonplan = planContent;
+      combined += `\n\n${'─'.repeat(60)}\nLESSON PLAN\n${'─'.repeat(60)}\n\n${planContent}`;
+      if (outputEl) outputEl.value = combined;
+      updateContentTabs();
 
-    const badge = document.getElementById('conteudo-badge');
-    if (badge) {
-      const pages = (content.match(/^--PAGE /gm) || []).length;
-      badge.textContent = `${pages} página${pages !== 1 ? 's' : ''}`;
-      badge.style.display = pages ? '' : 'none';
-      badge.className = 'pg-badge' + (pages ? ' has' : '');
+      toast('Lesson + Activities + Lesson Plan gerados!', 'ok');
+
+    } else {
+      // ── Geração individual ──────────────────────────────────────────────
+      if (label) label.textContent = 'Gerando com Claude…';
+      const userInput    = buildClaudeUserPrompt(baseInput,
+        contentDocType === 'practice'   ? savedContent.lesson   : null,
+        contentDocType === 'lessonplan' ? savedContent.practice : null);
+      const systemPrompt = document.getElementById('content-specs')?.value.trim() || CONTENT_SPECS[contentDocType];
+      const content      = await callClaudeAPI(contentDocType, userInput, systemPrompt);
+
+      if (contentDocType === 'lesson')     savedContent.lesson     = content;
+      if (contentDocType === 'practice')   savedContent.practice   = content;
+      if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
+      updateContentTabs();
+
+      const outputEl = document.getElementById('claude-output');
+      const card     = document.getElementById('claude-output-card');
+      if (outputEl) outputEl.value = content;
+      if (card)     card.style.display = '';
+      toast('Conteúdo gerado com sucesso!', 'ok');
     }
-    toast('Conteúdo gerado com sucesso!', 'ok');
+
+    // Badge com contagem de páginas
+    const badge   = document.getElementById('conteudo-badge');
+    const allText = document.getElementById('claude-output')?.value || '';
+    if (badge) {
+      const pages = (allText.match(/^--PAGE /gm) || []).length;
+      badge.textContent   = `${pages} página${pages !== 1 ? 's' : ''}`;
+      badge.style.display = pages ? '' : 'none';
+      badge.className     = 'pg-badge' + (pages ? ' has' : '');
+    }
+
   } catch (e) {
     if (e.name !== 'AbortError') toast(e.message || 'Erro de conexão.', 'err');
   } finally {
     btnGen.style.display  = '';
     btnStop.style.display = 'none';
-    prog.style.display    = 'none';
+    prog.style.display    = '';
+    if (label) label.textContent = 'Gerando com Claude…';
+    prog.style.display = 'none';
     claudeAbortCtrl = null;
   }
 }
