@@ -20,51 +20,46 @@
       background: #fff;
       border-radius: 16px;
       box-shadow: 0 4px 32px rgba(9,41,100,.10);
-      padding: 48px 40px 40px;
+      padding: 40px;
       width: 100%;
-      max-width: 380px;
+      max-width: 390px;
     }
 
     .logo {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 32px;
-    }
-
-    .logo-bar {
-      width: 6px;
-      height: 36px;
-      background: #89c13b;
-      border-radius: 3px;
-    }
-
-    .logo-text {
-      font-size: 18px;
-      font-weight: 700;
-      color: #092964;
-      line-height: 1.2;
-    }
-
-    .logo-text span {
-      display: block;
-      font-size: 12px;
-      font-weight: 400;
-      color: #666;
-    }
-
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      color: #092964;
-      margin-bottom: 6px;
-    }
-
-    .subtitle {
-      font-size: 14px;
-      color: #666;
       margin-bottom: 28px;
     }
+    .logo-bar { width: 6px; height: 36px; background: #89c13b; border-radius: 3px; }
+    .logo-text { font-size: 18px; font-weight: 700; color: #092964; line-height: 1.2; }
+    .logo-text span { display: block; font-size: 12px; font-weight: 400; color: #666; }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e8edf5;
+      margin-bottom: 28px;
+      gap: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 9px 0;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #888;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+    .tab.active { color: #0251af; border-bottom-color: #0251af; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
 
     label {
       display: block;
@@ -85,10 +80,9 @@
       transition: border-color .15s;
       margin-bottom: 16px;
     }
-
     input:focus { border-color: #0251af; }
 
-    button[type="submit"] {
+    .btn-submit {
       width: 100%;
       padding: 12px;
       background: #0251af;
@@ -101,22 +95,19 @@
       transition: background .15s, opacity .15s;
       margin-top: 4px;
     }
+    .btn-submit:hover { background: #092964; }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; }
 
-    button[type="submit"]:hover { background: #092964; }
-    button[type="submit"]:disabled { opacity: .6; cursor: not-allowed; }
-
-    .error {
+    .alert {
       display: none;
-      background: #fff0f0;
-      color: #c0392b;
-      border: 1px solid #f5c6cb;
       border-radius: 8px;
       padding: 10px 14px;
       font-size: 13px;
       margin-bottom: 16px;
     }
-
-    .error.show { display: block; }
+    .alert.error { background: #fff0f0; color: #c0392b; border: 1px solid #f5c6cb; }
+    .alert.success { background: #f0fff4; color: #1a7a3c; border: 1px solid #b7e4c7; }
+    .alert.show { display: block; }
   </style>
 </head>
 <body>
@@ -129,55 +120,119 @@
       </div>
     </div>
 
-    <h1>Entrar</h1>
-    <p class="subtitle">Digite suas credenciais para continuar.</p>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('login', this)">Entrar</button>
+      <button class="tab" onclick="switchTab('register', this)">Cadastrar</button>
+    </div>
 
-    <div class="error" id="error-msg"></div>
+    <!-- LOGIN -->
+    <div id="panel-login" class="panel active">
+      <div class="alert error" id="login-error"></div>
+      <form id="login-form" autocomplete="on">
+        <label for="l-user">Usuário</label>
+        <input id="l-user" type="text" name="username" autocomplete="username" required autofocus />
 
-    <form id="login-form" autocomplete="on">
-      <label for="username">Usuário</label>
-      <input id="username" type="text" name="username" autocomplete="username" required autofocus />
+        <label for="l-pass">Senha</label>
+        <input id="l-pass" type="password" name="password" autocomplete="current-password" required />
 
-      <label for="password">Senha</label>
-      <input id="password" type="password" name="password" autocomplete="current-password" required />
+        <button type="submit" class="btn-submit" id="btn-login">Entrar</button>
+      </form>
+    </div>
 
-      <button type="submit" id="btn">Entrar</button>
-    </form>
+    <!-- CADASTRO -->
+    <div id="panel-register" class="panel">
+      <div class="alert error"   id="reg-error"></div>
+      <div class="alert success" id="reg-success"></div>
+      <form id="register-form" autocomplete="off">
+        <label for="r-user">Usuário</label>
+        <input id="r-user" type="text" name="username" autocomplete="off" minlength="3" required />
+
+        <label for="r-pass">Senha</label>
+        <input id="r-pass" type="password" name="password" autocomplete="new-password" minlength="6" required />
+
+        <label for="r-pass2">Confirmar senha</label>
+        <input id="r-pass2" type="password" name="password2" autocomplete="new-password" minlength="6" required />
+
+        <button type="submit" class="btn-submit" id="btn-register">Criar conta</button>
+      </form>
+    </div>
   </div>
 
   <script>
+    function switchTab(name, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+
+    function showAlert(id, msg, type) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.className = 'alert ' + type + ' show';
+    }
+    function hideAlerts(...ids) {
+      ids.forEach(id => { const el = document.getElementById(id); el.classList.remove('show'); });
+    }
+
+    // Login
     document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const btn = document.getElementById('btn');
-      const err = document.getElementById('error-msg');
-      err.classList.remove('show');
-      btn.disabled = true;
-      btn.textContent = 'Entrando…';
-
+      hideAlerts('login-error');
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true; btn.textContent = 'Entrando…';
       try {
-        const res = await fetch('/api/login', {
+        const res  = await fetch('/api/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            username: document.getElementById('username').value,
-            password: document.getElementById('password').value,
+            username: document.getElementById('l-user').value,
+            password: document.getElementById('l-pass').value,
           }),
         });
-
         const data = await res.json();
+        if (res.ok) { window.location.href = '/'; }
+        else { showAlert('login-error', data.error || 'Erro ao fazer login.', 'error'); }
+      } catch {
+        showAlert('login-error', 'Erro de conexão. Tente novamente.', 'error');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Entrar';
+      }
+    });
 
+    // Cadastro
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideAlerts('reg-error', 'reg-success');
+      const pass  = document.getElementById('r-pass').value;
+      const pass2 = document.getElementById('r-pass2').value;
+      if (pass !== pass2) { showAlert('reg-error', 'As senhas não coincidem.', 'error'); return; }
+
+      const btn = document.getElementById('btn-register');
+      btn.disabled = true; btn.textContent = 'Criando…';
+      try {
+        const res  = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('r-user').value,
+            password: pass,
+          }),
+        });
+        const data = await res.json();
         if (res.ok) {
-          window.location.href = '/';
+          showAlert('reg-success', 'Conta criada com sucesso! Faça login.', 'success');
+          document.getElementById('register-form').reset();
+          setTimeout(() => {
+            document.querySelector('.tab').click(); // volta pra aba login
+          }, 1500);
         } else {
-          err.textContent = data.error || 'Erro ao fazer login.';
-          err.classList.add('show');
+          showAlert('reg-error', data.error || 'Erro ao criar conta.', 'error');
         }
       } catch {
-        err.textContent = 'Erro de conexão. Tente novamente.';
-        err.classList.add('show');
+        showAlert('reg-error', 'Erro de conexão. Tente novamente.', 'error');
       } finally {
-        btn.disabled = false;
-        btn.textContent = 'Entrar';
+        btn.disabled = false; btn.textContent = 'Criar conta';
       }
     });
   </script>

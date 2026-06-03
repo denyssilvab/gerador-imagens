@@ -1,6 +1,6 @@
 // Vercel Edge Middleware — protege todas as rotas exceto login
 export const config = {
-  matcher: ['/((?!login.html|api/login|api/logout|_vercel).*)'],
+  matcher: ['/((?!login.html|api/login|api/logout|api/register|_vercel).*)'],
 };
 
 async function verifyToken(token, secret) {

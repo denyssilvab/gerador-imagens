@@ -59,10 +59,15 @@ app.get('/api/logout', (_req, res) => {
   res.redirect('/login.html');
 });
 
+app.post('/api/register', (req, res) => {
+  const registerHandler = require('./api/register');
+  return registerHandler(req, res);
+});
+
 // Middleware de proteção — só ativo se AUTH_SECRET estiver configurado
 app.use((req, res, next) => {
   if (!AUTH_SECRET) return next(); // dev sem .env: passa direto
-  if (req.path === '/login.html' || req.path.startsWith('/api/login') || req.path.startsWith('/api/logout')) {
+  if (req.path === '/login.html' || req.path.startsWith('/api/login') || req.path.startsWith('/api/logout') || req.path.startsWith('/api/register')) {
     return next();
   }
   const cookies = parseCookie(req.headers.cookie);
