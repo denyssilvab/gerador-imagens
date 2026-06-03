@@ -899,10 +899,6 @@
               <label>CCSS</label>
               <input id="content-ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" style="padding:6px 8px;font-size:12px;" />
             </div>
-            <div class="fg">
-              <label>Contexto da aula</label>
-              <textarea id="content-context" rows="3" placeholder="Tópico, conceitos-chave, pré-requisitos dos alunos…" style="font-size:12px;padding:6px 8px;resize:vertical;"></textarea>
-            </div>
           </div>
         </div>
 
@@ -2094,11 +2090,8 @@ function buildClaudeUserPrompt(baseInput, lessonCtx, practiceCtx) {
   const unit    = document.getElementById('content-unit')?.value    || document.getElementById('unit')?.value    || '';
   const lesson  = document.getElementById('content-lesson')?.value  || document.getElementById('lesson')?.value  || '';
   const ccss    = document.getElementById('content-ccss')?.value    || document.getElementById('ccss')?.value    || '';
-  const context = document.getElementById('content-context')?.value || '';
-
   let prompt = `Unit ${unit} | Lesson ${lesson} | CCSS: ${ccss}\n`;
-  if (context)    prompt += `\nContexto da aula:\n${context}\n`;
-  if (baseInput)  prompt += `\nInstruções adicionais:\n${baseInput}`;
+  if (baseInput)  prompt += `\n${baseInput}`;
   if (lessonCtx)  prompt += `\n\n---\nLESSON CONTENT (use as context):\n${lessonCtx}`;
   if (practiceCtx) prompt += `\n\n---\nPRACTICE ACTIVITIES CONTENT (use as context):\n${practiceCtx}`;
   return prompt;
@@ -2123,9 +2116,7 @@ async function generateContent() {
   const apiKey = getClaudeApiKey();
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
   const baseInput = document.getElementById('claude-input')?.value.trim() || '';
-  if (!baseInput && !document.getElementById('content-context')?.value.trim()) {
-    toast('Preencha o contexto da aula ou as instruções adicionais.', 'warn'); return;
-  }
+  if (!baseInput) { toast('Preencha a descrição da aula.', 'warn'); return; }
 
   const btnGen  = document.getElementById('btn-claude-gen');
   const btnStop = document.getElementById('btn-claude-stop');
