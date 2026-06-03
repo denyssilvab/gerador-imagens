@@ -83,12 +83,12 @@ export default async function handler(req) {
   try { body = await req.json(); }
   catch { return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 }); }
 
-  const { apiKey, model = 'claude-sonnet-4-6', docType = 'all', userInput, unit, lesson, ccss } = body;
+  const { apiKey, model = 'claude-sonnet-4-6', docType = 'all', userInput, unit, lesson, ccss, systemPrompt: customSystemPrompt } = body;
 
   if (!apiKey) return new Response(JSON.stringify({ error: 'Claude API key obrigatória.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
   if (!userInput?.trim()) return new Response(JSON.stringify({ error: 'Descreva o conteúdo da aula.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
-  const systemPrompt = SYSTEM_PROMPTS[docType] || SYSTEM_PROMPTS.all;
+  const systemPrompt = customSystemPrompt?.trim() || SYSTEM_PROMPTS[docType] || SYSTEM_PROMPTS.all;
   const userPrompt   = buildUserPrompt(docType, userInput, unit, lesson, ccss);
 
   try {

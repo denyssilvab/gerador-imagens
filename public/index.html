@@ -825,6 +825,22 @@
       <!-- ── COLUNA PRINCIPAL ── -->
       <div class="gerar-main">
 
+        <!-- Especificações -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Especificações do Prompt</h2>
+            <button class="toggle-btn" onclick="toggleContentSpecs(this)">
+              Mostrar / Editar <span class="chevron">▼</span>
+            </button>
+          </div>
+          <div class="card-body">
+            <p class="hint">Pré-carregadas conforme o tipo de documento. Enviadas como instrução de sistema para o Claude.</p>
+            <div class="collapse-wrap" id="content-specs-wrap">
+              <textarea id="content-specs" rows="26" style="font-family:monospace;font-size:11px;margin-top:4px;"></textarea>
+            </div>
+          </div>
+        </div>
+
         <!-- Instrução -->
         <div class="card">
           <div class="card-head">
@@ -1408,6 +1424,333 @@
 
 const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'Gerar Imagens', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
 
+// ── Specs de conteúdo por tipo ─────────────────────────────────────────────
+
+const CONTENT_SPECS = {
+lesson: `## VISÃO GERAL
+Você é um especialista em design instrucional CCSS (Common Core State Standards) e layout pedagógico. Gere um prompt com o conteúdo completo de uma aula de matemática com base nas nas informações de entrada.
+- Introduz conceito matemático de forma clara e sólida
+- Distribui conteúdo respeitando margens A4 (25-190mm H, 25-275mm V)
+- CADA PÁGINA tem conteúdo balanceado (veja referência abaixo)
+- Usa boxes estrategicamente (não em tudo)
+- Especifica elementos visuais com qualidade profissional
+
+---
+
+## PARÂMETRO DE REFERÊNCIA:
+
+Modelo de distribuição. Analise:
+
+**Content Example:**
+- 2-3 parágrafos de abertura (75-85 palavras)
+- 1 problema disparador (40-50 palavras)
+- Total visual: ~150-170mm de altura
+
+**Este é o tamanho máximo confortável por página.**
+
+Cada página subsequente deve ter APROXIMADAMENTE a mesma quantidade de conteúdo. Se uma seção ultrapassar esse volume, DIVIDA EM MÚLTIPLAS PÁGINAS.
+
+---
+
+## IDIOMA: 100% ENGLISH
+
+**OBRIGATÓRIO:**
+- ✅ Todos os títulos em inglês
+- ✅ Todos os subtítulos em inglês
+- ✅ Todo o conteúdo em inglês
+- ✅ Todas as explicações em inglês
+
+**PROIBIDO:**
+- ❌ Nenhuma palavra em língua diferente do inglês
+- ❌ Nenhum marcador de etapa como "Abertura", "Abordagem Inicial", "Síntese" nos títulos
+- ❌ Rótulos bilíngues (ex: "Abertura - Motivation and Context")
+
+---
+
+## ESTRATÉGIA DE VISUAL HIERARCHY
+
+### QUANDO USAR BOXES (Apenas nestes 4 casos)
+
+**1. Formal Definitions (SEMPRE EM BOX)**
+- Definições matemáticas formais e nomeadas
+- Conceitos-chave fundamentais
+- Exemplo: "Variable: A Letter Representing an Unknown Number"
+- Frequência: 1-3 por lesson (máximo)
+
+**2. Key Expressions or Formulas (SEMPRE EM BOX)**
+- Fórmulas, expressões, regras finais derivadas
+- Destacam resultado importante
+- Exemplo: "5b" ou "15 + 8w"
+- Frequência: 1-2 por página, conforme necessário
+
+**3. Structured Step-by-Step (BOX apenas se 4+ passos)**
+- Processo com múltiplas etapas estruturadas
+- Cada passo em seu próprio compartimento
+- Passos numerados com ① ② ③ ④ (círculos, não ícones)
+- Frequência: máximo 1 por página
+
+**4. Concept Checks or Key Insights (BOX opcional, máximo 1 por página)**
+- Reflexão rápida orientada ("Think About It...")
+- Contexto de importância ("Why It Matters")
+- Resumo de insight ("Key Takeaway")
+- Frequência: máximo 1 por página
+
+---
+
+### O QUE NÃO DEVE SER BOX
+
+Estes devem ser apenas **HEADING (bold, English) + regular text**:
+- Seções introdutórias
+- Explicações narrativas
+- Exemplos (título + descrição)
+- Dicas ou "try it!" sections
+- Sínteses ou conclusões
+- Aplicações práticas
+- Passos quando menos de 4
+
+---
+
+## CÁLCULO RIGOROSO DE CONTEÚDO POR PÁGINA
+
+### Espaço Disponível
+- **Altura:** 25mm a 275mm = 250mm vertical
+- **Largura:** 25mm a 190mm = 165mm horizontal
+- **Espaçamento máximo:** 4-6mm entre seções
+- **Respiro visual obrigatório:** 15-20mm por página
+
+**Conteúdo efetivo máximo por página: ~230mm (250mm - 20mm respiro)**
+
+---
+
+### Estimativa de Altura por Elemento
+
+- Título (20pt bold): 7-8mm
+- Subtitle (18pt regular): 6-7mm
+- Body text (18pt, 1.5 spacing): 9.5mm por linha
+- Parágrafo (60 palavras, 1.5 spacing): ~50-55mm
+- Definition box: 60-80mm
+- Formula box: 25-35mm
+- Example completo: 70-90mm
+- Imagem detalhada: 80-100mm
+- Espaço entre seções: 5-6mm
+
+---
+
+### Distribuição por Página (Referência)
+
+**Página "Leve" (150-180mm conteúdo):**
+- 1 título + 2 parágrafos
+- OU 1 título + exemplo pequeno
+- OU 1 título + box de definição
+
+**Página "Normal" (180-220mm conteúdo):**
+- 1 título + 3-4 parágrafos
+- OU 1 título + 2 exemplos
+- OU 1 título + 1 box + 2 parágrafos
+
+**Página "Densa" (220-240mm conteúdo - máximo):**
+- 1 título + 4-5 parágrafos + pequeno box
+- OU 1 título + 2-3 exemplos
+- OU passos estruturados (4-5 passos)
+
+**Nunca ultrapassar 250mm.** Se conteúdo > 240mm, divida em 2 páginas.
+
+---
+
+### Checklist por Página (ANTES DE GERAR)
+
+Para cada página, verifique:
+- ✅ Conteúdo total está entre 150-240mm?
+- ✅ Há 15-20mm de respiro visual?
+- ✅ Número de boxes é minimal (máximo 2 por página)?
+- ✅ Tudo está em inglês?
+- ✅ Títulos não têm português?
+- ✅ Nenhum ícone decorativo nos títulos?
+- ✅ Se há imagem, é detalhada (80-100mm), não ícone?
+
+Se algum item falhar, DIVIDA A PÁGINA.
+
+---
+
+## ESTRUTURA FUNDAMENTAL
+
+### [1] Motivation and Context
+**Localização:** PAGE 1
+**Distribuição:** 140-160mm
+- Título: "Motivation and Context" (apenas isso)
+- 2-3 parágrafos (máx. 75-85 palavras total)
+- Sem imagem obrigatória
+- Se inclui imagem: máximo 80mm, alinhada lateralmente
+
+### [2] Problem Disparador
+**Localização:** PAGE 1 (continuação)
+**Distribuição:** 40-60mm
+- Título: "The Challenge:" OU "Problem:"
+- 1-2 parágrafos (máx. 50 palavras)
+- Sem box obrigatória
+
+### [3] Intuitive Understanding
+**Localização:** PAGE 2-3 (pode ocupar 1-2 páginas)
+**Distribuição:** 180-220mm por página
+- Título: "Understanding the Pattern" OU "Discovering the Rule"
+- Passo-a-passo descoberta (8-12 linhas)
+- Box opcional para conceito-chave final
+- Imagem pedagógica OPCIONAL (80-100mm)
+**Se conteúdo > 220mm: DIVIDIR EM 2 PÁGINAS**
+
+### [4] Formal Method
+**Localização:** PAGE 3-4 (pode ocupar 1-2 páginas)
+**Distribuição:** 200-230mm por página
+- Título: "The Standard Method" OU "Writing Expressions Step by Step"
+- Passos estruturados (3-5 passos = 1 página; 6+ = 2 páginas)
+- BOX obrigatório para 4+ passos
+- Exemplo rápido de aplicação
+
+### [5] Key Concepts
+**Localização:** PAGE 5-6 (pode ocupar 1-2 páginas)
+**Distribuição:** 60-90mm por conceito
+- Título: "Key Concepts" OU "Essential Definitions"
+- Cada conceito em SEPARATE BOX (obrigatório para definições formais)
+- 2-3 conceitos por página (máximo 3 = ~210mm)
+- 4+ conceitos = 2 páginas
+
+### [6] Examples Applied
+**Localização:** PAGE 6-8 (depende de quantidade)
+**Distribuição:** 70-90mm por exemplo
+- Título: "Examples Applied" (uma única vez, no início)
+- Cada exemplo: enunciado + solução + resultado
+- Sem box; apenas HEADING + texto estruturado
+- Imagem detalhada OPCIONAL por exemplo (80-100mm)
+
+### [7] Special Cases
+**Localização:** PAGE 8-9 (após exemplos)
+**Distribuição:** 100-150mm
+- Título: "Special Cases" OU "Important Considerations"
+- 1-3 casos (cada um é parágrafo + exemplo)
+- Sem box obrigatória
+
+### [8] Synthesis and Application
+**Localização:** PAGE 9-10
+**Distribuição:** 180-220mm (pode ocupar 1-2 páginas)
+- Título: "Synthesis and Application"
+- Resumo breve (1 parágrafo, ~50mm)
+- Aplicações práticas (3-4 bullet points, ~60mm)
+- Helpful tips (2-3 pontos, ~50mm)
+- Key takeaway final (1 parágrafo, ~30mm)
+
+---
+
+## IMAGENS: QUANDO E COMO
+
+### Contextual/Opening Images
+- **Tipo:** Realistic photograph
+- **Altura:** 80-100mm
+- **Composição:** Medium shot, rule of thirds, clear context
+- **Lighting:** Natural daylight, warm, professional
+
+### Pedagogical Process Images
+- **Tipo:** Detailed illustration OU technical diagram
+- **Altura:** 80-100mm
+- **Composição:** Centered, clear focal point, visual depth
+- **Detalhe:** Shading, color coding, professional quality
+
+### Example Context Images
+- **Tipo:** Realistic photograph
+- **Altura:** 80-100mm
+- **Composição:** Close-up OU medium shot, recognizable situation
+
+---
+
+## SEM ÍCONES DECORATIVOS
+
+**Proibido:**
+- ❌ Ícones para títulos ou subtítulos
+- ❌ Símbolos decorativos antes de headings
+- ❌ Miniaturas estilo emoji
+- ❌ Português em qualquer lugar
+
+**Permitido:**
+- ✅ Números em circles: ① ② ③ ④ ⑤ (para passos)
+- ✅ Bullet points (•)
+- ✅ Bordas/fundo de boxes
+
+---
+
+## DISTRIBUIÇÃO ESPERADA (EXEMPLO)
+
+PAGE 1:  Motivation + Problem (~150mm) ✓
+PAGE 2:  Understanding Pattern Part 1 (~210mm) ✓
+PAGE 3:  Understanding Pattern Part 2 (~200mm) ✓
+PAGE 4:  Standard Method Part 1 (~220mm) ✓
+PAGE 5:  Standard Method Part 2 (~180mm) ✓
+PAGE 6:  Key Concepts (2-3 boxes) (~210mm) ✓
+PAGE 7:  Examples 1-2 (~220mm) ✓
+PAGE 8:  Examples 3-4 (~210mm) ✓
+PAGE 9:  Special Cases + Synthesis Part 1 (~220mm) ✓
+PAGE 10: Synthesis Part 2 + Tips (~200mm) ✓
+PAGE 11: Teacher's Notes (~180mm) ✓
+
+---
+
+## RESULTADO ESPERADO
+
+Uma LESSON que:
+1. ✓ Dividida em páginas com --PAGE X--
+2. ✓ 100% EM INGLÊS (zero português)
+3. ✓ Títulos sem rótulos de etapa em português
+4. ✓ Conteúdo balanceado (150-220mm por página, máximo 240mm)
+5. ✓ Cada página com 15-20mm respiro visual
+6. ✓ Boxes apenas em 4 casos específicos
+7. ✓ Sem ícones decorativos nos títulos
+8. ✓ Imagens detalhadas quando usadas (80-100mm, não miniaturas)
+9. ✓ Pronta para tipografia 18pt body, 20pt títulos
+10. ✓ Um professor americano compreende em 15 minutos
+11. ✓ Roteiro para aula de 45-50 minutos`,
+
+practice: `You are an expert 6th grade mathematics educator. Generate practice activity exercises for image generation.
+
+Output ONLY page blocks in this exact format (no intro, no explanation):
+--PAGE 1 - [TITLE]--
+
+[Exercises, problems, activities]
+
+Rules:
+- Each page has 8-15 exercises of progressive difficulty
+- Include multiple choice, short answer, and word problems
+- NO answer lines, blanks, underscores, or checkboxes — questions only
+- Generate 2-4 pages
+- Titles in Sentence case, no emojis
+- 100% in English`,
+
+lessonplan: `You are an expert 6th grade mathematics curriculum designer. Generate a structured lesson plan for image generation.
+
+Output ONLY page blocks in this exact format (no intro, no explanation):
+--PAGE 1 - [TITLE]--
+
+[Lesson plan content]
+
+Rules:
+- Pages: Learning Objectives, Standards Alignment, Materials, Warm-Up, Direct Instruction, Guided Practice, Independent Practice, Closure/Assessment
+- Professional educator language
+- Generate 3-5 pages
+- Titles in Sentence case, no emojis
+- 100% in English`,
+
+all: `You are an expert 6th grade mathematics educator. Generate a complete lesson package.
+
+Output page blocks in this exact format:
+--PAGE 1 - [TITLE]--
+
+[Content]
+
+Rules:
+- Generate Lesson pages first (concepts + examples, follow visual hierarchy rules)
+- Then Practice Activity pages (exercises only, NO answer lines)
+- Then Lesson Plan pages (curriculum structure)
+- All content 100% in English
+- Titles in Sentence case, no emojis`,
+};
+
 // ── Gerar Conteúdo (Claude API) ────────────────────────────────────────────
 
 let contentDocType = 'all';
@@ -1417,6 +1760,16 @@ function setContentDocType(type, el) {
   contentDocType = type;
   document.querySelectorAll('.claude-doc-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  const specs = document.getElementById('content-specs');
+  if (specs) specs.value = CONTENT_SPECS[type] || CONTENT_SPECS.all;
+}
+
+function toggleContentSpecs(btn) {
+  const wrap = document.getElementById('content-specs-wrap');
+  if (!wrap) return;
+  wrap.classList.toggle('open');
+  const ch = btn.querySelector('.chevron');
+  if (ch) ch.classList.toggle('open', wrap.classList.contains('open'));
 }
 
 function getClaudeApiKey() {
@@ -1433,10 +1786,11 @@ async function generateContent() {
   const input = document.getElementById('claude-input')?.value.trim();
   if (!input) { toast('Descreva o conteúdo da aula primeiro.', 'warn'); return; }
 
-  const model  = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
-  const unit   = document.getElementById('unit')?.value   || '';
-  const lesson = document.getElementById('lesson')?.value || '';
-  const ccss   = document.getElementById('ccss')?.value   || '';
+  const model        = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
+  const unit         = document.getElementById('unit')?.value   || '';
+  const lesson       = document.getElementById('lesson')?.value || '';
+  const ccss         = document.getElementById('ccss')?.value   || '';
+  const systemPrompt = document.getElementById('content-specs')?.value.trim() || '';
 
   // UI: loading
   const btnGen  = document.getElementById('btn-claude-gen');
@@ -1453,7 +1807,7 @@ async function generateContent() {
       method: 'POST',
       signal: claudeAbortCtrl.signal,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput: input, unit, lesson, ccss }),
+      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput: input, unit, lesson, ccss, systemPrompt }),
     });
     const data = await res.json();
 
@@ -2024,6 +2378,8 @@ let _pdfPendingKeys = [];
 
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
+const _csEl = document.getElementById('content-specs');
+if (_csEl) _csEl.value = CONTENT_SPECS['all'];
 updateTopbarChips();
 
 // Load persisted images from IndexedDB on startup
