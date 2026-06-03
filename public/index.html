@@ -753,7 +753,22 @@
     }
     .dash-type-tab:hover { background: var(--surface2); color: var(--text); }
     .dash-type-tab.active { background: var(--surface2); border-color: var(--border); color: var(--text); font-weight: 600; }
-    .dash-toolbar-right { display: flex; align-items: center; gap: 6px; }
+    .dash-toolbar-right { display: flex; align-items: center; gap: 8px; }
+    /* Originais / Editadas toggle switch */
+    .dash-version-switch { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+    .dash-version-switch input[type=checkbox] { display: none; }
+    .dash-toggle-track {
+      width: 40px; height: 22px; background: var(--border2); border-radius: 11px;
+      position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0;
+    }
+    .dash-toggle-track::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff;
+      transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+    .dash-version-switch input:checked + .dash-toggle-track { background: var(--primary); }
+    .dash-version-switch input:checked + .dash-toggle-track::after { transform: translateX(18px); }
+    .dash-version-label { font-size: 12px; font-weight: 500; color: var(--text); min-width: 56px; }
     .dash-sort-sel {
       font-size: 12px; padding: 5px 10px; border-radius: 20px;
       border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer;
@@ -1309,11 +1324,13 @@
             <button class="dash-type-tab" onclick="setDashType('lessonplan',this)">Lesson Plan</button>
           </div>
           <div class="dash-toolbar-right">
-            <!-- Originais / Editadas toggle -->
-            <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-              <button id="vtog-orig" class="dash-view-btn active" style="border-radius:0;border:none;padding:4px 12px;" onclick="setDashVersion('orig',this)">Originais</button>
-              <button id="vtog-edit" class="dash-view-btn"        style="border-radius:0;border:none;padding:4px 12px;" onclick="setDashVersion('edit',this)">Editadas</button>
-            </div>
+            <!-- Originais / Editadas toggle switch -->
+            <label class="dash-version-switch" title="Alternar entre originais e editadas">
+              <span style="color:var(--muted);font-size:12px;" id="vtog-label-orig">Originais</span>
+              <input type="checkbox" id="vtog-checkbox" onchange="setDashVersion(this.checked?'edit':'orig')" />
+              <span class="dash-toggle-track"></span>
+              <span class="dash-version-label" id="vtog-label">Originais</span>
+            </label>
             <select class="dash-sort-sel" id="dash-sort-sel" onchange="setDashSortSel(this.value)">
               <option value="recent">Última edição</option>
               <option value="oldest">Data de criação</option>
@@ -3189,10 +3206,10 @@ let dashFolders    = [];
 let _dashFolderMenuKey = null;
 let dashSelected   = new Set(); // keys of selected dashboard items (images, txt)
 
-function setDashVersion(v, el) {
+function setDashVersion(v) {
   dashVersion = v;
-  document.querySelectorAll('#vtog-orig,#vtog-edit').forEach(b => b.classList.remove('active'));
-  if (el) el.classList.add('active');
+  const label = document.getElementById('vtog-label');
+  if (label) label.textContent = v === 'edit' ? 'Editadas' : 'Originais';
   refreshDashboard();
 }
 
@@ -3714,7 +3731,7 @@ function refreshDashboard() {
     txtItems = []; // hide text files when filtered by image format
   }
 
-  // Merge and sort
+  // Merge and sort files
   const allItems = [...items, ...txtItems];
   allItems.sort((a, b) => {
     if (dashSort === 'title') return (a.customTitle||a.title||a.filename||'').localeCompare(b.customTitle||b.title||b.filename||'');
@@ -3723,18 +3740,14 @@ function refreshDashboard() {
     return dashSort === 'recent' ? tb - ta : ta - tb;
   });
 
-  if (!allItems.length) {
-    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ico">📂</span><p>Nenhuma imagem encontrada</p></div>';
-    return;
-  }
-
   const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
   grid.innerHTML = '';
 
-  // ── Folder cards (Google Drive style) ──
+  // ── Folder cards — rendered BEFORE empty check so an empty folder still shows subfolders ──
   const _renderFolderCard = (f) => {
-    const fileCount = Object.values(results).filter(r => r && r.folderId === f.id).length;
-    const subCount  = dashFolders.filter(sf => sf.parent_id === f.id).length;
+    const fid = Number(f.id);
+    const fileCount = Object.values(results).filter(r => r && Number(r.folderId) === fid).length;
+    const subCount  = dashFolders.filter(sf => Number(sf.parent_id) === fid).length;
     const metaParts = [];
     if (subCount)  metaParts.push(`${subCount} pasta${subCount !== 1 ? 's' : ''}`);
     if (fileCount) metaParts.push(`${fileCount} arquivo${fileCount !== 1 ? 's' : ''}`);
@@ -3758,11 +3771,20 @@ function refreshDashboard() {
   };
 
   if (dashFilter === 'folder' && dashFolderFilter !== null) {
-    // Inside a folder: show subfolders of this folder
-    dashFolders.filter(f => f.parent_id === dashFolderFilter).forEach(_renderFolderCard);
+    // Inside a folder: show its direct subfolders
+    dashFolders.filter(f => Number(f.parent_id) === Number(dashFolderFilter)).forEach(_renderFolderCard);
   } else if (dashFilter !== 'folder' && dashFolders.length) {
-    // Root view: show top-level folders
+    // Root / type-filtered view: show top-level folders
     dashFolders.filter(f => !f.parent_id).forEach(_renderFolderCard);
+  }
+
+  // Empty state for files only (folders above are already rendered)
+  if (!allItems.length) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;color:var(--muted);';
+    empty.innerHTML = '<span style="font-size:36px;">📂</span><p style="margin-top:8px;font-size:14px;">Nenhum arquivo aqui</p>';
+    grid.appendChild(empty);
+    return;
   }
 
   const isSel = (key) => dashSelected.has(key);
