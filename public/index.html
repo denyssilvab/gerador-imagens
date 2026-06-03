@@ -825,6 +825,16 @@
     .dash-card.folder-card .dash-card-thumb::before { content: '📁'; }
     .dash-card.folder-card .dash-card-meta { color: var(--muted); font-size: 11px; }
     .dash-card-grid.list-view .dash-card.folder-card .dash-card-thumb { background: transparent; font-size: 22px; }
+    /* Right-click context menu on dashboard */
+    .dash-ctx-menu {
+      position: fixed; z-index: 700; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,.45); min-width: 200px;
+    }
+    .dash-ctx-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text);
+    }
+    .dash-ctx-item:hover { background: var(--surface2); }
     /* Content-page generated-files section */
     .content-file-entry {
       display: flex; align-items: center; gap: 10px;
@@ -1408,6 +1418,11 @@
         <button class="btn btn-primary" onclick="combinarModalConfirm()">Adicionar selecionadas</button>
       </div>
     </div>
+  </div>
+
+  <!-- Dashboard right-click context menu -->
+  <div class="dash-ctx-menu" id="dash-ctx-menu" style="display:none">
+    <div class="dash-ctx-item" onclick="dashCtxNewFolder()">📁 &nbsp;Nova pasta</div>
   </div>
 
   <!-- Folder card context menu -->
@@ -3397,6 +3412,34 @@ function setDashView(mode) {
   document.getElementById('vbtn-list')?.classList.toggle('active', mode === 'list');
 }
 
+// ── Dashboard right-click context menu ────────────────────────────────────
+(function initDashContextMenu() {
+  const attachCtx = () => {
+    const dashMain = document.querySelector('.dash-main');
+    if (!dashMain) return;
+    dashMain.addEventListener('contextmenu', (e) => {
+      // Only trigger on the grid background, not on card elements
+      if (e.target.closest('.dash-card') || e.target.closest('.file-ctx-menu') || e.target.closest('.dash-ctx-menu')) return;
+      e.preventDefault();
+      const menu = document.getElementById('dash-ctx-menu');
+      if (!menu) return;
+      menu.style.display = '';
+      const x = Math.min(e.clientX, window.innerWidth  - 220);
+      const y = Math.min(e.clientY, window.innerHeight - 80);
+      menu.style.left = `${x}px`; menu.style.top = `${y}px`;
+      setTimeout(() => document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true }), 10);
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', attachCtx);
+  else attachCtx();
+})();
+
+function dashCtxNewFolder() {
+  document.getElementById('dash-ctx-menu').style.display = 'none';
+  // Create subfolder of current folder, or top-level if in root
+  dashToggleCreateFolder(dashFolderFilter || null);
+}
+
 function openCreateMenu(evt) {
   const menu = document.getElementById('create-menu');
   const btn  = evt.currentTarget;
@@ -3739,12 +3782,14 @@ function refreshDashboard() {
     : items.filter(r => !_isUpscaled(r.filename));
 
   // Filter images by folder / type
+  // Rule: files in folders ONLY appear when navigating into that folder
   if (dashFolderFilter !== null && dashFilter === 'folder') {
-    items = items.filter(r => r.folderId === dashFolderFilter);
+    items = items.filter(r => Number(r.folderId) === Number(dashFolderFilter));
   } else if (dashFilter !== 'all') {
-    items = items.filter(r => r.docType === dashFilter);
+    // Type tab: show only unfiled files of that type
+    items = items.filter(r => r.docType === dashFilter && !r.folderId);
   } else {
-    // Root view ("Todos"): only show unfiled files — filed files live inside their folders
+    // "Todos": unfiled files only
     items = items.filter(r => !r.folderId);
   }
   if (search) {
@@ -3881,16 +3926,19 @@ function _applyLoadedImages(saved, overwrite = false) {
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
+    // Add card to Gerar Imagens grid if visible and not already there
     if (grid && !document.getElementById(`card_db_${r.id}`)) {
-      // Only add to gerar grid if not already there
+      grid.appendChild(makePersistedCard(r)); // also sets results[domKey]
+    } else {
+      // Update results entry (Supabase overwrite phase, or no grid)
+      results[domKey] = {
+        url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
+        filename: r.filename, pageNum: r.pageNum,
+        title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
+        docType: r.docType, folderId: r.folderId, ts: r.ts,
+        sbId: r.id, sbKey: r.key,
+      };
     }
-    results[domKey] = {
-      url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
-      filename: r.filename, pageNum: r.pageNum,
-      title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
-      docType: r.docType, folderId: r.folderId, ts: r.ts,
-      sbId: r.id, sbKey: r.key,
-    };
   });
 }
 
@@ -4774,6 +4822,7 @@ async function dbSave(rec) {
       title:       rec.title   || '',
       docType:     rec.docType || '',
       originalUrl: rec.originalUrl || null,
+      folderId:    rec.folderId || null,
     }),
   }).catch(e => console.warn('[supabase sync]', e));
 
@@ -5170,6 +5219,7 @@ async function handleEvent(ev) {
         pageNum: ev.pageNum,
         title: ev.title || '',
         docType: ev.docType || (docType !== 'all' ? docType : undefined),
+        folderId: dashFolderFilter || null, // auto-assign to active folder
       };
       results[domKey] = result;
       dbSave({ ...result, dataUrl: displayUrl }).catch(() => {});

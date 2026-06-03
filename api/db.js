@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
-      const { key, dataUrl, filename, pageNum, title, docType, originalUrl } = req.body;
+      const { key, dataUrl, filename, pageNum, title, docType, originalUrl, folderId } = req.body;
 
       let storagePath = null;
       let publicUrl   = dataUrl;
@@ -75,6 +75,7 @@ module.exports = async function handler(req, res) {
           title,
           doc_type:     docType,
           original_url: originalUrl || null,
+          folder_id:    folderId    || null,
         }, { onConflict: 'key' })
         .select()
         .single();
