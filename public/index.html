@@ -796,6 +796,17 @@
     }
     .dash-card:hover .dash-card-more { opacity: 1; }
     .dash-card-more:hover { background: var(--surface2); color: var(--text); }
+    /* Text-file (TXT) card in dashboard */
+    .dash-card.txt-card .dash-card-thumb { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 38px; }
+    .dash-card.txt-card .dash-card-thumb img { display: none; }
+    .dash-card.txt-card .dash-card-thumb::before { content: '📄'; }
+    /* Content-page generated-files section */
+    .content-file-entry {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border);
+    }
+    .content-file-entry-name { flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .content-file-entry-meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
     /* List view override */
     .dash-card-grid.list-view { display: flex; flex-direction: column; gap: 3px; }
     .dash-card-grid.list-view .dash-card { flex-direction: row; border-radius: 8px; transform: none !important; box-shadow: none !important; }
@@ -1437,6 +1448,14 @@
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button class="btn btn-ghost" onclick="copyAllOutputs()">⎘ Copiar tudo</button>
             <button class="btn btn-primary" onclick="sendToGerar()">→ Exportar tudo para Gerar Imagens</button>
+          </div>
+        </div>
+
+        <!-- Generated files for download -->
+        <div id="content-generated-files" style="display:none; margin-top:4px;">
+          <div class="card">
+            <div class="card-head"><h2>📁 Arquivos Gerados</h2></div>
+            <div class="card-body" id="content-files-list" style="display:flex;flex-direction:column;gap:8px;"></div>
           </div>
         </div>
 
@@ -2461,6 +2480,61 @@ Rules:
 let contentDocType = 'all';
 let claudeAbortCtrl = null;
 const savedContent = { lesson: null, practice: null, lessonplan: null };
+const generatedFiles = [];
+
+function _buildContentFilename(type) {
+  const lesson = document.getElementById('content-lesson')?.value || '';
+  const ccss   = document.getElementById('content-ccss')?.value   || '';
+  const name   = document.getElementById('content-lesson-name')?.value || '';
+  const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  const parts = [];
+  if (lesson) parts.push(`Lesson ${lesson}`);
+  parts.push(`(${dtLabel[type] || type})`);
+  if (name)   parts.push(`- ${name}`);
+  if (ccss)   parts.push(`(${ccss})`);
+  return (parts.join(' ') || type) + '.txt';
+}
+
+function addGeneratedFile(type, content) {
+  const filename = _buildContentFilename(type);
+  const ts  = Date.now();
+  const key = `txt_${type}_${ts}`;
+  generatedFiles.push({ key, type, filename, content, ts });
+  refreshContentFiles();
+  refreshDashboard();
+}
+
+function refreshContentFiles() {
+  const section = document.getElementById('content-generated-files');
+  const list    = document.getElementById('content-files-list');
+  if (!section || !list) return;
+  if (!generatedFiles.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  list.innerHTML = '';
+  generatedFiles.slice().reverse().forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'content-file-entry';
+    div.innerHTML = `
+      <span style="font-size:20px;">📄</span>
+      <span class="content-file-entry-name">${esc(f.filename)}</span>
+      <span class="content-file-entry-meta">${esc(dtLabel[f.type] || f.type)} · ${_relTime(f.ts)}</span>
+      <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${f.key}')">⬇ Baixar</button>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function downloadGeneratedFile(key) {
+  const f = generatedFiles.find(x => x.key === key);
+  if (!f) return;
+  const blob = new Blob([f.content], { type: 'text/plain' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = f.filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 
 function updateContentTabs() {
   // When content is generated, pre-fill context fields so they're always in sync
@@ -2622,6 +2696,7 @@ async function generateContent() {
       if (outLesson) outLesson.value = lessonContent;
       const lpages = (lessonContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-lesson', lpages ? `${lpages} pág.` : '');
+      addGeneratedFile('lesson', lessonContent);
       updateContentTabs();
 
       // 2. Activities
@@ -2632,6 +2707,7 @@ async function generateContent() {
       if (outPractice) outPractice.value = practiceContent;
       const ppages = (practiceContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-practice', ppages ? `${ppages} pág.` : '');
+      addGeneratedFile('practice', practiceContent);
       updateContentTabs();
 
       // 3. Lesson Plan
@@ -2642,6 +2718,7 @@ async function generateContent() {
       if (outPlan) outPlan.value = planContent;
       const plpages = (planContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág.` : '');
+      addGeneratedFile('lessonplan', planContent);
       updateContentTabs();
 
       // Sync all 3 to Supabase
@@ -2670,6 +2747,7 @@ async function generateContent() {
       updateContentTabs();
       if (outputEl) outputEl.value = content;
       sbSaveContent(contentDocType, content);
+      addGeneratedFile(contentDocType, content);
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
 
@@ -3131,9 +3209,14 @@ function refreshDashboard() {
 
   let items = Object.entries(results)
     .filter(([, r]) => r && r.url)
-    .map(([key, r]) => ({ key, ...r }));
+    .map(([key, r]) => ({ key, ...r, kind: 'img' }));
 
-  // Filter
+  // Include text files (generated prompts)
+  let txtItems = generatedFiles.map(f => ({ ...f, kind: 'txt' }));
+  if (dashFilter !== 'all') txtItems = txtItems.filter(f => f.type === dashFilter);
+  if (search) txtItems = txtItems.filter(f => f.filename.toLowerCase().includes(search));
+
+  // Filter images
   if (dashFolderFilter !== null && dashFilter === 'folder') {
     items = items.filter(r => r.folderId === dashFolderFilter);
   } else if (dashFilter !== 'all') {
@@ -3152,24 +3235,43 @@ function refreshDashboard() {
       return format === 'png' ? (s.includes('.png') || (r.url||'').startsWith('data:image/png'))
                                : (s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg'));
     });
+    txtItems = []; // hide text files when filtered by image format
   }
 
-  // Sort
-  items.sort((a, b) => {
-    if (dashSort === 'title') return (a.customTitle||a.title||'').localeCompare(b.customTitle||b.title||'');
+  // Merge and sort
+  const allItems = [...items, ...txtItems];
+  allItems.sort((a, b) => {
+    if (dashSort === 'title') return (a.customTitle||a.title||a.filename||'').localeCompare(b.customTitle||b.title||b.filename||'');
     const ta = a.ts || 0;
     const tb = b.ts || 0;
     return dashSort === 'recent' ? tb - ta : ta - tb;
   });
 
-  if (!items.length) {
+  if (!allItems.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ico">📂</span><p>Nenhuma imagem encontrada</p></div>';
     return;
   }
 
   const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
   grid.innerHTML = '';
-  items.forEach(r => {
+  allItems.forEach(r => {
+    if (r.kind === 'txt') {
+      const typ  = typeLabel[r.type] || '';
+      const meta = [typ, 'TXT', _relTime(r.ts)].filter(Boolean).join(' · ');
+      const div  = document.createElement('div');
+      div.className = 'dash-card txt-card';
+      div.innerHTML = `
+        <div class="dash-card-thumb"></div>
+        <div class="dash-card-info">
+          <div class="dash-card-text">
+            <div class="dash-card-title">${esc(r.filename)}</div>
+            <div class="dash-card-meta">${esc(meta)}</div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${r.key}')" title="Baixar TXT">⬇</button>
+        </div>`;
+      grid.appendChild(div);
+      return;
+    }
     const s    = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
     const fmt  = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
     const typ  = typeLabel[r.docType] || '';
