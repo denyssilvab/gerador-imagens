@@ -147,6 +147,46 @@ module.exports = async function handler(req, res) {
 
     // ── API Keys ──────────────────────────────────────────────────────────────
 
+    // ── Folders ───────────────────────────────────────────────────────────────
+
+    if (action === 'load-folders') {
+      const userId = await getUserId();
+      if (!userId) return res.json({ ok: true, folders: [] });
+      const { data, error } = await sb.from('folders').select('*').eq('user_id', userId).order('created_at');
+      if (error) throw error;
+      return res.json({ ok: true, folders: data });
+    }
+
+    if (action === 'create-folder') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { name } = req.body;
+      if (!name?.trim()) return res.status(400).json({ error: 'Nome obrigatório' });
+      const { data, error } = await sb.from('folders').insert({ user_id: userId, name: name.trim() }).select().single();
+      if (error) throw error;
+      return res.json({ ok: true, folder: data });
+    }
+
+    if (action === 'delete-folder') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { folderId } = req.body;
+      const { error } = await sb.from('folders').delete().eq('id', folderId).eq('user_id', userId);
+      if (error) throw error;
+      return res.json({ ok: true });
+    }
+
+    if (action === 'assign-folder') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { key, folderId } = req.body;
+      const { error } = await sb.from('images')
+        .update({ folder_id: folderId || null })
+        .eq('key', key).eq('user_id', userId);
+      if (error) throw error;
+      return res.json({ ok: true });
+    }
+
     if (action === 'load-api-keys') {
       const userId = await getUserId();
       if (!userId) return res.json({ ok: true, keys: [] });

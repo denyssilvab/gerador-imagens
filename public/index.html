@@ -667,19 +667,90 @@
     /* ── Dashboard ── */
     .dash-layout { display: flex; flex: 1; min-height: 0; margin: -22px -24px -60px; }
     .dash-sub {
-      width: 240px; min-width: 240px; flex-shrink: 0;
+      width: 220px; min-width: 220px; flex-shrink: 0;
       border-right: 1px solid var(--border);
-      display: flex; flex-direction: column; gap: 12px; padding: 14px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 4px; padding: 14px 10px; overflow-y: auto;
     }
-    .dash-folders-head { display: flex; align-items: center; justify-content: space-between; }
-    .dash-folders-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .dash-sub input[type="search"] { margin-bottom: 8px; }
+    .dash-section-label {
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em;
+      color: var(--muted); padding: 8px 8px 4px; margin-top: 4px;
+    }
     .folder-item {
-      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      display: flex; align-items: center; gap: 8px; padding: 6px 10px;
       border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--muted);
-      transition: background .15s, color .15s;
+      transition: background .12s, color .12s; user-select: none;
     }
-    .folder-item:hover, .folder-item.active { background: var(--surface2); color: var(--text); }
-    .dash-main { flex: 1; overflow-y: auto; padding: 20px; }
+    .folder-item:hover { background: var(--surface2); color: var(--text); }
+    .folder-item.active { background: rgba(99,102,241,.15); color: var(--primary); font-weight: 600; }
+    .folder-item-del {
+      margin-left: auto; opacity: 0; font-size: 11px; padding: 1px 4px;
+      border-radius: 4px; border: none; background: none; color: #f87171; cursor: pointer;
+      transition: opacity .12s;
+    }
+    .folder-item:hover .folder-item-del { opacity: 1; }
+    .dash-create-folder-form {
+      display: none; flex-direction: column; gap: 6px;
+      background: var(--surface2); border-radius: 8px; padding: 8px; margin-top: 4px;
+    }
+    .dash-create-folder-form input { font-size: 12px; padding: 6px 8px; }
+    .dash-main { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+    /* Filter bar */
+    .dash-filter-bar {
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+      padding-bottom: 12px; border-bottom: 1px solid var(--border);
+    }
+    .dash-sort-tabs { display: flex; gap: 4px; }
+    .dash-sort-btn {
+      padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border); background: none; color: var(--muted); cursor: pointer;
+      transition: all .12s;
+    }
+    .dash-sort-btn.active { background: var(--surface2); color: var(--text); border-color: var(--border2); }
+    .dash-filter-right { display: flex; gap: 8px; align-items: center; }
+    .dash-filter-right select { font-size: 12px; padding: 5px 8px; }
+    /* Thumbnail grid */
+    .dash-thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 12px;
+    }
+    .dash-thumb {
+      aspect-ratio: 1; border-radius: 10px; overflow: hidden; cursor: pointer;
+      position: relative; background: var(--surface2); border: 1px solid var(--border);
+      transition: border-color .15s, transform .15s;
+    }
+    .dash-thumb:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .dash-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .dash-thumb-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      padding: 18px 8px 7px;
+      background: linear-gradient(transparent, rgba(0,0,0,.72));
+      font-size: 11px; color: #fff; line-height: 1.3; pointer-events: none;
+    }
+    .dash-thumb-label b { font-size: 12px; display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dash-thumb-label span { opacity: .78; }
+    .dash-thumb-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; gap: 8px;
+      opacity: 0; transition: opacity .15s;
+    }
+    .dash-thumb:hover .dash-thumb-overlay { opacity: 1; }
+    .dash-thumb-overlay button {
+      background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff;
+      border-radius: 7px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+      transition: background .12s; backdrop-filter: blur(4px);
+    }
+    .dash-thumb-overlay button:hover { background: rgba(255,255,255,.3); }
+    .dash-folder-menu {
+      position: fixed; z-index: 500; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,.4); min-width: 160px;
+    }
+    .dash-folder-menu-item {
+      padding: 7px 12px; font-size: 13px; border-radius: 5px; cursor: pointer; color: var(--text);
+    }
+    .dash-folder-menu-item:hover { background: var(--surface2); }
 
     /* ── Upscale page ── */
     .upscale-img-row {
@@ -908,39 +979,70 @@
   ══════════════════════════════════════════════ -->
   <div class="pg" id="pg-dashboard">
     <div class="dash-layout">
+
       <!-- Sub-sidebar -->
       <div class="dash-sub">
-        <input type="search" id="dash-search" placeholder="🔍 Pesquisar arquivos…" oninput="dashSearch(this.value)" />
-        <div class="dash-folders-head">
-          <span class="dash-folders-title">Pastas</span>
-          <button class="btn btn-ghost btn-sm" style="padding:2px 8px;font-size:11px;" onclick="dashCreateFolder()">+ Nova</button>
+        <input type="search" id="dash-search" placeholder="🔍 Pesquisar…" oninput="dashSearch(this.value)" />
+
+        <div class="dash-section-label">Tipo</div>
+        <div class="folder-item active" onclick="filterDashboard('all',this)">
+          <span>📁</span><span>Todos os arquivos</span>
         </div>
-        <div id="folder-tree">
-          <div class="folder-item active" onclick="filterDashboard('all',this)">
-            <span>📁</span><span>Todos os arquivos</span>
+        <div class="folder-item" onclick="filterDashboard('lesson',this)">
+          <span>📖</span><span>Lesson</span>
+        </div>
+        <div class="folder-item" onclick="filterDashboard('practice',this)">
+          <span>✏️</span><span>Practice Activities</span>
+        </div>
+        <div class="folder-item" onclick="filterDashboard('lessonplan',this)">
+          <span>📋</span><span>Lesson Plan</span>
+        </div>
+
+        <div class="dash-section-label">
+          PASTAS
+          <button class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:11px;" onclick="dashToggleCreateFolder()">+ Nova</button>
+        </div>
+        <div id="custom-folders"></div>
+        <div class="dash-create-folder-form" id="create-folder-form">
+          <input id="new-folder-name" placeholder="Nome da pasta…"
+            onkeydown="if(event.key==='Enter')dashCreateFolder();if(event.key==='Escape')dashToggleCreateFolder()" />
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-primary btn-sm" onclick="dashCreateFolder()">Criar</button>
+            <button class="btn btn-ghost btn-sm" onclick="dashToggleCreateFolder()">Cancelar</button>
           </div>
-          <div class="folder-item" onclick="filterDashboard('lesson',this)">
-            <span>📖</span><span>Lesson</span>
-          </div>
-          <div class="folder-item" onclick="filterDashboard('practice',this)">
-            <span>✏️</span><span>Practice Activities</span>
-          </div>
-          <div class="folder-item" onclick="filterDashboard('lessonplan',this)">
-            <span>📋</span><span>Lesson Plan</span>
-          </div>
-          <div id="custom-folders"></div>
         </div>
       </div>
-      <!-- Main preview -->
+
+      <!-- Main -->
       <div class="dash-main">
-        <div id="dash-grid" class="img-grid">
+        <!-- Filter bar -->
+        <div class="dash-filter-bar">
+          <div class="dash-sort-tabs">
+            <button class="dash-sort-btn active" onclick="setDashSort('recent',this)">Mais recentes</button>
+            <button class="dash-sort-btn" onclick="setDashSort('oldest',this)">Mais antigos</button>
+          </div>
+          <div class="dash-filter-right">
+            <select id="dash-format-filter" onchange="refreshDashboard()">
+              <option value="all">Todos os formatos</option>
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+            </select>
+          </div>
+        </div>
+        <!-- Thumbnail grid -->
+        <div id="dash-grid" class="dash-thumb-grid">
           <div class="empty">
             <span class="ico">📂</span>
-            <p>Gere imagens na página <strong>Gerar</strong> para visualizá-las aqui</p>
+            <p>Gere imagens para visualizá-las aqui</p>
           </div>
         </div>
       </div>
+
     </div>
+  </div>
+  <!-- Folder context menu (shared) -->
+  <div class="dash-folder-menu" id="dash-folder-menu" style="display:none">
+    <div id="dash-folder-menu-items"></div>
   </div>
 
   <!-- ══════════════════════════════════════════════
@@ -2230,40 +2332,211 @@ function setPage(name, el) {
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
-let dashFilter = 'all';
+let dashFilter     = 'all';
+let dashFolderFilter = null; // folder id (number) or null
+let dashSort       = 'recent';
+let dashFolders    = [];
+let _dashFolderMenuKey = null;
+
 function filterDashboard(type, el) {
-  dashFilter = type;
-  document.querySelectorAll('#folder-tree .folder-item').forEach(i => i.classList.remove('active'));
+  dashFilter       = type;
+  dashFolderFilter = null;
+  document.querySelectorAll('#pg-dashboard .folder-item').forEach(i => i.classList.remove('active'));
   if (el) el.classList.add('active');
   refreshDashboard();
 }
-function dashSearch(q) { refreshDashboard(q.toLowerCase()); }
-function dashCreateFolder() { toast('Pastas personalizadas em breve!', 'warn'); }
 
-function refreshDashboard(search) {
-  const grid = document.getElementById('dash-grid');
+function filterDashboardFolder(folderId, el) {
+  dashFolderFilter = folderId;
+  dashFilter       = 'folder';
+  document.querySelectorAll('#pg-dashboard .folder-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  refreshDashboard();
+}
+
+function setDashSort(sort, el) {
+  dashSort = sort;
+  document.querySelectorAll('.dash-sort-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  refreshDashboard();
+}
+
+function dashSearch(q) { refreshDashboard(); }
+
+// ── Folders ────────────────────────────────────────────────────────────────
+async function loadFolders() {
+  try {
+    const res  = await authFetch('/api/db?action=load-folders');
+    const data = await res.json();
+    if (data.ok) { dashFolders = data.folders || []; renderFolders(); }
+  } catch (e) { console.warn('[folders]', e); }
+}
+
+function renderFolders() {
+  const el = document.getElementById('custom-folders');
+  if (!el) return;
+  if (!dashFolders.length) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--muted);padding:6px 10px;">
+      Nenhuma pasta ainda.</div>`;
+    return;
+  }
+  el.innerHTML = dashFolders.map(f => `
+    <div class="folder-item" onclick="filterDashboardFolder(${f.id},this)">
+      <span>📂</span><span style="flex:1;">${esc(f.name)}</span>
+      <button class="folder-item-del" onclick="event.stopPropagation();dashDeleteFolder(${f.id})" title="Excluir pasta">✕</button>
+    </div>`).join('');
+}
+
+function dashToggleCreateFolder() {
+  const form = document.getElementById('create-folder-form');
+  const open = form.style.display !== 'none' && form.style.display !== '';
+  form.style.display = open ? 'none' : 'flex';
+  if (!open) setTimeout(() => document.getElementById('new-folder-name')?.focus(), 50);
+}
+
+async function dashCreateFolder() {
+  const name = document.getElementById('new-folder-name')?.value.trim();
+  if (!name) { toast('Digite um nome para a pasta.', 'warn'); return; }
+  try {
+    const res  = await authFetch('/api/db?action=create-folder', { method: 'POST', body: JSON.stringify({ name }) });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    dashFolders.push(data.folder);
+    renderFolders();
+    document.getElementById('new-folder-name').value = '';
+    dashToggleCreateFolder();
+    toast(`Pasta "${name}" criada!`, 'ok');
+  } catch (e) { toast(e.message === 'duplicate key value violates unique constraint' ? 'Já existe uma pasta com esse nome.' : `Erro: ${e.message}`, 'err'); }
+}
+
+async function dashDeleteFolder(id) {
+  const f = dashFolders.find(f => f.id === id);
+  if (!f || !confirm(`Excluir a pasta "${f.name}"? As imagens não serão apagadas.`)) return;
+  try {
+    await authFetch('/api/db?action=delete-folder', { method: 'POST', body: JSON.stringify({ folderId: id }) });
+    dashFolders = dashFolders.filter(f => f.id !== id);
+    renderFolders();
+    if (dashFolderFilter === id) filterDashboard('all', document.querySelector('#pg-dashboard .folder-item'));
+    else refreshDashboard();
+    toast(`Pasta "${f.name}" excluída.`, 'ok');
+  } catch (e) { toast('Erro ao excluir pasta.', 'err'); }
+}
+
+function showFolderAssign(evt, key) {
+  const menu = document.getElementById('dash-folder-menu');
+  const list = document.getElementById('dash-folder-menu-items');
+  _dashFolderMenuKey = key;
+  list.innerHTML = [
+    ...dashFolders.map(f => `<div class="dash-folder-menu-item" onclick="assignFolder('${key}',${f.id})">${esc(f.name)}</div>`),
+    `<div class="dash-folder-menu-item" style="color:var(--muted);" onclick="assignFolder('${key}',null)">Remover da pasta</div>`,
+  ].join('');
+  menu.style.display = '';
+  menu.style.left    = `${Math.min(evt.clientX, window.innerWidth - 170)}px`;
+  menu.style.top     = `${Math.min(evt.clientY, window.innerHeight - (dashFolders.length+1)*36 - 10)}px`;
+  setTimeout(() => document.addEventListener('click', _closeFolderMenu, { once: true }), 10);
+}
+
+function _closeFolderMenu() { document.getElementById('dash-folder-menu').style.display = 'none'; }
+
+async function assignFolder(key, folderId) {
+  _closeFolderMenu();
+  try {
+    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ key, folderId }) });
+    if (results[key]) results[key].folderId = folderId;
+    refreshDashboard();
+    toast(folderId ? 'Imagem movida para a pasta.' : 'Imagem removida da pasta.', 'ok');
+  } catch (e) { toast('Erro ao mover imagem.', 'err'); }
+}
+
+// ── Main refresh ────────────────────────────────────────────────────────────
+function refreshDashboard() {
+  const grid   = document.getElementById('dash-grid');
   if (!grid) return;
-  const items = Object.values(results).filter(r => r && r.url);
-  const filtered = items.filter(r => {
-    const matchType = dashFilter === 'all' || r.docType === dashFilter;
-    const matchSearch = !search || (r.title || '').toLowerCase().includes(search) || String(r.pageNum).includes(search);
-    return matchType && matchSearch;
+  const search = (document.getElementById('dash-search')?.value || '').toLowerCase();
+  const format = document.getElementById('dash-format-filter')?.value || 'all';
+
+  let items = Object.entries(results)
+    .filter(([, r]) => r && r.url)
+    .map(([key, r]) => ({ key, ...r }));
+
+  // Filter
+  if (dashFolderFilter !== null && dashFilter === 'folder') {
+    items = items.filter(r => r.folderId === dashFolderFilter);
+  } else if (dashFilter !== 'all') {
+    items = items.filter(r => r.docType === dashFilter);
+  }
+  if (search) {
+    items = items.filter(r =>
+      (r.title    || '').toLowerCase().includes(search) ||
+      (r.filename || '').toLowerCase().includes(search) ||
+      String(r.pageNum || '').includes(search)
+    );
+  }
+  if (format !== 'all') {
+    items = items.filter(r => {
+      const s = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
+      return format === 'png' ? (s.includes('.png') || (r.url||'').startsWith('data:image/png'))
+                               : (s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg'));
+    });
+  }
+
+  // Sort by ts (fallback to pageNum)
+  items.sort((a, b) => {
+    const ta = a.ts || a.pageNum || 0;
+    const tb = b.ts || b.pageNum || 0;
+    return dashSort === 'recent' ? tb - ta : ta - tb;
   });
-  if (!filtered.length) {
+
+  if (!items.length) {
     grid.innerHTML = '<div class="empty"><span class="ico">📂</span><p>Nenhuma imagem encontrada</p></div>';
     return;
   }
+
+  const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
   grid.innerHTML = '';
-  filtered.forEach(r => {
+  items.forEach(r => {
+    const s   = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
+    const fmt = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
+    const typ = typeLabel[r.docType] || '';
     const div = document.createElement('div');
-    div.className = 'icard';
-    div.style.cursor = 'pointer';
+    div.className = 'dash-thumb';
     div.innerHTML = `
-      <div class="icard-head"><span class="icard-num">Pág. ${r.pageNum}</span><span class="icard-title">${r.title||r.docType||''}</span></div>
-      <div class="icard-preview"><img src="${r.url}" loading="lazy" /></div>`;
+      <img src="${esc(r.url)}" loading="lazy" alt="${r.pageNum ? `Pág. ${r.pageNum}` : ''}" />
+      <div class="dash-thumb-label">
+        <b>${r.pageNum ? `Pág. ${r.pageNum}` : ''}${r.title ? ` — ${esc(r.title)}` : ''}</b>
+        <span>${typ}${typ && fmt ? ' · ' : ''}${fmt}</span>
+      </div>
+      <div class="dash-thumb-overlay">
+        <button onclick="event.stopPropagation();window.open('${esc(r.url)}','_blank')" title="Abrir">🔗</button>
+        <button onclick="event.stopPropagation();doDownload('${esc(r.url)}','${esc(r.filename||'image.png')}')" title="Baixar">⬇</button>
+        ${dashFolders.length ? `<button onclick="event.stopPropagation();showFolderAssign(event,'${r.key}')" title="Mover para pasta">📁</button>` : ''}
+      </div>`;
     div.onclick = () => window.open(r.url, '_blank');
     grid.appendChild(div);
   });
+}
+
+// ── Load images into results on login ────────────────────────────────────
+async function loadPersistedImages() {
+  try {
+    const saved = await dbLoadAll();
+    if (!saved.length) return;
+    const grid  = document.getElementById('img-grid');
+    const empty = grid?.querySelector('.empty');
+    if (empty) empty.remove();
+    if (grid) document.getElementById('results-card').style.display = '';
+    saved.slice().reverse().forEach(r => {
+      if (!results[`db_${r.id}`]) {
+        if (grid) grid.appendChild(makePersistedCard(r));
+        else {
+          // No grid visible — just populate results
+          const domKey = `db_${r.id}`;
+          results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '', docType: r.docType, folderId: r.folderId, ts: r.ts };
+        }
+      }
+    });
+    refreshDashboard();
+  } catch (e) { console.warn('[loadPersistedImages]', e); }
 }
 
 // ── Upscale page ───────────────────────────────────────────────────────────
@@ -2761,6 +3034,8 @@ function _onAuthChange(event, session) {
     if (chip)  chip.style.display  = '';
     if (email) email.textContent   = session.user.email;
     loadApiKeys();
+    loadFolders();
+    loadPersistedImages();
   } else {
     _showAuthScreen();
     const chip = document.getElementById('user-chip');
@@ -2859,6 +3134,7 @@ async function dbLoadAll() {
         pageNum:     r.page_num,
         title:       r.title,
         docType:     r.doc_type,
+        folderId:    r.folder_id || null,
         ts:          new Date(r.created_at).getTime(),
       }));
     }
@@ -2906,18 +3182,7 @@ if (_csEl) _csEl.value = CONTENT_SPECS['all'];
 updateContentTabs();
 updateTopbarChips();
 
-// Load persisted images from IndexedDB on startup
-(async () => {
-  try {
-    const saved = await dbLoadAll();
-    if (!saved.length) return;
-    document.getElementById('results-card').style.display = '';
-    const grid = document.getElementById('img-grid');
-    const empty = grid.querySelector('.empty');
-    if (empty) empty.remove();
-    saved.slice().reverse().forEach(r => grid.appendChild(makePersistedCard(r)));
-  } catch (e) { console.warn('IndexedDB load:', e); }
-})();
+// Images and folders are loaded by loadPersistedImages() / loadFolders() after login
 
 // ── Doc type ───────────────────────────────────────────────────────────────
 function setDocType(type, el) {
@@ -3386,7 +3651,7 @@ function makeCard(gen, idx, num, title) {
 
 function makePersistedCard(r) {
   const domKey = `db_${r.id}`;
-  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '' };
+  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '', docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id };
   const d = document.createElement('div');
   d.className = 'icard';
   d.innerHTML = `
