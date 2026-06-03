@@ -22,7 +22,10 @@ module.exports = async function handler(req, res) {
   const sb     = sbForRequest(req);
   const action = req.query.action;
 
-  if (action === 'ping') return res.json({ ok: true, version: 'v4-folders', ts: Date.now() });
+  if (action === 'ping') return res.json({ ok: true, version: 'v4-folders', ts: Date.now(), method: req.method, bodyType: typeof req.body, bodyKeys: Object.keys(req.body || {}) });
+
+  // Quick action echo outside try (diagnostic)
+  if (action === 'echo') return res.json({ action, method: req.method, body: req.body, headers: { ct: req.headers['content-type'], auth: req.headers.authorization ? 'present' : 'absent' } });
 
   // Resolve authenticated user_id from the JWT
   async function getUserId() {
