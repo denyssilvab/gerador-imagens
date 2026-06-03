@@ -842,47 +842,67 @@
 
     /* ── Upscale page ── */
     /* ── Upscale page ── */
-    .upscale-layout { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    /* ── Upscale page (Adobe Firefly-style) ── */
+    .upscale-layout { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
     .upscale-drop-zone {
-      border: 2px dashed var(--border2); border-radius: 16px;
-      background: var(--surface2); min-height: 300px; position: relative;
+      background: #141418;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 20px;
+      min-height: 380px;
+      position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 12px; transition: border-color .2s, background .2s; overflow: hidden;
+      gap: 0; overflow: hidden;
+      transition: background .2s;
     }
-    .upscale-drop-zone.drag-over { border-color: var(--primary); background: rgba(99,102,241,.06); }
-    .upscale-zone-actions {
-      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
-      display: flex; gap: 8px; z-index: 1;
+    .upscale-drop-zone::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at 70% 50%, rgba(99,102,241,.08) 0%, transparent 65%);
     }
+    .upscale-drop-zone.drag-over { background: #18181f; border-color: var(--primary); }
+    /* Empty state — centered block */
+    .upscale-empty-state {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      padding: 20px 24px 28px; text-align: center;
+    }
+    .upscale-zone-icon { font-size: 48px; opacity: .22; margin-bottom: 4px; }
+    .upscale-zone-title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -.3px; }
+    .upscale-zone-sub { font-size: 14px; color: var(--muted); line-height: 1.5; max-width: 340px; margin-bottom: 6px; }
+    .upscale-zone-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
     .upscale-zone-btn {
-      padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
-      border: 1px solid var(--border); background: var(--surface); color: var(--text);
-      transition: all .12s; display: flex; align-items: center; gap: 6px;
+      padding: 10px 22px; border-radius: 50px; font-size: 14px; font-weight: 600; cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,.18); background: rgba(255,255,255,.06); color: var(--text);
+      transition: all .15s; display: flex; align-items: center; gap: 7px; white-space: nowrap;
+      backdrop-filter: blur(4px);
     }
-    .upscale-zone-btn:hover { border-color: var(--primary); color: var(--primary); }
-    .upscale-zone-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
-    .upscale-zone-btn.primary:hover { opacity: .88; }
-    .upscale-zone-icon { font-size: 56px; opacity: .18; margin-top: 20px; }
-    .upscale-zone-hint { font-size: 13px; color: var(--muted); text-align: center; }
+    .upscale-zone-btn:hover { border-color: rgba(255,255,255,.35); background: rgba(255,255,255,.1); }
+    .upscale-zone-btn.primary {
+      background: #fff; border-color: #fff; color: #0e1117; font-weight: 700;
+    }
+    .upscale-zone-btn.primary:hover { opacity: .9; }
+    /* Queue grid (shown when images added) */
     .upscale-queue-grid {
       display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px;
-      padding: 16px; width: 100%; box-sizing: border-box;
+      padding: 20px; width: 100%; box-sizing: border-box;
     }
     .upscale-q-item {
-      aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative;
+      aspect-ratio: 1; border-radius: 10px; overflow: hidden; position: relative;
       background: var(--surface); border: 1px solid var(--border);
     }
     .upscale-q-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .upscale-q-del {
-      position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%;
-      background: rgba(0,0,0,.65); border: none; color: #fff; font-size: 11px; cursor: pointer;
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+      background: rgba(0,0,0,.7); border: none; color: #fff; font-size: 12px; cursor: pointer;
       display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s;
     }
     .upscale-q-item:hover .upscale-q-del { opacity: 1; }
-    .upscale-options-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    /* Queue add-more row */
+    .upscale-queue-actions {
+      position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 2;
+    }
     .upscale-scale-btns { display: flex; gap: 6px; }
     .upscale-scale-btn {
-      padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+      padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
       border: 1px solid var(--border); background: var(--surface2); color: var(--text);
       transition: all .12s;
     }
@@ -1738,29 +1758,37 @@
   <div class="pg" id="pg-upscale">
     <div class="upscale-layout">
 
-      <!-- Drop zone -->
+      <!-- Drop zone (Firefly-style) -->
       <div class="upscale-drop-zone" id="upscale-zone"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
         ondrop="upscaleHandleDrop(event)">
 
-        <!-- Action buttons -->
-        <div class="upscale-zone-actions">
-          <label class="upscale-zone-btn" style="cursor:pointer;">
-            ⬆ Upload
-            <input type="file" accept="image/*" multiple style="display:none" onchange="upscaleHandleUpload(this.files)" />
-          </label>
-          <button class="upscale-zone-btn" onclick="openStorageLibrary()">📂 Storage Library</button>
-        </div>
-
-        <!-- Empty state -->
-        <div id="upscale-empty-state">
+        <!-- Empty state (centered) -->
+        <div class="upscale-empty-state" id="upscale-empty-state">
           <div class="upscale-zone-icon">🖼</div>
-          <div class="upscale-zone-hint">Arraste imagens aqui, faça upload<br>ou escolha da Storage Library</div>
+          <div class="upscale-zone-title">Upscale an image</div>
+          <div class="upscale-zone-sub">Browse your storage or upload a file<br>to start the upscale process.</div>
+          <div class="upscale-zone-btns">
+            <label class="upscale-zone-btn primary" style="cursor:pointer;">
+              ⬆ Upload
+              <input type="file" accept="image/*" multiple style="display:none" onchange="upscaleHandleUpload(this.files)" />
+            </label>
+            <button class="upscale-zone-btn" onclick="openStorageLibrary()">📂 Storage Library</button>
+          </div>
         </div>
 
         <!-- Queue thumbnails (shown when images added) -->
         <div id="upscale-queue-grid" class="upscale-queue-grid" style="display:none;"></div>
+
+        <!-- Add more (shown when queue has items) -->
+        <div class="upscale-queue-actions" id="upscale-queue-actions" style="display:none;">
+          <label class="upscale-zone-btn" style="cursor:pointer;padding:7px 16px;font-size:12px;">
+            + Upload
+            <input type="file" accept="image/*" multiple style="display:none" onchange="upscaleHandleUpload(this.files)" />
+          </label>
+          <button class="upscale-zone-btn" onclick="openStorageLibrary()" style="padding:7px 16px;font-size:12px;">📂 Storage Library</button>
+        </div>
       </div>
 
       <!-- Model + Scale options -->
@@ -3090,14 +3118,16 @@ function setUpscaleScale(n, el) {
 }
 
 function _renderUpscaleQueue() {
-  const grid   = document.getElementById('upscale-queue-grid');
-  const empty  = document.getElementById('upscale-empty-state');
-  const runBtn = document.getElementById('btn-run-upscale');
+  const grid    = document.getElementById('upscale-queue-grid');
+  const empty   = document.getElementById('upscale-empty-state');
+  const actions = document.getElementById('upscale-queue-actions');
+  const runBtn  = document.getElementById('btn-run-upscale');
   if (!grid) return;
   const has = upscaleQueue.length > 0;
-  grid.style.display  = has ? 'grid' : 'none';
-  if (empty) empty.style.display = has ? 'none' : '';
-  if (runBtn) runBtn.disabled = !has;
+  grid.style.display    = has ? 'grid' : 'none';
+  if (empty)   empty.style.display   = has ? 'none' : '';
+  if (actions) actions.style.display = has ? 'flex' : 'none';
+  if (runBtn)  runBtn.disabled       = !has;
   grid.innerHTML = upscaleQueue.map((item, i) => `
     <div class="upscale-q-item">
       <img src="${esc(item.url)}" loading="lazy" />
