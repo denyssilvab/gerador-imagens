@@ -1309,6 +1309,11 @@
             <button class="dash-type-tab" onclick="setDashType('lessonplan',this)">Lesson Plan</button>
           </div>
           <div class="dash-toolbar-right">
+            <!-- Originais / Editadas toggle -->
+            <div style="display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+              <button id="vtog-orig" class="dash-view-btn active" style="border-radius:0;border:none;padding:4px 12px;" onclick="setDashVersion('orig',this)">Originais</button>
+              <button id="vtog-edit" class="dash-view-btn"        style="border-radius:0;border:none;padding:4px 12px;" onclick="setDashVersion('edit',this)">Editadas</button>
+            </div>
             <select class="dash-sort-sel" id="dash-sort-sel" onchange="setDashSortSel(this.value)">
               <option value="recent">Última edição</option>
               <option value="oldest">Data de criação</option>
@@ -3179,9 +3184,19 @@ function setPage(name, el) {
 let dashFilter     = 'all';
 let dashFolderFilter = null; // folder id (number) or null
 let dashSort       = 'recent';
+let dashVersion    = 'orig'; // 'orig' = originals, 'edit' = upscaled
 let dashFolders    = [];
 let _dashFolderMenuKey = null;
 let dashSelected   = new Set(); // keys of selected dashboard items (images, txt)
+
+function setDashVersion(v, el) {
+  dashVersion = v;
+  document.querySelectorAll('#vtog-orig,#vtog-edit').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+  refreshDashboard();
+}
+
+const _isUpscaled = (filename) => /_([\w-]+)_[246]x\.(png|jpg)$/i.test(filename || '');
 
 function toggleDashSelect(key, checked, e) {
   if (e) e.stopPropagation();
@@ -3223,14 +3238,14 @@ async function dashBulkDelete() {
   if (!keys.length) return;
   if (!confirm(`Excluir ${keys.length} arquivo${keys.length !== 1 ? 's' : ''}?`)) return;
   for (const key of keys) {
-    if (key.startsWith('db_')) {
-      const id = parseInt(key.replace('db_', ''));
-      await dbDelete(id).catch(() => {});
-    }
+    await authFetch('/api/db?action=delete-image', {
+      method: 'POST',
+      body: JSON.stringify(_deletePayload(key)),
+    }).catch(() => {});
     delete results[key];
+    document.querySelector(`.dash-card[data-key="${key}"]`)?.remove();
   }
   dashSelected.clear();
-  refreshDashboard();
   _updateDashBulkBar();
   toast(`${keys.length} arquivo${keys.length !== 1 ? 's' : ''} excluído${keys.length !== 1 ? 's' : ''}.`, 'ok');
 }
@@ -3260,10 +3275,11 @@ async function confirmBulkMove() {
   document.getElementById('move-modal').style.display = 'none';
   for (const key of keys) {
     if (results[key]) results[key].folderId = folderId;
-    if (key.startsWith('db_')) {
-      const id = parseInt(key.replace('db_', ''));
-      await authFetch('/api/db?action=move-image', { method: 'POST', body: JSON.stringify({ imageId: id, folderId }) }).catch(() => {});
-    }
+    await authFetch('/api/db?action=assign-folder', {
+      method: 'POST',
+      body: JSON.stringify({ ..._deletePayload(key), folderId }),
+    }).catch(() => {});
+    if (results[key]) results[key].folderId = folderId;
   }
   dashSelected.clear();
   refreshDashboard();
@@ -3540,7 +3556,7 @@ async function fileCtxRename() {
   const name = prompt('Novo nome:', current);
   if (!name || name === current) return;
   try {
-    await authFetch('/api/db?action=rename-image', { method: 'POST', body: JSON.stringify({ key: _fileCtxKey, title: name }) });
+    await authFetch('/api/db?action=rename-image', { method: 'POST', body: JSON.stringify({ ..._deletePayload(_fileCtxKey), title: name }) });
     results[_fileCtxKey] = { ...r, customTitle: name, title: name };
     refreshDashboard();
     toast('Arquivo renomeado.', 'ok');
@@ -3573,18 +3589,25 @@ function fileCtxMove() {
   openMoveModal(_fileCtxKey);
 }
 
+function _deletePayload(key) {
+  const r = results[key];
+  return r?.sbId ? { id: r.sbId } : { key: r?.sbKey || key };
+}
+
 async function fileCtxDelete() {
   _closeFileCtx();
   const key = _fileCtxKey;
   const r = results[key];
-  if (!confirm(`Excluir "${r?.title || r?.filename || 'este arquivo'}"?`)) return;
+  if (!confirm(`Excluir "${r?.customTitle || r?.title || r?.filename || 'este arquivo'}"?`)) return;
   try {
-    await authFetch('/api/db?action=delete-image', { method: 'POST', body: JSON.stringify({ key }) });
+    await authFetch('/api/db?action=delete-image', { method: 'POST', body: JSON.stringify(_deletePayload(key)) });
     delete results[key];
     // Remove from gerar grid too
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     if (card) card.remove();
+    // Remove dashboard card immediately (no full refresh needed)
+    document.querySelector(`.dash-card[data-key="${key}"]`)?.remove();
     refreshDashboard();
     toast('Arquivo excluído.', 'ok');
   } catch (e) { toast('Erro ao excluir.', 'err'); }
@@ -3631,7 +3654,7 @@ async function confirmMove() {
   const folderId = _moveSelectedFolderId;
   closeMoveModal();
   try {
-    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ key, folderId }) });
+    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
     if (results[key]) results[key].folderId = folderId;
     refreshDashboard();
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
@@ -3661,11 +3684,19 @@ function refreshDashboard() {
   }
   if (search) txtItems = txtItems.filter(f => f.filename.toLowerCase().includes(search));
 
-  // Filter images
+  // Filter by version (Originais / Editadas)
+  items = dashVersion === 'edit'
+    ? items.filter(r => _isUpscaled(r.filename))
+    : items.filter(r => !_isUpscaled(r.filename));
+
+  // Filter images by folder / type
   if (dashFolderFilter !== null && dashFilter === 'folder') {
     items = items.filter(r => r.folderId === dashFolderFilter);
   } else if (dashFilter !== 'all') {
     items = items.filter(r => r.docType === dashFilter);
+  } else {
+    // Root view ("Todos"): only show unfiled files — filed files live inside their folders
+    items = items.filter(r => !r.folderId);
   }
   if (search) {
     items = items.filter(r =>
@@ -3701,29 +3732,37 @@ function refreshDashboard() {
   grid.innerHTML = '';
 
   // ── Folder cards (Google Drive style) ──
-  // Show top-level folders as cards when NOT inside a folder view
-  if (dashFilter !== 'folder' && dashFolders.length) {
-    const topFolders = dashFolders.filter(f => !f.parent_id);
-    topFolders.forEach(f => {
-      const fileCount = Object.values(results).filter(r => r && r.folderId === f.id).length;
-      const div = document.createElement('div');
-      div.className = 'dash-card folder-card';
-      div.innerHTML = `
-        <div class="dash-card-thumb"></div>
-        <div class="dash-card-info">
-          <div class="dash-card-text">
-            <div class="dash-card-title">${esc(f.name)}</div>
-            <div class="dash-card-meta">${fileCount} arquivo${fileCount !== 1 ? 's' : ''}</div>
-          </div>
-          <button class="dash-card-more" onclick="event.stopPropagation();showFolderCardMenu(event,${f.id})" title="Opções">···</button>
-        </div>`;
-      div.onclick = (e) => {
-        if (!e.target.closest('.dash-card-more')) {
-          filterDashboardFolder(f.id, document.getElementById(`fitem-${f.id}`));
-        }
-      };
-      grid.appendChild(div);
-    });
+  const _renderFolderCard = (f) => {
+    const fileCount = Object.values(results).filter(r => r && r.folderId === f.id).length;
+    const subCount  = dashFolders.filter(sf => sf.parent_id === f.id).length;
+    const metaParts = [];
+    if (subCount)  metaParts.push(`${subCount} pasta${subCount !== 1 ? 's' : ''}`);
+    if (fileCount) metaParts.push(`${fileCount} arquivo${fileCount !== 1 ? 's' : ''}`);
+    const div = document.createElement('div');
+    div.className = 'dash-card folder-card';
+    div.innerHTML = `
+      <div class="dash-card-thumb"></div>
+      <div class="dash-card-info">
+        <div class="dash-card-text">
+          <div class="dash-card-title">${esc(f.name)}</div>
+          <div class="dash-card-meta">${metaParts.join(' · ') || 'Vazia'}</div>
+        </div>
+        <button class="dash-card-more" onclick="event.stopPropagation();showFolderCardMenu(event,${f.id})" title="Opções">···</button>
+      </div>`;
+    div.onclick = (e) => {
+      if (!e.target.closest('.dash-card-more')) {
+        filterDashboardFolder(f.id, document.getElementById(`fitem-${f.id}`));
+      }
+    };
+    grid.appendChild(div);
+  };
+
+  if (dashFilter === 'folder' && dashFolderFilter !== null) {
+    // Inside a folder: show subfolders of this folder
+    dashFolders.filter(f => f.parent_id === dashFolderFilter).forEach(_renderFolderCard);
+  } else if (dashFilter !== 'folder' && dashFolders.length) {
+    // Root view: show top-level folders
+    dashFolders.filter(f => !f.parent_id).forEach(_renderFolderCard);
   }
 
   const isSel = (key) => dashSelected.has(key);
@@ -3780,26 +3819,60 @@ function refreshDashboard() {
 }
 
 // ── Load images into results on login ────────────────────────────────────
+function _applyLoadedImages(saved, overwrite = false) {
+  const grid  = document.getElementById('img-grid');
+  const empty = grid?.querySelector('.empty');
+  if (empty) empty.remove();
+  if (grid && saved.length) document.getElementById('results-card').style.display = '';
+  saved.slice().reverse().forEach(r => {
+    const domKey = `db_${r.id}`;
+    if (!overwrite && results[domKey]) return;
+    if (grid && !document.getElementById(`card_db_${r.id}`)) {
+      // Only add to gerar grid if not already there
+    }
+    results[domKey] = {
+      url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
+      filename: r.filename, pageNum: r.pageNum,
+      title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
+      docType: r.docType, folderId: r.folderId, ts: r.ts,
+      sbId: r.id, sbKey: r.key,
+    };
+  });
+}
+
 async function loadPersistedImages() {
+  // Phase 1: IndexedDB — instant, shows results immediately
   try {
-    const saved = await dbLoadAll();
-    if (!saved.length) return;
-    const grid  = document.getElementById('img-grid');
-    const empty = grid?.querySelector('.empty');
-    if (empty) empty.remove();
-    if (grid) document.getElementById('results-card').style.display = '';
-    saved.slice().reverse().forEach(r => {
-      if (!results[`db_${r.id}`]) {
-        if (grid) grid.appendChild(makePersistedCard(r));
-        else {
-          // No grid visible — just populate results
-          const domKey = `db_${r.id}`;
-          results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '', docType: r.docType, folderId: r.folderId, ts: r.ts };
-        }
-      }
-    });
-    refreshDashboard();
-  } catch (e) { console.warn('[loadPersistedImages]', e); }
+    const idbData = await _idbLoadAll();
+    if (idbData.length) {
+      _applyLoadedImages(idbData);
+      refreshDashboard();
+    }
+  } catch (_) { /* IDB unavailable */ }
+
+  // Phase 2: Supabase — authoritative, updates/adds entries
+  try {
+    const res  = await authFetch('/api/db?action=load-images');
+    const data = await res.json();
+    if (data.ok && data.images?.length) {
+      // Map Supabase columns → standard shape
+      const sbData = data.images.map(r => ({
+        id:          r.id,
+        key:         r.key,
+        dataUrl:     r.url,
+        url:         r.url,
+        filename:    r.filename,
+        pageNum:     r.page_num,
+        title:       r.title,
+        customTitle: r.custom_title || null,
+        docType:     r.doc_type,
+        folderId:    r.folder_id || null,
+        ts:          new Date(r.created_at).getTime(),
+      }));
+      _applyLoadedImages(sbData, true); // overwrite IDB entries with Supabase truth
+      refreshDashboard();
+    }
+  } catch (e) { console.warn('[loadPersistedImages supabase]', e); }
 }
 
 // ── Upscale page ───────────────────────────────────────────────────────────
@@ -5179,7 +5252,7 @@ function makeCard(gen, idx, num, title) {
 
 function makePersistedCard(r) {
   const domKey = `db_${r.id}`;
-  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.title || '', docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id };
+  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
   const d = document.createElement('div');
   d.className = 'icard';
   d.innerHTML = `

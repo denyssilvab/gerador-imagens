@@ -87,9 +87,10 @@ module.exports = async function handler(req, res) {
       const userId = await getUserId();
       if (!userId) return res.json({ ok: true, images: [] });
 
+      // Select only needed columns — avoids fetching large storage_path/original_url blobs
       const { data, error } = await sb
         .from('images')
-        .select('*')
+        .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
       if (error) throw error;
@@ -100,10 +101,15 @@ module.exports = async function handler(req, res) {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
-      const { key } = req.body;
-      const { data: row } = await sb.from('images').select('storage_path').eq('key', key).eq('user_id', userId).single();
+      const { key, id } = req.body;
+      // Support deletion by numeric id (from db_N keys) or original key string
+      const { data: row } = id
+        ? await sb.from('images').select('storage_path').eq('id', id).eq('user_id', userId).single()
+        : await sb.from('images').select('storage_path').eq('key', key).eq('user_id', userId).single();
       if (row?.storage_path) await sb.storage.from('images').remove([row.storage_path]);
-      const { error } = await sb.from('images').delete().eq('key', key).eq('user_id', userId);
+      const { error } = id
+        ? await sb.from('images').delete().eq('id', id).eq('user_id', userId)
+        : await sb.from('images').delete().eq('key', key).eq('user_id', userId);
       if (error) throw error;
       return res.json({ ok: true });
     }
@@ -196,8 +202,10 @@ module.exports = async function handler(req, res) {
     if (action === 'rename-image') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-      const { key, title } = req.body;
-      const { error } = await sb.from('images').update({ custom_title: title, title }).eq('key', key).eq('user_id', userId);
+      const { key, id, title } = req.body;
+      const { error } = id
+        ? await sb.from('images').update({ custom_title: title, title }).eq('id', id).eq('user_id', userId)
+        : await sb.from('images').update({ custom_title: title, title }).eq('key', key).eq('user_id', userId);
       if (error) throw error;
       return res.json({ ok: true });
     }
@@ -229,10 +237,10 @@ module.exports = async function handler(req, res) {
     if (action === 'assign-folder') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-      const { key, folderId } = req.body;
-      const { error } = await sb.from('images')
-        .update({ folder_id: folderId || null })
-        .eq('key', key).eq('user_id', userId);
+      const { key, id, folderId } = req.body;
+      const { error } = id
+        ? await sb.from('images').update({ folder_id: folderId || null }).eq('id', id).eq('user_id', userId)
+        : await sb.from('images').update({ folder_id: folderId || null }).eq('key', key).eq('user_id', userId);
       if (error) throw error;
       return res.json({ ok: true });
     }
