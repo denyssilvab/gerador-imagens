@@ -4,9 +4,5 @@
   "outputDirectory": "public",
   "functions": {
     "api/db.js": { "memory": 512, "maxDuration": 30 }
-  },
-  "env": {
-    "SUPABASE_URL": "@supabase-url",
-    "SUPABASE_ANON_KEY": "@supabase-anon-key"
   }
 }
