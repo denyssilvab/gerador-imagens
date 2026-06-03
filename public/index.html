@@ -843,26 +843,29 @@
     /* ── Upscale page ── */
     /* ── Upscale page ── */
     /* ── Upscale page (Adobe Firefly-style) ── */
-    /* pg-upscale overrides .pg padding so zone fills viewport */
-    #pg-upscale { padding: 0 !important; }
     .upscale-layout {
-      display: flex; flex-direction: column; flex: 1; height: 100%; overflow: hidden;
+      display: flex; flex-direction: column; flex: 1; overflow: hidden;
+    }
+    .upscale-zone-wrap {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 28px; overflow: hidden;
     }
     .upscale-drop-zone {
       background: #141418;
-      border: none;
-      border-radius: 0;
-      flex: 1;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 20px;
+      width: 100%; max-width: 720px;
+      height: 100%; max-height: 480px;
       position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 0; overflow: hidden;
-      transition: background .2s;
+      transition: background .2s, border-color .2s;
     }
     .upscale-drop-zone::after {
       content: ''; position: absolute; inset: 0; pointer-events: none;
       background: radial-gradient(ellipse at 70% 50%, rgba(99,102,241,.09) 0%, transparent 60%);
     }
-    .upscale-drop-zone.drag-over { background: #18181f; box-shadow: inset 0 0 0 2px var(--primary); }
+    .upscale-drop-zone.drag-over { background: #18181f; border-color: var(--primary); }
     /* Empty state — centered block */
     .upscale-empty-state {
       display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -1775,7 +1778,8 @@
   <div class="pg" id="pg-upscale">
     <div class="upscale-layout">
 
-      <!-- Drop zone — fills all available height -->
+      <!-- Drop zone — large centered rectangle with padding -->
+      <div class="upscale-zone-wrap">
       <div class="upscale-drop-zone" id="upscale-zone"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
@@ -1807,6 +1811,7 @@
           <button class="upscale-zone-btn" onclick="openStorageLibrary()" style="padding:6px 14px;font-size:12px;opacity:.7;">📂 Library</button>
         </div>
       </div>
+      </div><!-- /upscale-zone-wrap -->
 
       <!-- Discrete footer bar: model · scale · action -->
       <div class="upscale-footer">
