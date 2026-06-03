@@ -843,12 +843,16 @@
     /* ── Upscale page ── */
     /* ── Upscale page ── */
     /* ── Upscale page (Adobe Firefly-style) ── */
-    .upscale-layout { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    /* pg-upscale overrides .pg padding so zone fills viewport */
+    #pg-upscale { padding: 0 !important; }
+    .upscale-layout {
+      display: flex; flex-direction: column; flex: 1; height: 100%; overflow: hidden;
+    }
     .upscale-drop-zone {
       background: #141418;
-      border: 1px solid rgba(255,255,255,.07);
-      border-radius: 20px;
-      min-height: 380px;
+      border: none;
+      border-radius: 0;
+      flex: 1;
       position: relative;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 0; overflow: hidden;
@@ -856,9 +860,9 @@
     }
     .upscale-drop-zone::after {
       content: ''; position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse at 70% 50%, rgba(99,102,241,.08) 0%, transparent 65%);
+      background: radial-gradient(ellipse at 70% 50%, rgba(99,102,241,.09) 0%, transparent 60%);
     }
-    .upscale-drop-zone.drag-over { background: #18181f; border-color: var(--primary); }
+    .upscale-drop-zone.drag-over { background: #18181f; box-shadow: inset 0 0 0 2px var(--primary); }
     /* Empty state — centered block */
     .upscale-empty-state {
       display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -895,19 +899,32 @@
       display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s;
     }
     .upscale-q-item:hover .upscale-q-del { opacity: 1; }
-    /* Queue add-more row */
+    /* Queue add-more row inside zone */
     .upscale-queue-actions {
       position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
       display: flex; gap: 8px; z-index: 2;
     }
-    .upscale-scale-btns { display: flex; gap: 6px; }
+    /* Discrete footer bar */
+    .upscale-footer {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 10px 20px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .upscale-footer-label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    .upscale-footer select {
+      font-size: 12px; padding: 4px 8px; border-radius: 7px;
+      border: 1px solid var(--border); background: var(--surface2); color: var(--text); cursor: pointer;
+    }
+    .upscale-scale-btns { display: flex; gap: 4px; }
     .upscale-scale-btn {
-      padding: 8px 18px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
-      border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+      padding: 4px 13px; border-radius: 7px; font-size: 12px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface2); color: var(--muted);
       transition: all .12s;
     }
-    .upscale-scale-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .upscale-scale-btn:hover { color: var(--text); border-color: var(--border2); }
     .upscale-scale-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    #btn-run-upscale { margin-left: auto; }
     /* Storage Library modal */
     .storage-modal-bg {
       position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.6);
@@ -1758,13 +1775,13 @@
   <div class="pg" id="pg-upscale">
     <div class="upscale-layout">
 
-      <!-- Drop zone (Firefly-style) -->
+      <!-- Drop zone — fills all available height -->
       <div class="upscale-drop-zone" id="upscale-zone"
         ondragover="event.preventDefault();this.classList.add('drag-over')"
         ondragleave="this.classList.remove('drag-over')"
         ondrop="upscaleHandleDrop(event)">
 
-        <!-- Empty state (centered) -->
+        <!-- Empty state -->
         <div class="upscale-empty-state" id="upscale-empty-state">
           <div class="upscale-zone-icon">🖼</div>
           <div class="upscale-zone-title">Upscale an image</div>
@@ -1778,64 +1795,52 @@
           </div>
         </div>
 
-        <!-- Queue thumbnails (shown when images added) -->
+        <!-- Queue thumbnails -->
         <div id="upscale-queue-grid" class="upscale-queue-grid" style="display:none;"></div>
 
-        <!-- Add more (shown when queue has items) -->
+        <!-- Add more — discreet pills at bottom of zone -->
         <div class="upscale-queue-actions" id="upscale-queue-actions" style="display:none;">
-          <label class="upscale-zone-btn" style="cursor:pointer;padding:7px 16px;font-size:12px;">
+          <label class="upscale-zone-btn" style="cursor:pointer;padding:6px 14px;font-size:12px;opacity:.7;">
             + Upload
             <input type="file" accept="image/*" multiple style="display:none" onchange="upscaleHandleUpload(this.files)" />
           </label>
-          <button class="upscale-zone-btn" onclick="openStorageLibrary()" style="padding:7px 16px;font-size:12px;">📂 Storage Library</button>
+          <button class="upscale-zone-btn" onclick="openStorageLibrary()" style="padding:6px 14px;font-size:12px;opacity:.7;">📂 Library</button>
         </div>
       </div>
 
-      <!-- Model + Scale options -->
-      <div class="card" style="padding:0;">
-        <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
-
-          <div class="fg">
-            <label>Modelo de Upscale</label>
-            <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();" style="font-size:13px;padding:8px 10px;">
-              <optgroup label="Topaz Image Upscale">
-                <option value="topaz:Standard V2">Topaz — Standard V2</option>
-                <option value="topaz:Low Resolution V2">Topaz — Low Resolution V2</option>
-                <option value="topaz:CGI">Topaz — CGI</option>
-                <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
-                <option value="topaz:Text Refine">Topaz — Text Refine</option>
-              </optgroup>
-              <optgroup label="Outros Modelos">
-                <option value="google/upscaler">Google Upscaler</option>
-                <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
-                <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
-                <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
-                <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
-                <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
-                <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div>
-            <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">Escala</label>
-            <div class="upscale-scale-btns">
-              <button class="upscale-scale-btn active" id="scale-btn-2" onclick="setUpscaleScale(2,this)">2×</button>
-              <button class="upscale-scale-btn" id="scale-btn-4" onclick="setUpscaleScale(4,this)">4×</button>
-              <button class="upscale-scale-btn" id="scale-btn-6" onclick="setUpscaleScale(6,this)">6×</button>
-            </div>
-          </div>
-
-          <button class="btn btn-primary" id="btn-run-upscale" onclick="runUpscaleQueue()" disabled
-            style="align-self:flex-start;padding:10px 28px;font-size:14px;">
-            ⬆ Fazer Upscale
-          </button>
+      <!-- Discrete footer bar: model · scale · action -->
+      <div class="upscale-footer">
+        <span class="upscale-footer-label">Modelo</span>
+        <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();">
+          <optgroup label="Topaz">
+            <option value="topaz:Standard V2">Topaz Standard V2</option>
+            <option value="topaz:Low Resolution V2">Topaz Low Res V2</option>
+            <option value="topaz:CGI">Topaz CGI</option>
+            <option value="topaz:High Fidelity V2">Topaz High Fidelity V2</option>
+            <option value="topaz:Text Refine">Topaz Text Refine</option>
+          </optgroup>
+          <optgroup label="Outros">
+            <option value="google/upscaler">Google Upscaler</option>
+            <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
+            <option value="philz1337x/clarity-upscaler">Clarity Pro</option>
+            <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp</option>
+            <option value="afiaka87/crystal-upscaler">Crystal</option>
+            <option value="recraft-ai/recraft-creative-upscale">Recraft Creative</option>
+            <option value="prunaai/image-upscale">PrunaAI</option>
+          </optgroup>
+        </select>
+        <span class="upscale-footer-label" style="margin-left:8px;">Escala</span>
+        <div class="upscale-scale-btns">
+          <button class="upscale-scale-btn active" id="scale-btn-2" onclick="setUpscaleScale(2,this)">2×</button>
+          <button class="upscale-scale-btn" id="scale-btn-4" onclick="setUpscaleScale(4,this)">4×</button>
+          <button class="upscale-scale-btn" id="scale-btn-6" onclick="setUpscaleScale(6,this)">6×</button>
         </div>
+        <button class="btn btn-primary btn-sm" id="btn-run-upscale" onclick="runUpscaleQueue()" disabled>
+          ⬆ Fazer Upscale
+        </button>
       </div>
 
-      <!-- Hidden list for compat -->
       <div id="upscale-img-list" style="display:none;"></div>
-
     </div>
   </div>
 
