@@ -2,80 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-
-// ── Auth (dev local) ──────────────────────────────────────────────────────
-
-const AUTH_USER   = process.env.AUTH_USERNAME;
-const AUTH_PASS   = process.env.AUTH_PASSWORD;
-const AUTH_SECRET = process.env.AUTH_SECRET;
-
-function createToken(secret) {
-  const expiry  = Date.now() + 7 * 24 * 60 * 60 * 1000;
-  const payload = Buffer.from(String(expiry)).toString('base64');
-  const sig     = crypto.createHmac('sha256', secret).update(payload).digest('base64');
-  return `${payload}.${sig}`;
-}
-
-function verifyToken(token, secret) {
-  try {
-    const dot     = token.lastIndexOf('.');
-    if (dot === -1) return false;
-    const payload = token.slice(0, dot);
-    const sig     = token.slice(dot + 1);
-    const expiry  = parseInt(Buffer.from(payload, 'base64').toString(), 10);
-    if (isNaN(expiry) || Date.now() > expiry) return false;
-    const expected = crypto.createHmac('sha256', secret).update(payload).digest('base64');
-    return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
-  } catch { return false; }
-}
-
-function parseCookie(header = '') {
-  return Object.fromEntries(
-    header.split(';').map(p => p.trim().split('=').map(decodeURIComponent))
-  );
-}
-
-// Endpoints de auth
-app.post('/api/login', (req, res) => {
-  if (!AUTH_USER || !AUTH_PASS || !AUTH_SECRET) {
-    return res.status(500).json({ error: 'AUTH_USERNAME, AUTH_PASSWORD e AUTH_SECRET não configurados no .env' });
-  }
-  const { username, password } = req.body;
-  if (username !== AUTH_USER || password !== AUTH_PASS) {
-    return res.status(401).json({ error: 'Usuário ou senha incorretos.' });
-  }
-  const token = createToken(AUTH_SECRET);
-  res.setHeader('Set-Cookie', `auth=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=604800`);
-  res.json({ ok: true });
-});
-
-app.get('/api/logout', (_req, res) => {
-  res.setHeader('Set-Cookie', 'auth=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0');
-  res.redirect('/login.html');
-});
-
-app.post('/api/register', (req, res) => {
-  const registerHandler = require('./api/register');
-  return registerHandler(req, res);
-});
-
-// Middleware de proteção — só ativo se AUTH_SECRET estiver configurado
-app.use((req, res, next) => {
-  if (!AUTH_SECRET) return next(); // dev sem .env: passa direto
-  if (req.path === '/login.html' || req.path.startsWith('/api/login') || req.path.startsWith('/api/logout') || req.path.startsWith('/api/register')) {
-    return next();
-  }
-  const cookies = parseCookie(req.headers.cookie);
-  if (cookies.auth && verifyToken(cookies.auth, AUTH_SECRET)) return next();
-  if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Não autenticado' });
-  res.redirect('/login.html');
-});
-
 app.use(express.static('public', { etag: false, maxAge: 0 }));
 
 const GENERATED_DIR = path.join(__dirname, 'public', 'generated');
