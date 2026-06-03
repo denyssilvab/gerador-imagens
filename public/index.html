@@ -715,6 +715,15 @@
     .combinar-preview-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
     .combinar-preview-wrap img { width: 100%; height: 100%; object-fit: contain; }
     .combinar-right-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+    /* ── Gerar page two-column layout ── */
+    .gerar-layout { display: flex; gap: 20px; width: 100%; align-items: flex-start; }
+    .gerar-main { flex: 1; display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+    .gerar-sidebar {
+      width: 280px; min-width: 280px; flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 18px;
+      position: sticky; top: 0;
+    }
   </style>
 </head>
 <body>
@@ -805,150 +814,10 @@
        PAGE: GERAR
   ══════════════════════════════════════════════ -->
   <div class="pg active" id="pg-gerar">
-    <div class="pg-content">
+    <div class="gerar-layout">
 
-      <!-- ── TIPO DE ARQUIVO ── -->
-      <div class="card">
-        <div class="card-head"><h2>Tipo de Arquivo</h2></div>
-        <div class="card-body">
-          <div class="tabs">
-            <button class="tab-btn active" onclick="setDocType('all', this)">All</button>
-            <button class="tab-btn" onclick="setDocType('lesson', this)">Lesson</button>
-            <button class="tab-btn" onclick="setDocType('practice', this)">Practice Activities</button>
-            <button class="tab-btn" onclick="setDocType('lessonplan', this)">Lesson Plan</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── ESPECIFICAÇÕES ── (movido do bloco original) -->
-
-  <!-- ── COFRE DE API KEYS ── -->
-  <!-- ── CONFIGURAÇÕES ── -->
-  <div class="card">
-    <div class="card-head"><h2>Configurações</h2></div>
-    <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
-
-      <!-- Unidade / Lição / CCSS -->
-      <div class="form-row">
-        <div class="fg">
-          <label>Unidade</label>
-          <input id="unit" type="number" min="1" value="3" placeholder="Ex: 3" />
-        </div>
-        <div class="fg">
-          <label>Lição (Lesson)</label>
-          <input id="lesson" type="number" min="1" value="32" placeholder="Ex: 32" />
-        </div>
-        <div class="fg">
-          <label>Código CCSS</label>
-          <input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" />
-        </div>
-      </div>
-
-      <!-- Provedor + Modelo -->
-      <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-        <!-- Header do bloco provedor -->
-        <div style="background:var(--surface2);padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
-          <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Provedor &amp; Modelo</span>
-          <div class="tabs" style="margin-left:auto;">
-            <button class="tab-btn active" id="tab-openai" onclick="setProvider('openai',this)">OpenAI</button>
-            <button class="tab-btn" id="tab-replicate" onclick="setProvider('replicate',this)">Replicate</button>
-          </div>
-        </div>
-
-        <!-- Painel OpenAI -->
-        <div id="panel-openai" style="padding:14px;display:flex;flex-direction:column;gap:12px;">
-          <div class="form-row">
-            <div class="fg" style="flex:2;">
-              <label>Modelo</label>
-              <select id="model-openai" onchange="onModelChange()">
-                <option value="gpt-image-2" selected>GPT Image 2 — mais recente ⭐</option>
-                <option value="gpt-image-1">GPT Image 1</option>
-                <option value="dall-e-3">DALL-E 3</option>
-              </select>
-            </div>
-            <div class="fg">
-              <label>Qualidade</label>
-              <select id="quality">
-                <option value="medium" selected>Medium (~15s) ⚡</option>
-                <option value="high">High (~35s)</option>
-                <option value="low">Low / Preview (~6s)</option>
-              </select>
-            </div>
-          </div>
-          <div class="fg">
-            <label>OpenAI API Key</label>
-            <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')">
-              <option value="">🔒 Desbloqueie o cofre para ver as keys</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <div class="fg span-full">
-              <label>Resolução</label>
-              <select id="resolution-openai">
-                <option value="1056x1488" selected>A4 Portrait — 1056×1488 px ⭐ (mais próximo de 1055×1492)</option>
-                <option value="1024x1536">Portrait — 1024×1536 px</option>
-                <option value="1024x1024">Quadrado — 1024×1024 px</option>
-                <option value="1536x1024">Paisagem — 1536×1024 px</option>
-                <option value="auto">Auto (modelo decide)</option>
-              </select>
-            </div>
-          </div>
-          <p style="font-size:11px;color:var(--muted);line-height:1.5;">
-            GPT Image 2 é o modelo mais recente. A resolução padrão é 1056×1488 px — a mais próxima possível de 1055×1492 px (a API exige dimensões múltiplas de 16).
-          </p>
-        </div>
-
-        <!-- Painel Replicate -->
-        <div id="panel-replicate" style="padding:14px;display:none;flex-direction:column;gap:12px;">
-          <div class="form-row">
-            <div class="fg span-full">
-              <label>Modelo</label>
-              <select id="model-replicate" onchange="onModelChange()">
-                <optgroup label="Google">
-                  <option value="google/nano-banana">Nano Banana 2 (Gemini 2.5 Flash) ⭐</option>
-                </optgroup>
-                <optgroup label="FLUX (Black Forest Labs)">
-                  <option value="black-forest-labs/flux-1.1-pro">FLUX 1.1 Pro — máxima qualidade</option>
-                  <option value="black-forest-labs/flux-pro">FLUX Pro</option>
-                  <option value="black-forest-labs/flux-dev">FLUX Dev — open weights</option>
-                  <option value="black-forest-labs/flux-schnell">FLUX Schnell — ultra rápido</option>
-                </optgroup>
-                <optgroup label="Ideogram AI">
-                  <option value="ideogram-ai/ideogram-v2">Ideogram V2 — excelente texto ✏️</option>
-                  <option value="ideogram-ai/ideogram-v2-turbo">Ideogram V2 Turbo</option>
-                </optgroup>
-                <optgroup label="Recraft AI">
-                  <option value="recraft-ai/recraft-v3">Recraft V3 — design &amp; layout</option>
-                </optgroup>
-              </select>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="fg span-full">
-              <label>Proporção (Aspect Ratio)</label>
-              <select id="resolution-replicate">
-                <option value="2:3" selected>A4 Portrait — 2:3 ⭐ (equivalente a 1055×1492)</option>
-                <option value="1:1">Quadrado — 1:1</option>
-                <option value="3:2">Paisagem — 3:2</option>
-                <option value="9:16">Vertical — 9:16</option>
-              </select>
-            </div>
-          </div>
-          <div class="fg">
-            <label>Replicate API Token</label>
-            <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')">
-              <option value="">🔒 Desbloqueie o cofre para ver as keys</option>
-            </select>
-          </div>
-          <p style="font-size:11px;color:var(--muted);line-height:1.5;">
-            <strong style="color:var(--warn-fg);">Dica:</strong>
-            Ideogram V2 tem a melhor renderização de texto. FLUX 1.1 Pro entrega maior qualidade visual.
-          </p>
-        </div>
-      </div>
-
-    </div>
-  </div>
+      <!-- ── COLUNA PRINCIPAL (prompts + resultados) ── -->
+      <div class="gerar-main">
 
   <!-- ── ESPECIFICAÇÕES ── -->
   <div class="card">
@@ -1088,7 +957,110 @@
     </div><!-- /card-body results -->
   </div><!-- /results-card -->
 
-    </div><!-- /pg-content -->
+      </div><!-- /gerar-main -->
+
+      <!-- ── SIDEBAR DIREITA (tipo + configurações) ── -->
+      <div class="gerar-sidebar">
+
+        <!-- Tipo de Arquivo -->
+        <div class="card">
+          <div class="card-head"><h2>Tipo de Arquivo</h2></div>
+          <div class="card-body">
+            <div class="tabs" style="flex-direction:column;width:100%;">
+              <button class="tab-btn active" onclick="setDocType('all', this)" style="border-right:none;border-bottom:1px solid var(--border);">All</button>
+              <button class="tab-btn" onclick="setDocType('lesson', this)" style="border-right:none;border-bottom:1px solid var(--border);">📖 Lesson</button>
+              <button class="tab-btn" onclick="setDocType('practice', this)" style="border-right:none;border-bottom:1px solid var(--border);">✏️ Practice Activities</button>
+              <button class="tab-btn" onclick="setDocType('lessonplan', this)" style="border-right:none;">📋 Lesson Plan</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Configurações -->
+        <div class="card">
+          <div class="card-head"><h2>Configurações</h2></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
+            <div class="fg"><label>Unidade</label><input id="unit" type="number" min="1" value="3" placeholder="Ex: 3" /></div>
+            <div class="fg"><label>Lição</label><input id="lesson" type="number" min="1" value="32" placeholder="Ex: 32" /></div>
+            <div class="fg"><label>CCSS</label><input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" /></div>
+            <hr class="sep" />
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Provedor</span>
+              <div class="tabs" style="margin-left:auto;">
+                <button class="tab-btn active" id="tab-openai" onclick="setProvider('openai',this)">OpenAI</button>
+                <button class="tab-btn" id="tab-replicate" onclick="setProvider('replicate',this)">Replicate</button>
+              </div>
+            </div>
+            <!-- OpenAI -->
+            <div id="panel-openai" style="display:flex;flex-direction:column;gap:10px;">
+              <div class="fg"><label>Modelo</label>
+                <select id="model-openai" onchange="onModelChange()">
+                  <option value="gpt-image-2" selected>GPT Image 2 ⭐</option>
+                  <option value="gpt-image-1">GPT Image 1</option>
+                  <option value="dall-e-3">DALL-E 3</option>
+                </select>
+              </div>
+              <div class="fg"><label>Qualidade</label>
+                <select id="quality">
+                  <option value="medium" selected>Medium (~15s) ⚡</option>
+                  <option value="high">High (~35s)</option>
+                  <option value="low">Low (~6s)</option>
+                </select>
+              </div>
+              <div class="fg"><label>API Key</label>
+                <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')">
+                  <option value="">🔒 Desbloqueie o cofre</option>
+                </select>
+              </div>
+              <div class="fg"><label>Resolução</label>
+                <select id="resolution-openai">
+                  <option value="1056x1488" selected>A4 — 1056×1488 ⭐</option>
+                  <option value="1024x1536">1024×1536</option>
+                  <option value="1024x1024">Quadrado</option>
+                  <option value="1536x1024">Paisagem</option>
+                  <option value="auto">Auto</option>
+                </select>
+              </div>
+            </div>
+            <!-- Replicate -->
+            <div id="panel-replicate" style="display:none;flex-direction:column;gap:10px;">
+              <div class="fg"><label>Modelo</label>
+                <select id="model-replicate" onchange="onModelChange()">
+                  <optgroup label="Google"><option value="google/nano-banana">Nano Banana 2 ⭐</option></optgroup>
+                  <optgroup label="FLUX">
+                    <option value="black-forest-labs/flux-1.1-pro">FLUX 1.1 Pro</option>
+                    <option value="black-forest-labs/flux-pro">FLUX Pro</option>
+                    <option value="black-forest-labs/flux-dev">FLUX Dev</option>
+                    <option value="black-forest-labs/flux-schnell">FLUX Schnell</option>
+                  </optgroup>
+                  <optgroup label="Ideogram">
+                    <option value="ideogram-ai/ideogram-v2">Ideogram V2 ✏️</option>
+                    <option value="ideogram-ai/ideogram-v2-turbo">Ideogram V2 Turbo</option>
+                  </optgroup>
+                  <optgroup label="Recraft">
+                    <option value="recraft-ai/recraft-v3">Recraft V3</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="fg"><label>Proporção</label>
+                <select id="resolution-replicate">
+                  <option value="2:3" selected>A4 Portrait — 2:3 ⭐</option>
+                  <option value="1:1">Quadrado — 1:1</option>
+                  <option value="3:2">Paisagem — 3:2</option>
+                  <option value="9:16">Vertical — 9:16</option>
+                </select>
+              </div>
+              <div class="fg"><label>API Token</label>
+                <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')">
+                  <option value="">🔒 Desbloqueie o cofre</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /gerar-sidebar -->
+
+    </div><!-- /gerar-layout -->
   </div><!-- /pg-gerar -->
 
   <!-- ══════════════════════════════════════════════
