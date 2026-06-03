@@ -1862,19 +1862,138 @@ Quando incluir [IMAGE: ...], descrever com detalhe técnico:
 8. ✓ Contexto 100% americano
 9. ✓ Pronto para API de geração de imagens (A4, 300 DPI)`,
 
-lessonplan: `You are an expert 6th grade mathematics curriculum designer. Generate a structured lesson plan for image generation.
+lessonplan: `## Você é um especialista instrucional da CCSS (Common Core State Standards) e precisa criar um prompt completo com o conteúdo de uma Lesson Plan baseada na lesson e practice activities fornecida.
 
-Output ONLY page blocks in this exact format (no intro, no explanation):
---PAGE 1 - [TITLE]--
+## CRÍTICO
 
-[Lesson plan content]
+**Máximo de conteúdo por página: 120-140mm**
 
-Rules:
-- Pages: Learning Objectives, Standards Alignment, Materials, Warm-Up, Direct Instruction, Guided Practice, Independent Practice, Closure/Assessment
-- Professional educator language
-- Generate 3-5 pages
-- Titles in Sentence case, no emojis
-- 100% in English`,
+Isso é não-negociável. Se passar de 140mm, DIVIDIR em 2 páginas.
+
+---
+
+## SEM ESTRUTURAS NUMERADAS
+
+Remover TUDO que pareça "estrutura":
+
+❌ NÃO FAZER:
+- Step 1: Discovering the pattern
+- Problem 1: (reference PRACTICE ACTIVITIES, Q1)
+- Teacher actions:
+- Ask during modeling:
+
+✅ FAZER:
+- Discovering the pattern
+- The first example references Practice Activities, question 1
+- What the teacher does during this phase
+- During the lesson, listen for these responses
+
+---
+
+## SEM CAIXA ALTA
+
+Remover qualquer palavra inteira em maiúsculas:
+
+❌ NÃO: "ALWAYS:", "NEVER:", "LESSON 28", "CCSS"
+✅ SIM: "Always do this:", "Never do this:", "Lesson 28", "CCSS code"
+
+---
+
+## SEM ÍCONES E SEM LISTAS
+
+Remover bullets, "a)", "b)", hífens como lista, colunas de tabela.
+
+Ao invés de lista com hífens, usar prosa narrativa fluida:
+
+❌ ERRADO:
+Teacher actions:
+- Let students attempt first
+- Ask: "What's the unknown?"
+- Watch for confusion
+
+✅ CERTO:
+The teacher lets students attempt the problem first. Then ask them what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
+
+---
+
+## MÁXIMO 120-140mm POR PÁGINA
+
+Se tem 3 misconceptions, não coloca os 3 na mesma página.
+
+Exemplo correto:
+PAGE 7: Misconception 1 (120mm)
+PAGE 8: Misconception 2 (130mm)
+PAGE 9: Misconceptions 3 e 4 (140mm)
+
+---
+
+## ESTRUTURA FINAL: 15-17 PÁGINAS
+
+PAGE 1: Unit, grade, CCSS, objectives + materials (120mm)
+PAGE 2: Prior knowledge (100mm)
+PAGE 3: Key vocabulary (110mm)
+PAGE 4: Warm-up activity (120mm)
+PAGE 5: Problem disparador (120mm)
+PAGE 6: Introduction — first part (120mm)
+PAGE 7: Introduction — second part (120mm)
+PAGE 8: Direct instruction — step 1 (130mm)
+PAGE 9: Direct instruction — step 2 (130mm)
+PAGE 10: Direct instruction — step 3 (130mm)
+PAGE 11: Guided practice — problem 1 (120mm)
+PAGE 12: Guided practice — problem 2 (120mm)
+PAGE 13: Independent practice (120mm)
+PAGE 14: Closure and exit ticket (130mm)
+PAGE 15: Common misconception 1 + 2 (140mm max)
+PAGE 16: Common misconception 3 + 4 (140mm max)
+PAGE 17: Differentiation + connections (140mm max)
+
+Total: 17 páginas, todas balanceadas.
+
+---
+
+## COMO ESCREVER SEM ESTRUTURAS
+
+Ao invés de:
+Step 1: Discovering the pattern
+Teacher models with think-aloud: "..."
+Ask during modeling:
+- "What does b stand for?"
+- "What does 5 mean?"
+
+Escrever:
+Discovering the pattern
+
+The teacher models with a think-aloud. "Let's look at Maya's earnings again. I notice we're always multiplying 5 by the number of bracelets." During this modeling, ask students what the letter b stands for. Ask what the number 5 represents. Listen for their explanations.
+
+---
+
+## TÍTULOS
+
+Sempre Sentence case:
+- Discovering the pattern
+- Guided practice with real examples
+- Closure with exit ticket
+- Common misconception about variables
+
+Nunca: "DISCOVERING THE PATTERN", "Step 1: Discovering"
+
+---
+
+## CONTEÚDO DEVE FLUIR
+
+Parágrafos conectados, narrativos. Cada página é um bloco de prosa coesa, sem listas.
+
+---
+
+## RESULTADO ESPERADO
+
+- 15-17 páginas bem distribuídas
+- Máximo 120-140mm de conteúdo por página
+- Sem "Step 1:", "Problem 1:", listas com hífens, bullets, caixa alta
+- Conteúdo narrativo e fluido
+- Títulos em Sentence case
+- 100% em inglês
+- Pronto para impressão A4, 300 DPI`,
 
 all: `You are an expert 6th grade mathematics educator. Generate a complete lesson package.
 
