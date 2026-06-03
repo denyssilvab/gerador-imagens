@@ -780,9 +780,10 @@
     .dash-view-btn.active { background: var(--surface2); color: var(--text); }
     /* Cards */
     .dash-card-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px;
+      display: grid; grid-template-columns: repeat(auto-fill, 190px); gap: 16px;
       padding: 20px 28px 40px; align-content: start; overflow-y: auto;
     }
+    .dash-card { width: 190px; min-width: 190px; max-width: 190px; }
     .dash-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
       overflow: hidden; cursor: pointer; position: relative;
@@ -2858,6 +2859,20 @@ function addGeneratedFile(type, content) {
   const ts  = Date.now();
   const key = `txt_${type}_${ts}`;
   generatedFiles.push({ key, type, filename, content, ts });
+
+  // Persist TXT to DB so it survives page refresh
+  try {
+    const b64     = btoa(unescape(encodeURIComponent(content)));
+    const dataUrl = `data:text/plain;base64,${b64}`;
+    dbSave({
+      key, dataUrl, filename,
+      pageNum:  null,
+      title:    filename,
+      docType:  type,
+      folderId: dashFolderFilter || null,
+    }).catch(() => {});
+  } catch (_) { /* encoding error — skip persist */ }
+
   refreshContentFiles();
   refreshDashboard();
 }
@@ -3009,7 +3024,8 @@ async function callClaudeAPI(docType, userInput, systemPrompt, onChunk) {
 
 // ── Content generation timer ───────────────────────────────────────────────
 let _genTimerInterval = null;
-let _genTimerStart    = 0;
+let _genTotalStart    = 0; // total start — never resets between phases
+let _genPhaseStart    = 0; // phase start — resets per phase
 
 function _fmtTime(ms) {
   const s = Math.round(ms / 1000);
@@ -3018,17 +3034,25 @@ function _fmtTime(ms) {
 }
 
 function _startGenTimer(labelEl, baseText) {
-  _genTimerStart = Date.now();
+  // Only set total start on first call
+  if (!_genTotalStart) _genTotalStart = Date.now();
+  _genPhaseStart = Date.now();
   clearInterval(_genTimerInterval);
   _genTimerInterval = setInterval(() => {
-    const elapsed = Date.now() - _genTimerStart;
-    if (labelEl) labelEl.textContent = `${baseText} · ⏱ ${_fmtTime(elapsed)}`;
+    const total = Date.now() - _genTotalStart;
+    if (labelEl) labelEl.textContent = `${baseText} · ⏱ ${_fmtTime(total)}`;
   }, 1000);
+}
+
+function _stopPhaseTime() {
+  // Returns elapsed time for the current phase
+  return Date.now() - _genPhaseStart;
 }
 
 function _stopGenTimer() {
   clearInterval(_genTimerInterval);
   _genTimerInterval = null;
+  _genTotalStart = 0; // reset for next generation
 }
 
 async function generateContent() {
@@ -3071,41 +3095,38 @@ async function generateContent() {
       if (allOut) allOut.style.display = 'flex';
 
       // 1. Lesson
-      if (label) label.textContent = 'Gerando Lesson… (1/3)';
       _startGenTimer(label, 'Gerando Lesson… (1/3)');
       const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
         (partial) => { if (outLesson) outLesson.value = partial; });
-      _stopGenTimer();
+      const lTime = _stopPhaseTime();
       savedContent.lesson = lessonContent;
       if (outLesson) outLesson.value = lessonContent;
       const lpages = (lessonContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-lesson', lpages ? `${lpages} pág.` : '');
+      _setBadge('all-badge-lesson', lpages ? `${lpages} pág. · ${_fmtTime(lTime)}` : _fmtTime(lTime));
       addGeneratedFile('lesson', lessonContent);
       updateContentTabs();
 
       // 2. Activities
-      if (label) label.textContent = 'Gerando Activities… (2/3)';
       _startGenTimer(label, 'Gerando Activities… (2/3)');
       const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
         (partial) => { if (outPractice) outPractice.value = partial; });
-      _stopGenTimer();
+      const pTime = _stopPhaseTime();
       savedContent.practice = practiceContent;
       if (outPractice) outPractice.value = practiceContent;
       const ppages = (practiceContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-practice', ppages ? `${ppages} pág.` : '');
+      _setBadge('all-badge-practice', ppages ? `${ppages} pág. · ${_fmtTime(pTime)}` : _fmtTime(pTime));
       addGeneratedFile('practice', practiceContent);
       updateContentTabs();
 
       // 3. Lesson Plan
-      if (label) label.textContent = 'Gerando Lesson Plan… (3/3)';
       _startGenTimer(label, 'Gerando Lesson Plan… (3/3)');
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
         (partial) => { if (outPlan) outPlan.value = partial; });
-      _stopGenTimer();
+      const plTime = _stopPhaseTime();
       savedContent.lessonplan = planContent;
       if (outPlan) outPlan.value = planContent;
       const plpages = (planContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág.` : '');
+      _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág. · ${_fmtTime(plTime)}` : _fmtTime(plTime));
       addGeneratedFile('lessonplan', planContent);
       updateContentTabs();
 
@@ -3368,9 +3389,9 @@ function filterDashboard(type, el) {
 
 function filterDashboardFolder(folderId, el) {
   dashFolderFilter = folderId;
-  dashFilter       = 'folder';
+  dashFilter       = 'all'; // reset type filter when entering folder
   document.querySelectorAll('#pg-dashboard .folder-item').forEach(i => i.classList.remove('active'));
-  // Clear type tabs — folder filter replaces type filter
+  // Reset type tabs to "Todos"
   document.querySelectorAll('.dash-type-tab').forEach(b => b.classList.remove('active'));
   const todosTab = document.querySelector('.dash-type-tab[onclick*="\'all\'"]');
   if (todosTab) todosTab.classList.add('active');
@@ -3394,9 +3415,17 @@ let dashViewMode = 'grid';
 let _createMenuOpen = false;
 
 function setDashType(type, el) {
-  filterDashboard(type, el);
+  // Update type filter WITHOUT resetting folder context
+  dashFilter = type;
   document.querySelectorAll('.dash-type-tab').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
+  // Update breadcrumb only if not inside a folder
+  if (!dashFolderFilter) {
+    const labels = { all: 'Todos os arquivos', lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+    const bc = document.getElementById('dash-breadcrumb-label');
+    if (bc) bc.textContent = labels[type] || 'Todos os arquivos';
+  }
+  refreshDashboard();
 }
 
 function setDashSortSel(val) {
@@ -3781,16 +3810,15 @@ function refreshDashboard() {
     ? items.filter(r => _isUpscaled(r.filename))
     : items.filter(r => !_isUpscaled(r.filename));
 
-  // Filter images by folder / type
-  // Rule: files in folders ONLY appear when navigating into that folder
-  if (dashFolderFilter !== null && dashFilter === 'folder') {
+  // Filter images — files in folders only appear when inside that folder
+  if (dashFolderFilter !== null) {
+    // Inside a folder: show only files of this folder, then apply type filter on top
     items = items.filter(r => Number(r.folderId) === Number(dashFolderFilter));
-  } else if (dashFilter !== 'all') {
-    // Type tab: show only unfiled files of that type
-    items = items.filter(r => r.docType === dashFilter && !r.folderId);
+    if (dashFilter !== 'all') items = items.filter(r => r.docType === dashFilter);
   } else {
-    // "Todos": unfiled files only
+    // Root: only unfiled files, then apply type filter on top
     items = items.filter(r => !r.folderId);
+    if (dashFilter !== 'all') items = items.filter(r => r.docType === dashFilter);
   }
   if (search) {
     items = items.filter(r =>
@@ -3886,10 +3914,30 @@ function refreshDashboard() {
       grid.appendChild(div);
       return;
     }
+    // Detect persisted TXT files (saved as data:text/plain or .txt filename)
+    if ((r.url || '').startsWith('data:text/') || (r.filename || '').endsWith('.txt')) {
+      const typ  = typeLabel[r.docType] || '';
+      const meta = [typ, 'TXT', _relTime(r.ts)].filter(Boolean).join(' · ');
+      const div  = document.createElement('div');
+      div.className = 'dash-card txt-card' + (isSel(r.key) ? ' selected' : '');
+      div.dataset.key = r.key;
+      div.innerHTML = `
+        <div class="dash-card-check-wrap"><input type="checkbox" ${isSel(r.key) ? 'checked' : ''} onchange="toggleDashSelect('${r.key}',this.checked,event)" /></div>
+        <div class="dash-card-thumb"></div>
+        <div class="dash-card-info">
+          <div class="dash-card-text">
+            <div class="dash-card-title">${esc(r.filename || r.title || 'Arquivo')}</div>
+            <div class="dash-card-meta">${esc(meta)}</div>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'arquivo.txt')}" title="Baixar TXT">⬇</a>
+        </div>`;
+      grid.appendChild(div);
+      return;
+    }
+
     const s    = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
     const fmt  = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
     const typ  = typeLabel[r.docType] || '';
-    // Format: [Page X][Type] — title (or customTitle)
     const rawTitle = r.customTitle || r.title || '';
     const pageTag  = r.pageNum ? `[Pág. ${r.pageNum}]` : '';
     const typeTag  = typ ? `[${typ}]` : '';
