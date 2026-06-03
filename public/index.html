@@ -1484,16 +1484,8 @@
               <button class="btn btn-danger" id="btn-claude-stop" style="display:none;" onclick="stopClaudeGeneration()">⏹ Parar</button>
               <div class="prog-wrap" id="claude-prog-wrap" style="display:none;">
                 <div class="prog-track"><div class="prog-fill" id="claude-prog-fill" style="width:100%;animation:shimmer 1.5s ease infinite;"></div></div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                  <div class="prog-label" id="claude-prog-label">Gerando com Claude…</div>
-                  <span id="claude-timer" style="font-size:12px;font-weight:600;color:var(--primary);font-variant-numeric:tabular-nums;white-space:nowrap;">⏱ 0s</span>
-                </div>
+                <div class="prog-label" id="claude-prog-label">Gerando com Claude…</div>
               </div>
-            </div>
-            <!-- Resumo pós-geração -->
-            <div id="claude-gen-summary" style="display:none;font-size:12px;color:var(--muted);padding:6px 0;display:flex;align-items:center;gap:8px;">
-              <span id="claude-summary-text"></span>
-            </div>
             </div>
           </div>
         </div>
@@ -3002,9 +2994,7 @@ async function callClaudeAPI(docType, userInput, systemPrompt, onChunk) {
 
 // ── Content generation timer ───────────────────────────────────────────────
 let _genTimerInterval = null;
-let _genPhaseStart    = 0;
-let _genTotalStart    = 0;
-const _genPhaseTimes  = {};
+let _genTimerStart    = 0;
 
 function _fmtTime(ms) {
   const s = Math.round(ms / 1000);
@@ -3012,37 +3002,18 @@ function _fmtTime(ms) {
   return m > 0 ? `${m}m ${s % 60 < 10 ? '0' : ''}${s % 60}s` : `${s}s`;
 }
 
-function _startPhaseTimer(labelEl, phaseText) {
-  _genPhaseStart = Date.now();
+function _startGenTimer(labelEl, baseText) {
+  _genTimerStart = Date.now();
   clearInterval(_genTimerInterval);
-  const timerEl = document.getElementById('claude-timer');
   _genTimerInterval = setInterval(() => {
-    const elapsed = Date.now() - _genPhaseStart;
-    if (timerEl) timerEl.textContent = `⏱ ${_fmtTime(elapsed)}`;
-    if (labelEl) labelEl.textContent = phaseText;
-  }, 500);
+    const elapsed = Date.now() - _genTimerStart;
+    if (labelEl) labelEl.textContent = `${baseText} · ⏱ ${_fmtTime(elapsed)}`;
+  }, 1000);
 }
 
-function _stopPhaseTimer(key) {
+function _stopGenTimer() {
   clearInterval(_genTimerInterval);
   _genTimerInterval = null;
-  const elapsed = Date.now() - _genPhaseStart;
-  if (key) _genPhaseTimes[key] = elapsed;
-  return elapsed;
-}
-
-function _showGenSummary() {
-  const totalMs  = Date.now() - _genTotalStart;
-  const summaryEl = document.getElementById('claude-gen-summary');
-  const textEl    = document.getElementById('claude-summary-text');
-  if (!summaryEl || !textEl) return;
-  const parts = [];
-  if (_genPhaseTimes.lesson)     parts.push(`Lesson: ${_fmtTime(_genPhaseTimes.lesson)}`);
-  if (_genPhaseTimes.practice)   parts.push(`Activities: ${_fmtTime(_genPhaseTimes.practice)}`);
-  if (_genPhaseTimes.lessonplan) parts.push(`Lesson Plan: ${_fmtTime(_genPhaseTimes.lessonplan)}`);
-  const detail = parts.length > 1 ? ` (${parts.join(', ')})` : '';
-  textEl.textContent = `⏱ Total: ${_fmtTime(totalMs)}${detail}`;
-  summaryEl.style.display = 'flex';
 }
 
 async function generateContent() {
@@ -3050,14 +3021,6 @@ async function generateContent() {
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
   const baseInput = document.getElementById('claude-input')?.value.trim() || '';
   if (!baseInput) { toast('Preencha a descrição da aula.', 'warn'); return; }
-
-  // Reset timer state
-  _genTotalStart = Date.now();
-  Object.keys(_genPhaseTimes).forEach(k => delete _genPhaseTimes[k]);
-  const timerEl = document.getElementById('claude-timer');
-  if (timerEl) timerEl.textContent = '⏱ 0s';
-  const summaryEl = document.getElementById('claude-gen-summary');
-  if (summaryEl) summaryEl.style.display = 'none';
 
   const btnGen  = document.getElementById('btn-claude-gen');
   const btnStop = document.getElementById('btn-claude-stop');
@@ -3093,38 +3056,41 @@ async function generateContent() {
       if (allOut) allOut.style.display = 'flex';
 
       // 1. Lesson
-      _startPhaseTimer(label, 'Gerando Lesson… (1/3)');
+      if (label) label.textContent = 'Gerando Lesson… (1/3)';
+      _startGenTimer(label, 'Gerando Lesson… (1/3)');
       const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
         (partial) => { if (outLesson) outLesson.value = partial; });
-      const lTime = _stopPhaseTimer('lesson');
+      _stopGenTimer();
       savedContent.lesson = lessonContent;
       if (outLesson) outLesson.value = lessonContent;
       const lpages = (lessonContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-lesson', lpages ? `${lpages} pág. · ${_fmtTime(lTime)}` : `${_fmtTime(lTime)}`);
+      _setBadge('all-badge-lesson', lpages ? `${lpages} pág.` : '');
       addGeneratedFile('lesson', lessonContent);
       updateContentTabs();
 
       // 2. Activities
-      _startPhaseTimer(label, 'Gerando Activities… (2/3)');
+      if (label) label.textContent = 'Gerando Activities… (2/3)';
+      _startGenTimer(label, 'Gerando Activities… (2/3)');
       const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
         (partial) => { if (outPractice) outPractice.value = partial; });
-      const pTime = _stopPhaseTimer('practice');
+      _stopGenTimer();
       savedContent.practice = practiceContent;
       if (outPractice) outPractice.value = practiceContent;
       const ppages = (practiceContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-practice', ppages ? `${ppages} pág. · ${_fmtTime(pTime)}` : `${_fmtTime(pTime)}`);
+      _setBadge('all-badge-practice', ppages ? `${ppages} pág.` : '');
       addGeneratedFile('practice', practiceContent);
       updateContentTabs();
 
       // 3. Lesson Plan
-      _startPhaseTimer(label, 'Gerando Lesson Plan… (3/3)');
+      if (label) label.textContent = 'Gerando Lesson Plan… (3/3)';
+      _startGenTimer(label, 'Gerando Lesson Plan… (3/3)');
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
         (partial) => { if (outPlan) outPlan.value = partial; });
-      const plTime = _stopPhaseTimer('lessonplan');
+      _stopGenTimer();
       savedContent.lessonplan = planContent;
       if (outPlan) outPlan.value = planContent;
       const plpages = (planContent.match(/^--PAGE /gm) || []).length;
-      _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág. · ${_fmtTime(plTime)}` : `${_fmtTime(plTime)}`);
+      _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág.` : '');
       addGeneratedFile('lessonplan', planContent);
       updateContentTabs();
 
@@ -3132,12 +3098,12 @@ async function generateContent() {
       sbSaveContent('lesson',     lessonContent);
       sbSaveContent('practice',   practiceContent);
       sbSaveContent('lessonplan', planContent);
-      _showGenSummary();
       toast('Lesson + Activities + Lesson Plan gerados!', 'ok');
 
     } else {
       // ── Geração individual ──────────────────────────────────────────────
-      _startPhaseTimer(label, 'Gerando com Claude…');
+      if (label) label.textContent = 'Gerando com Claude…';
+      _startGenTimer(label, 'Gerando com Claude…');
       const ctxLesson   = savedContent.lesson   || document.getElementById('ctx-lesson')?.value.trim()   || null;
       const ctxPractice = savedContent.practice || document.getElementById('ctx-practice')?.value.trim() || null;
       const userInput    = buildClaudeUserPrompt(baseInput,
@@ -3152,12 +3118,11 @@ async function generateContent() {
       if (contentDocType === 'lesson')     savedContent.lesson     = content;
       if (contentDocType === 'practice')   savedContent.practice   = content;
       if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
-      const singleTime = _stopPhaseTimer(contentDocType);
+      _stopGenTimer();
       updateContentTabs();
       if (outputEl) outputEl.value = content;
       sbSaveContent(contentDocType, content);
       addGeneratedFile(contentDocType, content);
-      _showGenSummary();
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
 
@@ -3172,17 +3137,13 @@ async function generateContent() {
     }
 
   } catch (e) {
-    _stopPhaseTimer();
     if (e.name !== 'AbortError') toast(e.message || 'Erro de conexão.', 'err');
   } finally {
-    clearInterval(_genTimerInterval);
-    _genTimerInterval = null;
+    _stopGenTimer();
     btnGen.style.display  = '';
     btnStop.style.display = 'none';
     prog.style.display    = 'none';
     if (label) label.textContent = 'Gerando com Claude…';
-    const timerEl = document.getElementById('claude-timer');
-    if (timerEl) timerEl.textContent = '⏱ 0s';
     claudeAbortCtrl = null;
   }
 }
