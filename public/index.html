@@ -841,10 +841,98 @@
     .dash-folder-menu-item:hover { background: var(--surface2); }
 
     /* ── Upscale page ── */
+    /* ── Upscale page ── */
+    .upscale-layout { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    .upscale-drop-zone {
+      border: 2px dashed var(--border2); border-radius: 16px;
+      background: var(--surface2); min-height: 300px; position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; transition: border-color .2s, background .2s; overflow: hidden;
+    }
+    .upscale-drop-zone.drag-over { border-color: var(--primary); background: rgba(99,102,241,.06); }
+    .upscale-zone-actions {
+      position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 1;
+    }
+    .upscale-zone-btn {
+      padding: 7px 18px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--text);
+      transition: all .12s; display: flex; align-items: center; gap: 6px;
+    }
+    .upscale-zone-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .upscale-zone-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .upscale-zone-btn.primary:hover { opacity: .88; }
+    .upscale-zone-icon { font-size: 56px; opacity: .18; margin-top: 20px; }
+    .upscale-zone-hint { font-size: 13px; color: var(--muted); text-align: center; }
+    .upscale-queue-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px;
+      padding: 16px; width: 100%; box-sizing: border-box;
+    }
+    .upscale-q-item {
+      aspect-ratio: 1; border-radius: 8px; overflow: hidden; position: relative;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .upscale-q-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .upscale-q-del {
+      position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(0,0,0,.65); border: none; color: #fff; font-size: 11px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity .15s;
+    }
+    .upscale-q-item:hover .upscale-q-del { opacity: 1; }
+    .upscale-options-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .upscale-scale-btns { display: flex; gap: 6px; }
+    .upscale-scale-btn {
+      padding: 7px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface2); color: var(--text);
+      transition: all .12s;
+    }
+    .upscale-scale-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .upscale-scale-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    /* Storage Library modal */
+    .storage-modal-bg {
+      position: fixed; inset: 0; z-index: 700; background: rgba(0,0,0,.6);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .storage-modal {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+      width: min(880px, 95vw); max-height: 78vh; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+    }
+    .storage-modal-head {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+    }
+    .storage-modal-head h3 { font-size: 15px; font-weight: 700; margin: 0; }
+    .storage-modal-body { display: flex; flex: 1; min-height: 0; }
+    .storage-modal-sub {
+      width: 190px; flex-shrink: 0; border-right: 1px solid var(--border);
+      overflow-y: auto; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px;
+    }
+    .storage-modal-grid {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; align-content: start;
+    }
+    .storage-item {
+      aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer;
+      border: 2px solid transparent; background: var(--surface2); position: relative; transition: border-color .15s;
+    }
+    .storage-item:hover { border-color: var(--border2); }
+    .storage-item.sel { border-color: var(--primary); }
+    .storage-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .storage-item-check {
+      position: absolute; top: 5px; right: 5px; width: 20px; height: 20px; border-radius: 50%;
+      background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; opacity: 0; transition: opacity .12s;
+    }
+    .storage-item.sel .storage-item-check { opacity: 1; }
+    .storage-modal-foot {
+      padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    /* ── old upscale rows kept for compat ── */
     .upscale-img-row {
       display: flex; align-items: center; gap: 12px;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px;
     }
     .upscale-img-row img { width: 44px; height: 62px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
     .upscale-img-info { flex: 1; min-width: 0; }
@@ -1083,15 +1171,6 @@
         <div class="dash-sub-nav">
           <div class="folder-item active" id="dash-nav-all" onclick="filterDashboard('all',this)">
             <span>⊞</span><span>Todos os arquivos</span>
-          </div>
-          <div class="folder-item" onclick="filterDashboard('lesson',this)">
-            <span>📖</span><span>Lesson</span>
-          </div>
-          <div class="folder-item" onclick="filterDashboard('practice',this)">
-            <span>✏️</span><span>Practice Activities</span>
-          </div>
-          <div class="folder-item" onclick="filterDashboard('lessonplan',this)">
-            <span>📋</span><span>Lesson Plan</span>
           </div>
         </div>
 
@@ -1657,49 +1736,107 @@
        PAGE: UPSCALE
   ══════════════════════════════════════════════ -->
   <div class="pg" id="pg-upscale">
-    <div class="pg-content">
+    <div class="upscale-layout">
 
-      <div class="card">
-        <div class="card-head"><h2>⬆ Upscale de Imagens</h2></div>
+      <!-- Drop zone -->
+      <div class="upscale-drop-zone" id="upscale-zone"
+        ondragover="event.preventDefault();this.classList.add('drag-over')"
+        ondragleave="this.classList.remove('drag-over')"
+        ondrop="upscaleHandleDrop(event)">
+
+        <!-- Action buttons -->
+        <div class="upscale-zone-actions">
+          <label class="upscale-zone-btn" style="cursor:pointer;">
+            ⬆ Upload
+            <input type="file" accept="image/*" multiple style="display:none" onchange="upscaleHandleUpload(this.files)" />
+          </label>
+          <button class="upscale-zone-btn" onclick="openStorageLibrary()">📂 Storage Library</button>
+        </div>
+
+        <!-- Empty state -->
+        <div id="upscale-empty-state">
+          <div class="upscale-zone-icon">🖼</div>
+          <div class="upscale-zone-hint">Arraste imagens aqui, faça upload<br>ou escolha da Storage Library</div>
+        </div>
+
+        <!-- Queue thumbnails (shown when images added) -->
+        <div id="upscale-queue-grid" class="upscale-queue-grid" style="display:none;"></div>
+      </div>
+
+      <!-- Model + Scale options -->
+      <div class="card" style="padding:0;">
         <div class="card-body" style="display:flex;flex-direction:column;gap:16px;">
-          <p class="hint">Selecione imagens abaixo e escolha o fator de escala. Gere imagens primeiro na página <strong>Gerar</strong>.</p>
 
-          <!-- Modelo e botões -->
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:12px;color:var(--muted);white-space:nowrap;">Modelo:</span>
-              <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();" style="font-size:12px;padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);">
-                <optgroup label="Topaz Image Upscale">
-                  <option value="topaz:Standard V2">Topaz — Standard V2</option>
-                  <option value="topaz:Low Resolution V2">Topaz — Low Res V2</option>
-                  <option value="topaz:CGI">Topaz — CGI</option>
-                  <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
-                  <option value="topaz:Text Refine">Topaz — Text Refine</option>
-                </optgroup>
-                <optgroup label="Outros Modelos">
-                  <option value="google/upscaler">Google Upscaler</option>
-                  <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
-                  <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
-                  <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
-                  <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
-                  <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
-                  <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
-                </optgroup>
-              </select>
-            </label>
-            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(2)">⬆ 2×</button>
-            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(4)">⬆ 4×</button>
-            <button class="btn btn-ghost btn-sm" onclick="upscaleSelectedPg(6)">⬆ 6×</button>
-            <button class="btn btn-primary btn-sm" style="margin-left:auto;" onclick="selectAllUpscale(true)">Selecionar todas</button>
+          <div class="fg">
+            <label>Modelo de Upscale</label>
+            <select id="upscale-model-pg" onchange="document.getElementById('upscale-model').value=this.value;onUpscaleModelChange();" style="font-size:13px;padding:8px 10px;">
+              <optgroup label="Topaz Image Upscale">
+                <option value="topaz:Standard V2">Topaz — Standard V2</option>
+                <option value="topaz:Low Resolution V2">Topaz — Low Resolution V2</option>
+                <option value="topaz:CGI">Topaz — CGI</option>
+                <option value="topaz:High Fidelity V2">Topaz — High Fidelity V2</option>
+                <option value="topaz:Text Refine">Topaz — Text Refine</option>
+              </optgroup>
+              <optgroup label="Outros Modelos">
+                <option value="google/upscaler">Google Upscaler</option>
+                <option value="nightmareai/real-esrgan" selected>Real-ESRGAN</option>
+                <option value="philz1337x/clarity-upscaler">Clarity Pro Upscaler</option>
+                <option value="recraft-ai/recraft-crisp-upscale">Recraft Crisp Upscale</option>
+                <option value="afiaka87/crystal-upscaler">Crystal Upscaler</option>
+                <option value="recraft-ai/recraft-creative-upscale">Recraft Creative Upscale</option>
+                <option value="prunaai/image-upscale">PrunaAI Image Upscale</option>
+              </optgroup>
+            </select>
           </div>
 
-          <!-- Lista de imagens -->
-          <div id="upscale-img-list" style="display:flex;flex-direction:column;gap:8px;">
-            <div class="empty"><span class="ico">🖼</span><p>Nenhuma imagem gerada ainda</p></div>
+          <div>
+            <label style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:8px;">Escala</label>
+            <div class="upscale-scale-btns">
+              <button class="upscale-scale-btn active" id="scale-btn-2" onclick="setUpscaleScale(2,this)">2×</button>
+              <button class="upscale-scale-btn" id="scale-btn-4" onclick="setUpscaleScale(4,this)">4×</button>
+              <button class="upscale-scale-btn" id="scale-btn-6" onclick="setUpscaleScale(6,this)">6×</button>
+            </div>
           </div>
+
+          <button class="btn btn-primary" id="btn-run-upscale" onclick="runUpscaleQueue()" disabled
+            style="align-self:flex-start;padding:10px 28px;font-size:14px;">
+            ⬆ Fazer Upscale
+          </button>
         </div>
       </div>
 
+      <!-- Hidden list for compat -->
+      <div id="upscale-img-list" style="display:none;"></div>
+
+    </div>
+  </div>
+
+  <!-- Storage Library Modal -->
+  <div class="storage-modal-bg" id="storage-modal" style="display:none" onclick="if(event.target===this)closeStorageLibrary()">
+    <div class="storage-modal">
+      <div class="storage-modal-head">
+        <h3>📂 Storage Library</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeStorageLibrary()">✕</button>
+      </div>
+      <div class="storage-modal-body">
+        <!-- Sidebar: folders -->
+        <div class="storage-modal-sub" id="storage-modal-sub">
+          <div class="folder-item active" id="slib-all" onclick="storageLibFilter(null,this)" style="font-size:12px;">
+            <span>⊞</span><span>Todos</span>
+          </div>
+        </div>
+        <!-- Grid: images -->
+        <div class="storage-modal-grid" id="storage-modal-grid">
+          <div class="empty" style="grid-column:1/-1;"><span class="ico">🖼</span><p>Nenhuma imagem</p></div>
+        </div>
+      </div>
+      <div class="storage-modal-foot">
+        <span id="slib-count" style="font-size:13px;color:var(--muted);">0 selecionadas</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="closeStorageLibrary()">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmStorageLibrary()">Adicionar selecionadas</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2937,50 +3074,145 @@ async function loadPersistedImages() {
 }
 
 // ── Upscale page ───────────────────────────────────────────────────────────
-let upscaleSelection = new Set();
-function refreshUpscalePage() {
-  const list = document.getElementById('upscale-img-list');
-  if (!list) return;
-  const items = Object.entries(results).filter(([k,r]) => r && r.url);
+// ── Upscale page — new implementation ─────────────────────────────────────
+let upscaleSelection = new Set(); // kept for compat with Gerar toolbar
+let upscaleQueue = [];            // [{ key, url, filename, label }]
+let _upscaleScale = 2;
+let _slibFilter   = null;         // null = all, folder id = that folder
+let _slibSelected = new Set();    // keys selected in storage library
+
+function refreshUpscalePage() { /* replaced by new queue UI */ }
+
+function setUpscaleScale(n, el) {
+  _upscaleScale = n;
+  document.querySelectorAll('.upscale-scale-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function _renderUpscaleQueue() {
+  const grid   = document.getElementById('upscale-queue-grid');
+  const empty  = document.getElementById('upscale-empty-state');
+  const runBtn = document.getElementById('btn-run-upscale');
+  if (!grid) return;
+  const has = upscaleQueue.length > 0;
+  grid.style.display  = has ? 'grid' : 'none';
+  if (empty) empty.style.display = has ? 'none' : '';
+  if (runBtn) runBtn.disabled = !has;
+  grid.innerHTML = upscaleQueue.map((item, i) => `
+    <div class="upscale-q-item">
+      <img src="${esc(item.url)}" loading="lazy" />
+      <button class="upscale-q-del" onclick="upscaleQueueRemove(${i})" title="Remover">✕</button>
+    </div>`).join('');
+}
+
+function upscaleQueueRemove(i) {
+  upscaleQueue.splice(i, 1);
+  _renderUpscaleQueue();
+}
+
+function upscaleHandleUpload(files) {
+  Array.from(files).forEach(file => {
+    const url = URL.createObjectURL(file);
+    const key = `upload_${Date.now()}_${Math.random().toString(36).slice(2,6)}`;
+    results[key] = { url, originalUrl: url, filename: file.name, pageNum: null, title: file.name, docType: '', ts: Date.now() };
+    upscaleQueue.push({ key, url, filename: file.name, label: file.name });
+  });
+  _renderUpscaleQueue();
+}
+
+function upscaleHandleDrop(evt) {
+  evt.preventDefault();
+  document.getElementById('upscale-zone')?.classList.remove('drag-over');
+  const files = evt.dataTransfer.files;
+  if (files.length) upscaleHandleUpload(files);
+}
+
+function runUpscaleQueue() {
+  if (!upscaleQueue.length) return;
+  const keys = upscaleQueue.map(i => i.key);
+  selectedKeys.clear();
+  keys.forEach(k => selectedKeys.add(k));
+  updateSelectionUI();
+  upscaleSelected(_upscaleScale);
+  toast(`Upscale ${_upscaleScale}× iniciado para ${keys.length} imagem${keys.length>1?'ns':''}.`, 'ok');
+}
+
+// ── Storage Library ────────────────────────────────────────────────────────
+function openStorageLibrary() {
+  _slibFilter   = null;
+  _slibSelected = new Set();
+  _renderStorageLibSidebar();
+  _renderStorageLibGrid();
+  document.getElementById('storage-modal').style.display = 'flex';
+}
+
+function closeStorageLibrary() {
+  document.getElementById('storage-modal').style.display = 'none';
+}
+
+function storageLibFilter(folderId, el) {
+  _slibFilter = folderId;
+  document.querySelectorAll('#storage-modal-sub .folder-item').forEach(i => i.classList.remove('active'));
+  if (el) el.classList.add('active');
+  _renderStorageLibGrid();
+}
+
+function _renderStorageLibSidebar() {
+  const sub = document.getElementById('storage-modal-sub');
+  if (!sub) return;
+  const tree = _buildTree(dashFolders);
+  function renderNode(f, depth) {
+    return `<div class="folder-item" style="font-size:12px;padding-left:${10+depth*14}px" onclick="storageLibFilter(${f.id},this)">
+      <span>📂</span><span>${esc(f.name)}</span></div>
+      ${(f.children||[]).map(c => renderNode(c, depth+1)).join('')}`;
+  }
+  sub.innerHTML = `<div class="folder-item active" id="slib-all" onclick="storageLibFilter(null,this)" style="font-size:12px;">
+    <span>⊞</span><span>Todos</span></div>
+    ${tree.map(f => renderNode(f, 0)).join('')}`;
+}
+
+function _renderStorageLibGrid() {
+  const grid = document.getElementById('storage-modal-grid');
+  if (!grid) return;
+  let items = Object.entries(results).filter(([, r]) => r && r.url);
+  if (_slibFilter !== null) items = items.filter(([, r]) => r.folderId === _slibFilter);
   if (!items.length) {
-    list.innerHTML = '<div class="empty"><span class="ico">🖼</span><p>Nenhuma imagem gerada ainda — vá para <strong>Gerar</strong></p></div>';
+    grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ico">🖼</span><p>Nenhuma imagem</p></div>';
     return;
   }
-  list.innerHTML = '';
-  items.forEach(([key, r]) => {
-    const row = document.createElement('div');
-    row.className = 'upscale-img-row';
-    const hasUpscale = r.upscaleUrl;
-    row.innerHTML = `
-      <input type="checkbox" style="accent-color:var(--primary);flex-shrink:0;" onchange="toggleUpscaleSel('${key}',this.checked)" ${upscaleSelection.has(key)?'checked':''} />
-      <img src="${r.url}" />
-      <div class="upscale-img-info">
-        <div class="upscale-img-title">Pág. ${r.pageNum} — ${r.title||r.docType||''}</div>
-        <div class="upscale-img-status">${hasUpscale ? '✅ Upscale disponível' : '⏳ Aguardando upscale'}</div>
-      </div>
-      ${hasUpscale ? `<a href="${r.upscaleUrl}" download style="font-size:11px;color:var(--primary);">⬇ DL</a>` : ''}
-    `;
-    list.appendChild(row);
+  grid.innerHTML = items.map(([key, r]) => {
+    const sel = _slibSelected.has(key);
+    const lbl = r.customTitle || r.title || (r.pageNum ? `Pág. ${r.pageNum}` : key);
+    return `<div class="storage-item ${sel ? 'sel' : ''}" onclick="toggleSlibItem('${key}',this)" title="${esc(lbl)}">
+      <img src="${esc(r.url)}" loading="lazy" />
+      <div class="storage-item-check">✓</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSlibItem(key, el) {
+  if (_slibSelected.has(key)) { _slibSelected.delete(key); el.classList.remove('sel'); }
+  else                         { _slibSelected.add(key);    el.classList.add('sel');    }
+  const count = document.getElementById('slib-count');
+  if (count) count.textContent = `${_slibSelected.size} selecionada${_slibSelected.size !== 1 ? 's' : ''}`;
+  el.querySelector('.storage-item-check').style.opacity = _slibSelected.has(key) ? '1' : '0';
+}
+
+function confirmStorageLibrary() {
+  _slibSelected.forEach(key => {
+    if (!upscaleQueue.find(i => i.key === key)) {
+      const r = results[key];
+      if (r) upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label: r.customTitle || r.title || key });
+    }
   });
+  closeStorageLibrary();
+  _renderUpscaleQueue();
 }
-function toggleUpscaleSel(key, checked) {
-  if (checked) upscaleSelection.add(key); else upscaleSelection.delete(key);
-}
-function selectAllUpscale(val) {
-  upscaleSelection = val ? new Set(Object.keys(results).filter(k => results[k]?.url)) : new Set();
-  refreshUpscalePage();
-}
-function upscaleSelectedPg(factor) {
-  // Sincroniza seleção com o toolbar da página Gerar e dispara upscale
-  selectedKeys.clear();
-  upscaleSelection.forEach(k => selectedKeys.add(k));
-  document.querySelectorAll('.icard').forEach(c => {
-    const cb = c.querySelector('.icard-check');
-    if (cb) { const key = cb.onchange?.toString().match(/'([^']+)'/)?.[1]; if(key && selectedKeys.has(key)) cb.checked = true; }
-  });
-  updateSelectionUI();
-  upscaleSelected(factor);
-}
+
+// ── Legacy compat ─────────────────────────────────────────────────────────
+function toggleUpscaleSel(key, checked) { if (checked) upscaleSelection.add(key); else upscaleSelection.delete(key); }
+function selectAllUpscale(val) { upscaleSelection = val ? new Set(Object.keys(results).filter(k => results[k]?.url)) : new Set(); }
+function upscaleSelectedPg(factor) { _upscaleScale = factor; runUpscaleQueue(); }
 
 // ── Combinar (PDF builder) ─────────────────────────────────────────────────
 let combinarItems = []; // [{ key, pageNum, title, url, docType }]
