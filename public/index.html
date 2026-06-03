@@ -1707,20 +1707,160 @@ Uma LESSON que:
 10. ✓ Um professor americano compreende em 15 minutos
 11. ✓ Roteiro para aula de 45-50 minutos`,
 
-practice: `You are an expert 6th grade mathematics educator. Generate practice activity exercises for image generation.
+practice: `## VISÃO GERAL
 
-Output ONLY page blocks in this exact format (no intro, no explanation):
---PAGE 1 - [TITLE]--
+Você é um especialista em design instrucional CCSS. Gere um prompt completo com um conjunto de **PRACTICE ACTIVITIES** (10-15 questões) baseado em uma LESSON já criada. Cada questão:
 
-[Exercises, problems, activities]
+- Reforça conceitos da lesson correspondente
+- Varia em formato (múltipla escolha, aberta, V/F, análise, etc.)
+- É contextualizada em situações americanas realistas
+- **Especifica ilustração APENAS quando pedagogicamente essencial** (no próprio texto com [IMAGE: ...])
+- NÃO possui espaço, linhas ou área para resposta
+- É desafiadora mas acessível ao nível de grade
+- Está pronta para ser passada para a API de geração de imagens
 
-Rules:
-- Each page has 8-15 exercises of progressive difficulty
-- Include multiple choice, short answer, and word problems
-- NO answer lines, blanks, underscores, or checkboxes — questions only
-- Generate 2-4 pages
-- Titles in Sentence case, no emojis
-- 100% in English`,
+---
+
+## IDIOMA: 100% ENGLISH
+
+**OBRIGATÓRIO:**
+- ✅ Todas as questões em inglês
+- ✅ Todos os enunciados em inglês
+- ✅ Instruções em inglês
+
+---
+
+## QUANDO ESPECIFICAR ILUSTRAÇÃO NO TEXTO
+
+Quando uma questão REALMENTE PRECISA de ilustração para ser compreendida, inclua no texto do enunciado:
+
+\`\`\`
+[IMAGE: Detailed description of what should be illustrated]
+\`\`\`
+
+**Critério: Incluir [IMAGE: ...] APENAS quando:**
+- ✅ Imagem é ESSENCIAL para resolver a questão (não opcional)
+- ✅ Sem imagem, a questão fica ambígua ou incompleta
+- ✅ A imagem mostra dados/medidas/objetos que aluno precisa
+- ✅ Questão referencia "Look at...", "The table shows...", "The diagram shows..."
+
+**Critério: NÃO incluir [IMAGE: ...] quando:**
+- ❌ Questão é matemática pura (sem contexto visual)
+- ❌ Questão é clara sem imagem
+- ❌ Imagem seria decorativa ou "nice to have"
+
+---
+
+## VARIAÇÃO DE FORMATOS (Obrigatório misturar)
+
+**Total: 10-15 questões, distribuídas entre:**
+
+1. **Multiple Choice** (2-3 questões)
+2. **Open-Ended** (3-4 questões)
+3. **True or False** (1-2 questões)
+4. **Fill-in-the-Blank** (1-2 questões)
+5. **Matching** (1 questão)
+6. **Problem-Solving with Steps** (2-3 questões)
+7. **Real-World Scenario with Data** (1-2 questões)
+8. **Error Identification** (1 questão)
+
+---
+
+## ESTRUTURA DO DOCUMENTO
+
+Formatação obrigatória:
+
+--PAGE 1--
+
+Practice Activities
+
+1. [Questão 1]
+2. [Questão 2]
+[Continua até 5-6 questões por página]
+
+--PAGE 2--
+
+[Questões 6-11 ou 7-12]
+
+--PAGE FINAL--
+
+ANSWER KEY
+
+1. [Resposta comentada e argumentada]
+2. [Resposta comentada e argumentada]
+...
+
+Se o Answer Key ficar extenso, divida em duas páginas.
+
+---
+
+## DISTRIBUIÇÃO DE QUESTÕES POR PÁGINA
+
+- PAGE 1: Questões 1-5/6 (~220-240mm conteúdo)
+- PAGE 2: Questões 6/7-11/12 (~220-240mm conteúdo)
+- PAGE 3+: Questões restantes (~160-200mm)
+- ÚLTIMA PAGE: Answer Key separada (~240-260mm)
+
+⚠️ Se conteúdo em página < 120mm: Deixe espaço em branco (NORMAL, não preencha)
+
+---
+
+## PROGRESSÃO DE DIFICULDADE
+
+**Questões 1-5:** Iniciante — Identificar variáveis, expressões simples, componentes básicos
+**Questões 6-10:** Intermediário — Múltiplas operações, verificar expressões, 2-3 passos
+**Questões 11-15:** Avançado — Expressões complexas, análise crítica, situações multi-etapa
+
+---
+
+## CONTEXTO: 100% AMERICANO
+
+- ✅ Moeda: US Dollar ($)
+- ✅ Medidas: inches, feet, miles, pounds, Fahrenheit
+- ✅ Nomes: Maya, Marcus, Alex, Jordan, etc.
+- ✅ Contextos: escolas americanas, lojas, situações USA
+- ❌ Sem outras moedas, medidas métricas ou contextos estrangeiros
+
+---
+
+## ESPECIFICAÇÃO DE ILUSTRAÇÕES
+
+Quando incluir [IMAGE: ...], descrever com detalhe técnico:
+
+[IMAGE: Photo of digital kitchen scale showing 3.5 lbs on large LED display, white background, clear numbers visible, professional product photography, realistic lighting, high contrast]
+
+[IMAGE: Clean technical table with borders showing: Job | Hourly Rate / Babysitting | $15/hour / Tutoring | $20/hour / Dog walking | $12/hour — Black text on white background, professional typography, clear grid lines]
+
+---
+
+## RESPOSTA E ESPAÇO
+
+❌ NUNCA inclua: linhas em branco, sublinhados, parênteses vazios, pontilhados, caixas para preenchimento, qualquer espaço para escrita.
+
+✅ SEMPRE termine questão com ponto final ou última opção (sem espaço após).
+
+---
+
+## ANSWER KEY (ÚLTIMA PÁGINA)
+
+- Separada das questões
+- Respostas completas, comentadas e argumentadas
+- Inclui passos para problem-solving
+- Não aparece nas páginas de questões
+
+---
+
+## RESULTADO ESPERADO
+
+1. ✓ 10-15 questões variadas
+2. ✓ 100% em inglês
+3. ✓ Mistura múltiplos formatos
+4. ✓ [IMAGE: ...] APENAS quando essencial
+5. ✓ Nenhum espaço para resposta
+6. ✓ Distribuído em 2-3 páginas + Answer Key separada
+7. ✓ Progressão de dificuldade
+8. ✓ Contexto 100% americano
+9. ✓ Pronto para API de geração de imagens (A4, 300 DPI)`,
 
 lessonplan: `You are an expert 6th grade mathematics curriculum designer. Generate a structured lesson plan for image generation.
 
