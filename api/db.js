@@ -22,6 +22,8 @@ module.exports = async function handler(req, res) {
   const sb     = sbForRequest(req);
   const action = req.query.action;
 
+  if (action === 'ping') return res.json({ ok: true, version: 'v4-folders', ts: Date.now() });
+
   // Resolve authenticated user_id from the JWT
   async function getUserId() {
     const { data } = await sb.auth.getUser();
