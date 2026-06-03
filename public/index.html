@@ -743,8 +743,11 @@
     <button class="nav-item" onclick="setPage('dashboard',this)">
       <span class="nav-icon">⊞</span><span>Dashboard</span>
     </button>
+    <button class="nav-item" onclick="setPage('conteudo',this)">
+      <span class="nav-icon">✦</span><span>Gerar Conteúdo</span>
+    </button>
     <button class="nav-item active" onclick="setPage('gerar',this)">
-      <span class="nav-icon">✦</span><span>Gerar</span>
+      <span class="nav-icon">🖼</span><span>Gerar Imagens</span>
     </button>
     <button class="nav-item" onclick="setPage('upscale',this)">
       <span class="nav-icon">⬆</span><span>Upscale</span>
@@ -813,6 +816,95 @@
   <!-- ══════════════════════════════════════════════
        PAGE: GERAR
   ══════════════════════════════════════════════ -->
+  <!-- ══════════════════════════════════════════════
+       PAGE: GERAR CONTEÚDO (Claude API)
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-conteudo">
+    <div class="gerar-layout">
+
+      <!-- ── COLUNA PRINCIPAL ── -->
+      <div class="gerar-main">
+
+        <!-- Instrução -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Descrição da Aula</h2>
+            <span class="pg-badge" id="conteudo-badge" style="display:none;"></span>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <p class="hint">Descreva o tema, objetivos e contexto da aula. O Claude vai gerar o conteúdo formatado pronto para gerar as imagens.</p>
+            <textarea id="claude-input" rows="6"
+              placeholder="Ex: Expressões algébricas — introduzir variáveis, coeficientes e como escrever expressões a partir de situações reais. Os alunos já sabem multiplicação e adição..."></textarea>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <button class="btn btn-primary" id="btn-claude-gen" onclick="generateContent()">✦ Gerar com Claude</button>
+              <button class="btn btn-danger" id="btn-claude-stop" style="display:none;" onclick="stopClaudeGeneration()">⏹ Parar</button>
+              <div class="prog-wrap" id="claude-prog-wrap" style="display:none;">
+                <div class="prog-track"><div class="prog-fill" id="claude-prog-fill" style="width:100%;animation:shimmer 1.5s ease infinite;"></div></div>
+                <div class="prog-label" id="claude-prog-label">Gerando com Claude…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output -->
+        <div class="card" id="claude-output-card" style="display:none;">
+          <div class="card-head">
+            <h2>Conteúdo Gerado</h2>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-ghost btn-sm" onclick="copyClaudeOutput()">⎘ Copiar</button>
+              <button class="btn btn-primary btn-sm" onclick="sendToGerar()">→ Usar no Gerar Imagens</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <textarea id="claude-output" rows="24" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="O conteúdo gerado aparecerá aqui…"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /gerar-main -->
+
+      <!-- ── SIDEBAR DIREITA ── -->
+      <div class="gerar-sidebar">
+
+        <!-- Tipo de Documento -->
+        <div class="card">
+          <div class="card-head"><h2>Tipo de Documento</h2></div>
+          <div class="card-body" style="padding:8px;">
+            <div class="claude-doc-tabs tabs" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
+              <button class="tab-btn active" onclick="setContentDocType('all',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
+              <button class="tab-btn" onclick="setContentDocType('lesson',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
+              <button class="tab-btn" onclick="setContentDocType('practice',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Activities</button>
+              <button class="tab-btn" onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson Plan</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Claude settings -->
+        <div class="card">
+          <div class="card-head"><h2>Modelo Claude</h2></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="fg">
+              <label>Modelo</label>
+              <select id="claude-model" style="font-size:12px;padding:6px 8px;">
+                <option value="claude-opus-4-8">Claude Opus 4.8 — mais capaz</option>
+                <option value="claude-sonnet-4-6" selected>Claude Sonnet 4.6 ⭐ recomendado</option>
+                <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — mais rápido</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>API Key (Anthropic)</label>
+              <select id="apiKey-select-anthropic" onchange="onApiKeySelect('anthropic')" style="font-size:12px;padding:6px 8px;">
+                <option value="">🔒 Desbloqueie o cofre</option>
+              </select>
+            </div>
+            <p class="hint" style="margin:0;">Adicione sua key Anthropic no cofre em <strong>Configurações</strong>.</p>
+          </div>
+        </div>
+
+      </div><!-- /gerar-sidebar -->
+
+    </div><!-- /gerar-layout -->
+  </div><!-- /pg-conteudo -->
+
   <div class="pg active" id="pg-gerar">
     <div class="gerar-layout">
 
@@ -1229,7 +1321,7 @@
                 <div class="form-row">
                   <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
                   <div class="fg"><label>Provider</label>
-                    <select id="new-key-provider"><option value="openai">OpenAI</option><option value="replicate">Replicate</option></select>
+                    <select id="new-key-provider"><option value="openai">OpenAI</option><option value="replicate">Replicate</option><option value="anthropic">Anthropic (Claude)</option></select>
                   </div>
                 </div>
                 <div class="fg"><label>API Key</label><input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" /></div>
@@ -1314,7 +1406,120 @@
 <script>
 // ── Navegação entre páginas ────────────────────────────────────────────────
 
-const PAGE_TITLES = { dashboard:'Dashboard', gerar:'Gerar', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
+const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'Gerar Imagens', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
+
+// ── Gerar Conteúdo (Claude API) ────────────────────────────────────────────
+
+let contentDocType = 'all';
+let claudeAbortCtrl = null;
+
+function setContentDocType(type, el) {
+  contentDocType = type;
+  document.querySelectorAll('.claude-doc-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+}
+
+function getClaudeApiKey() {
+  const sel = document.getElementById('apiKey-select-anthropic');
+  const id  = sel?.value;
+  if (!id || id === '__add__') return null;
+  const key = vaultKeys.find(k => k.id === id);
+  return key?.value || null;
+}
+
+async function generateContent() {
+  const apiKey = getClaudeApiKey();
+  if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
+  const input = document.getElementById('claude-input')?.value.trim();
+  if (!input) { toast('Descreva o conteúdo da aula primeiro.', 'warn'); return; }
+
+  const model  = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
+  const unit   = document.getElementById('unit')?.value   || '';
+  const lesson = document.getElementById('lesson')?.value || '';
+  const ccss   = document.getElementById('ccss')?.value   || '';
+
+  // UI: loading
+  const btnGen  = document.getElementById('btn-claude-gen');
+  const btnStop = document.getElementById('btn-claude-stop');
+  const prog    = document.getElementById('claude-prog-wrap');
+  btnGen.style.display  = 'none';
+  btnStop.style.display = '';
+  prog.style.display    = '';
+
+  claudeAbortCtrl = new AbortController();
+
+  try {
+    const res = await fetch('/api/claude', {
+      method: 'POST',
+      signal: claudeAbortCtrl.signal,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey, model, docType: contentDocType, userInput: input, unit, lesson, ccss }),
+    });
+    const data = await res.json();
+
+    if (!res.ok) { toast(data.error || 'Erro na API Claude.', 'err'); return; }
+
+    const output = document.getElementById('claude-output');
+    const card   = document.getElementById('claude-output-card');
+    if (output) output.value = data.content || '';
+    if (card)   card.style.display = '';
+
+    const badge = document.getElementById('conteudo-badge');
+    if (badge) {
+      const pages = (data.content.match(/^--PAGE /gm) || []).length;
+      badge.textContent = `${pages} página${pages !== 1 ? 's' : ''}`;
+      badge.style.display = pages ? '' : 'none';
+      badge.className = 'pg-badge' + (pages ? ' has' : '');
+    }
+    toast('Conteúdo gerado com sucesso!', 'ok');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast(e.message || 'Erro de conexão.', 'err');
+  } finally {
+    btnGen.style.display  = '';
+    btnStop.style.display = 'none';
+    prog.style.display    = 'none';
+    claudeAbortCtrl = null;
+  }
+}
+
+function stopClaudeGeneration() {
+  claudeAbortCtrl?.abort();
+}
+
+function copyClaudeOutput() {
+  const output = document.getElementById('claude-output');
+  if (!output?.value) return;
+  navigator.clipboard.writeText(output.value).then(() => toast('Copiado!', 'ok'));
+}
+
+function sendToGerar() {
+  const content = document.getElementById('claude-output')?.value;
+  if (!content) { toast('Nenhum conteúdo para transferir.', 'warn'); return; }
+
+  // Detecta tipo e distribui nos textareas corretos
+  if (contentDocType === 'all') {
+    // Tenta separar seções por padrão
+    document.getElementById('prompt-lesson')?.value && null;
+    document.getElementById('prompt-lesson').value     = content;
+    document.getElementById('prompt-practice').value   = '';
+    document.getElementById('prompt-lessonplan').value = '';
+    onAllPromptInput('lesson');
+  } else if (contentDocType === 'lesson') {
+    document.getElementById('prompt-lesson').value = content;
+    onAllPromptInput('lesson');
+  } else if (contentDocType === 'practice') {
+    document.getElementById('prompt-practice').value = content;
+    onAllPromptInput('practice');
+  } else if (contentDocType === 'lessonplan') {
+    document.getElementById('prompt-lessonplan').value = content;
+    onAllPromptInput('lessonplan');
+  }
+
+  // Muda para página Gerar
+  const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
+  setPage('gerar', gerarBtn);
+  toast('Conteúdo transferido para Gerar Imagens!', 'ok');
+}
 
 function setPage(name, el) {
   document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
@@ -3306,7 +3511,7 @@ function vaultExists() { return !!localStorage.getItem(VAULT_SALT_KEY); }
 function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
 
 function updateApiKeySelects() {
-  ['openai', 'replicate'].forEach(prov => {
+  ['openai', 'replicate', 'anthropic'].forEach(prov => {
     const sel = document.getElementById(`apiKey-select-${prov}`);
     if (!sel) return;
     const currentVal = sel.value;
@@ -3422,10 +3627,10 @@ function renderVaultKeys() {
   }
   list.innerHTML = vaultKeys.map(k => `
     <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:18px;flex-shrink:0;">${k.provider === 'openai' ? '🤖' : '⚡'}</span>
+      <span style="font-size:18px;flex-shrink:0;">${k.provider === 'openai' ? '🤖' : k.provider === 'anthropic' ? '🟣' : '⚡'}</span>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(k.name)}</div>
-        <div style="font-size:11px;color:var(--muted);">${k.provider === 'openai' ? 'OpenAI' : 'Replicate'} · ${esc(k.value.slice(0,10))}••••</div>
+        <div style="font-size:11px;color:var(--muted);">${k.provider === 'openai' ? 'OpenAI' : k.provider === 'anthropic' ? 'Anthropic' : 'Replicate'} · ${esc(k.value.slice(0,10))}••••</div>
       </div>
       <button class="btn btn-ghost btn-sm" onclick="useVaultKey('${k.id}')">↳ Usar</button>
       <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);"
