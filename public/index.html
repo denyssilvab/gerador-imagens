@@ -5450,7 +5450,7 @@ function _overlayTextsForType(type) {
   const lesson = document.getElementById('lesson')?.value.trim() || '';
   const ccss   = document.getElementById('ccss')?.value.trim()   || '';
   const header = type === 'lessonplan'
-    ? `Unit ${unit} | Lesson ${lesson} | Lesson Plan`
+    ? `Unit ${unit} | Lesson Plan ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
   const footer = `Mathematics - 6th Grade | ${ccss}`;
   return { header, footer };
