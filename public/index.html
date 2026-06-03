@@ -2098,21 +2098,58 @@ function buildClaudeUserPrompt(baseInput, lessonCtx, practiceCtx) {
 }
 
 // Chama a API Claude e retorna o texto gerado (ou lança erro)
-async function callClaudeAPI(docType, userInput, systemPrompt) {
+async function callClaudeAPI(docType, userInput, systemPrompt, onChunk) {
   const apiKey = getClaudeApiKey();
   const model  = document.getElementById('claude-model')?.value || 'claude-sonnet-4-6';
+
   const res = await fetch('/api/claude', {
     method: 'POST',
     signal: claudeAbortCtrl.signal,
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ apiKey, model, docType, userInput, systemPrompt }),
   });
-  const raw = await res.text();
-  let data;
-  try { data = JSON.parse(raw); }
-  catch { throw new Error(raw.slice(0, 200) || `Erro inesperado na API (${docType})`); }
-  if (!res.ok) throw new Error(data.error || `Erro na API Claude (${docType})`);
-  return data.content || '';
+
+  const contentType = res.headers.get('content-type') || '';
+
+  // Resposta não-streaming → erro JSON
+  if (!contentType.includes('text/event-stream')) {
+    const raw = await res.text();
+    let data;
+    try { data = JSON.parse(raw); } catch { throw new Error(raw.slice(0, 200) || `Erro inesperado (${docType})`); }
+    throw new Error(data.error || `Erro na API Claude (${docType})`);
+  }
+
+  // Lê o stream SSE
+  const reader  = res.body.getReader();
+  const decoder = new TextDecoder();
+  let content = '';
+  let buffer  = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if (!raw) continue;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed.error) throw new Error(parsed.error);
+        if (parsed.text) {
+          content += parsed.text;
+          if (onChunk) onChunk(content);
+        }
+      } catch (e) {
+        if (e.message && !e.message.startsWith('Unexpected')) throw e;
+      }
+    }
+  }
+
+  return content;
 }
 
 async function generateContent() {
@@ -2138,31 +2175,36 @@ async function generateContent() {
       const card     = document.getElementById('claude-output-card');
       let combined   = '';
 
+      const sep = (title) => `${'─'.repeat(60)}\n${title}\n${'─'.repeat(60)}\n\n`;
+
       // 1. Lesson
       if (label) label.textContent = 'Gerando Lesson… (1/3)';
-      const lessonPrompt = buildClaudeUserPrompt(baseInput, null, null);
-      const lessonContent = await callClaudeAPI('lesson', lessonPrompt, CONTENT_SPECS.lesson);
-      savedContent.lesson = lessonContent;
-      combined = `${'─'.repeat(60)}\nLESSON\n${'─'.repeat(60)}\n\n${lessonContent}`;
-      if (outputEl) outputEl.value = combined;
       if (card) card.style.display = '';
+      const lessonPrefix = sep('LESSON');
+      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
+        (partial) => { if (outputEl) outputEl.value = lessonPrefix + partial; });
+      savedContent.lesson = lessonContent;
+      combined = lessonPrefix + lessonContent;
+      if (outputEl) outputEl.value = combined;
       updateContentTabs();
 
       // 2. Activities
       if (label) label.textContent = 'Gerando Activities… (2/3)';
-      const practicePrompt = buildClaudeUserPrompt(baseInput, lessonContent, null);
-      const practiceContent = await callClaudeAPI('practice', practicePrompt, CONTENT_SPECS.practice);
+      const practicePrefix = `\n\n${sep('ACTIVITIES')}`;
+      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
+        (partial) => { if (outputEl) outputEl.value = combined + practicePrefix + partial; });
       savedContent.practice = practiceContent;
-      combined += `\n\n${'─'.repeat(60)}\nACTIVITIES\n${'─'.repeat(60)}\n\n${practiceContent}`;
+      combined += practicePrefix + practiceContent;
       if (outputEl) outputEl.value = combined;
       updateContentTabs();
 
       // 3. Lesson Plan
       if (label) label.textContent = 'Gerando Lesson Plan… (3/3)';
-      const planPrompt = buildClaudeUserPrompt(baseInput, lessonContent, practiceContent);
-      const planContent = await callClaudeAPI('lessonplan', planPrompt, CONTENT_SPECS.lessonplan);
+      const planPrefix = `\n\n${sep('LESSON PLAN')}`;
+      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
+        (partial) => { if (outputEl) outputEl.value = combined + planPrefix + partial; });
       savedContent.lessonplan = planContent;
-      combined += `\n\n${'─'.repeat(60)}\nLESSON PLAN\n${'─'.repeat(60)}\n\n${planContent}`;
+      combined += planPrefix + planContent;
       if (outputEl) outputEl.value = combined;
       updateContentTabs();
 
@@ -2175,17 +2217,16 @@ async function generateContent() {
         contentDocType === 'practice'   ? savedContent.lesson   : null,
         contentDocType === 'lessonplan' ? savedContent.practice : null);
       const systemPrompt = document.getElementById('content-specs')?.value.trim() || CONTENT_SPECS[contentDocType];
-      const content      = await callClaudeAPI(contentDocType, userInput, systemPrompt);
+
+      if (card) card.style.display = '';
+      const content = await callClaudeAPI(contentDocType, userInput, systemPrompt,
+        (partial) => { if (outputEl) outputEl.value = partial; });
 
       if (contentDocType === 'lesson')     savedContent.lesson     = content;
       if (contentDocType === 'practice')   savedContent.practice   = content;
       if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
       updateContentTabs();
-
-      const outputEl = document.getElementById('claude-output');
-      const card     = document.getElementById('claude-output-card');
       if (outputEl) outputEl.value = content;
-      if (card)     card.style.display = '';
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
 
