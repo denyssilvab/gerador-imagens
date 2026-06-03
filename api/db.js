@@ -145,6 +145,36 @@ module.exports = async function handler(req, res) {
       return res.json({ ok: true, contents: data });
     }
 
+    // ── API Keys ──────────────────────────────────────────────────────────────
+
+    if (action === 'load-api-keys') {
+      const userId = await getUserId();
+      if (!userId) return res.json({ ok: true, keys: [] });
+      const { data, error } = await sb.from('api_keys').select('*').eq('user_id', userId).order('created_at');
+      if (error) throw error;
+      return res.json({ ok: true, keys: data });
+    }
+
+    if (action === 'save-api-key') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { keyId, name, provider, keyValue } = req.body;
+      const { data, error } = await sb.from('api_keys')
+        .upsert({ user_id: userId, key_id: keyId, name, provider, key_value: keyValue }, { onConflict: 'user_id,key_id' })
+        .select().single();
+      if (error) throw error;
+      return res.json({ ok: true, id: data.id });
+    }
+
+    if (action === 'delete-api-key') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { keyId } = req.body;
+      const { error } = await sb.from('api_keys').delete().eq('user_id', userId).eq('key_id', keyId);
+      if (error) throw error;
+      return res.json({ ok: true });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
     console.error('[db]', e);

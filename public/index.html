@@ -1064,10 +1064,10 @@
             <div class="fg">
               <label>API Key (Anthropic)</label>
               <select id="apiKey-select-anthropic" onchange="onApiKeySelect('anthropic')" style="font-size:12px;padding:6px 8px;">
-                <option value="">🔒 Desbloqueie o cofre</option>
+                <option value="">— Nenhuma key —</option>
               </select>
             </div>
-            <p class="hint" style="margin:0;">Adicione sua key Anthropic no cofre em <strong>Configurações</strong>.</p>
+            <p class="hint" style="margin:0;">Adicione sua key Anthropic em <strong>Configurações → API Keys</strong>.</p>
           </div>
         </div>
 
@@ -1333,7 +1333,7 @@
               <div class="fg">
                 <label>API Key</label>
                 <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')" style="font-size:12px;padding:6px 8px;">
-                  <option value="">🔒 Desbloqueie o cofre</option>
+                  <option value="">— Nenhuma key —</option>
                 </select>
               </div>
             </div>
@@ -1372,7 +1372,7 @@
                 <div class="fg">
                   <label>API Token</label>
                   <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')" style="font-size:12px;padding:6px 8px;">
-                    <option value="">🔒 Cofre</option>
+                    <option value="">— Nenhuma key —</option>
                   </select>
                 </div>
               </div>
@@ -1475,46 +1475,28 @@
   <div class="pg" id="pg-config">
     <div class="pg-content">
 
-      <!-- ── COFRE DE API KEYS ── -->
-      <div class="card" id="vault-card" style="border-color:var(--border2);">
+      <!-- ── API KEYS ── -->
+      <div class="card" id="apikeys-card">
         <div class="card-head">
-          <h2>🔑 API Keys Salvas</h2>
-          <span id="vault-status-chip" class="chip">🔒 Bloqueado</span>
+          <h2>🔑 API Keys</h2>
+          <span id="apikeys-count-chip" class="chip">0 keys</span>
         </div>
         <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-          <div id="vault-locked-ui">
-            <div class="form-row" style="align-items:flex-end;">
-              <div class="fg" style="flex:1;">
-                <label>Senha do Cofre</label>
-                <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
-                  onkeydown="if(event.key==='Enter')unlockVault()" />
+          <div id="apikeys-list"></div>
+          <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px;">
+            <p style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0;">+ Adicionar nova key</p>
+            <div class="form-row">
+              <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
+              <div class="fg"><label>Provider</label>
+                <select id="new-key-provider">
+                  <option value="openai">OpenAI</option>
+                  <option value="replicate">Replicate</option>
+                  <option value="anthropic">Anthropic (Claude)</option>
+                </select>
               </div>
-              <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
-              <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
             </div>
-            <p style="font-size:11px;color:var(--muted);margin-top:8px;">
-              Esqueceu a senha?
-              <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
-              (apaga todas as keys salvas).
-            </p>
-          </div>
-          <div id="vault-unlocked-ui" style="display:none;flex-direction:column;gap:12px;">
-            <div id="vault-keys-list"></div>
-            <details style="border-top:1px solid var(--border);padding-top:12px;">
-              <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;user-select:none;">
-                + Adicionar nova key
-              </summary>
-              <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-                <div class="form-row">
-                  <div class="fg" style="flex:2;"><label>Nome</label><input id="new-key-name" placeholder="Ex: OpenAI Principal" autocomplete="off" /></div>
-                  <div class="fg"><label>Provider</label>
-                    <select id="new-key-provider"><option value="openai">OpenAI</option><option value="replicate">Replicate</option><option value="anthropic">Anthropic (Claude)</option></select>
-                  </div>
-                </div>
-                <div class="fg"><label>API Key</label><input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" /></div>
-                <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewVaultKey()">💾 Salvar Key</button>
-              </div>
-            </details>
+            <div class="fg"><label>API Key</label><input id="new-key-value" type="password" placeholder="sk-… ou r8_…" autocomplete="off" onkeydown="if(event.key==='Enter')saveNewApiKey()" /></div>
+            <button class="btn btn-primary btn-sm" style="align-self:flex-start;" onclick="saveNewApiKey()">💾 Salvar Key</button>
           </div>
         </div>
       </div>
@@ -1565,29 +1547,6 @@
   </div>
 </div>
 
-<!-- Modal: Criar Cofre -->
-<div class="modal-bg" id="create-vault-modal">
-  <div class="modal">
-    <h3>🔐 Criar Cofre de API Keys</h3>
-    <p style="font-size:12px;color:var(--muted);line-height:1.6;">
-      As keys serão criptografadas com <strong>AES-256-GCM</strong> e armazenadas localmente.
-      Guarde bem a senha — sem ela não é possível recuperar as keys.
-    </p>
-    <div class="fg">
-      <label>Nova Senha</label>
-      <input id="new-vault-pass1" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password" />
-    </div>
-    <div class="fg">
-      <label>Confirmar Senha</label>
-      <input id="new-vault-pass2" type="password" placeholder="Repita a senha" autocomplete="new-password"
-        onkeydown="if(event.key==='Enter')createVault()" />
-    </div>
-    <div style="display:flex;gap:8px;justify-content:flex-end;">
-      <button class="btn btn-ghost" onclick="closeCreateVaultModal()">Cancelar</button>
-      <button class="btn btn-primary" onclick="createVault()">🔐 Criar Cofre</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
@@ -2430,19 +2389,6 @@ function syncCfg(field) {
   const mainEl = document.getElementById(field);
   if (cfgEl && mainEl) { mainEl.value = cfgEl.value; saveSettings(); }
 }
-function unlockVaultCfg() {
-  const pw = document.getElementById('vault-password2')?.value;
-  if (pw) { document.getElementById('vault-password').value = pw; unlockVault(); }
-}
-function saveNewVaultKeyCfg() {
-  const n = document.getElementById('new-key-name2')?.value;
-  const p = document.getElementById('new-key-provider2')?.value;
-  const v = document.getElementById('new-key-value2')?.value;
-  if (n) document.getElementById('new-key-name').value = n;
-  if (p) document.getElementById('new-key-provider').value = p;
-  if (v) document.getElementById('new-key-value').value = v;
-  saveNewVaultKey();
-}
 
 // ── Specs por tipo ─────────────────────────────────────────────────────────
 
@@ -2814,6 +2760,7 @@ function _onAuthChange(event, session) {
     const email = document.getElementById('user-chip-email');
     if (chip)  chip.style.display  = '';
     if (email) email.textContent   = session.user.email;
+    loadApiKeys();
   } else {
     _showAuthScreen();
     const chip = document.getElementById('user-chip');
@@ -4376,8 +4323,6 @@ function saveSettings() {
       promptLesson:        document.getElementById('prompt-lesson')?.value ?? '',
       promptPractice:      document.getElementById('prompt-practice')?.value ?? '',
       promptLessonplan:    document.getElementById('prompt-lessonplan')?.value ?? '',
-      apiKeyIdOpenai:      document.getElementById('apiKey-select-openai')?.value ?? '',
-      apiKeyIdReplicate:   document.getElementById('apiKey-select-replicate')?.value ?? '',
     }));
   } catch (_) {}
 }
@@ -4422,8 +4367,6 @@ function loadSettings() {
 function restoreApiKeySelections() {
   try {
     const s = JSON.parse(localStorage.getItem(PERSIST_KEY) || '{}');
-    if (s.apiKeyIdOpenai)    { const el = document.getElementById('apiKey-select-openai');    if (el) el.value = s.apiKeyIdOpenai; }
-    if (s.apiKeyIdReplicate) { const el = document.getElementById('apiKey-select-replicate'); if (el) el.value = s.apiKeyIdReplicate; }
   } catch (_) {}
 }
 
@@ -4451,76 +4394,70 @@ function esc(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── Cofre de API Keys (AES-256-GCM + PBKDF2) ──────────────────────────────
-const VAULT_SALT_KEY = 'pediagov_vault_salt';
-const VAULT_DATA_KEY = 'pediagov_vault_data';
-let vaultCryptoKey = null;
-let vaultKeys = [];
-
-const b64enc = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
-const b64dec = s   => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-
-async function deriveVaultKey(password, salt) {
-  const enc = new TextEncoder();
-  const mat = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
-    mat,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-}
-
-async function encryptVault(data) {
-  const iv  = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, vaultCryptoKey, enc.encode(JSON.stringify(data)));
-  return JSON.stringify({ iv: b64enc(iv), data: b64enc(buf) });
-}
-
-async function decryptVault(ciphertext) {
-  const { iv, data } = JSON.parse(ciphertext);
-  const buf = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64dec(iv) }, vaultCryptoKey, b64dec(data));
-  return JSON.parse(new TextDecoder().decode(buf));
-}
-
-async function persistVault() {
-  localStorage.setItem(VAULT_DATA_KEY, await encryptVault(vaultKeys));
-}
-
-function vaultExists() { return !!localStorage.getItem(VAULT_SALT_KEY); }
+// ── API Keys (Supabase) ────────────────────────────────────────────────────
+let vaultKeys = []; // { id, name, provider, value }
 
 function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)}`; }
+
+async function loadApiKeys() {
+  try {
+    const res  = await authFetch('/api/db?action=load-api-keys');
+    const data = await res.json();
+    if (data.ok) {
+      vaultKeys = (data.keys || []).map(k => ({ id: k.key_id, name: k.name, provider: k.provider, value: k.key_value }));
+      renderApiKeys();
+      updateApiKeySelects();
+      autoSelectApiKeys();
+    }
+  } catch (e) { console.warn('[api-keys load]', e); }
+}
+
+function renderApiKeys() {
+  const list  = document.getElementById('apikeys-list');
+  const chip  = document.getElementById('apikeys-count-chip');
+  if (chip) chip.textContent = `${vaultKeys.length} key${vaultKeys.length !== 1 ? 's' : ''}`;
+  if (!list) return;
+  if (!vaultKeys.length) {
+    list.innerHTML = '<p style="font-size:12px;color:var(--muted);">Nenhuma key salva ainda.</p>';
+    return;
+  }
+  const provLabel = { openai: 'OpenAI', replicate: 'Replicate', anthropic: 'Anthropic' };
+  list.innerHTML = vaultKeys.map(k => `
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:18px;flex-shrink:0;">${k.provider === 'openai' ? '🤖' : k.provider === 'anthropic' ? '🟣' : '⚡'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(k.name)}</div>
+        <div style="font-size:11px;color:var(--muted);">${provLabel[k.provider] || k.provider} · ${esc(k.value.slice(0,10))}••••</div>
+      </div>
+      <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);"
+        onclick="deleteApiKey('${k.id}')">✕</button>
+    </div>
+  `).join('');
+}
 
 function updateApiKeySelects() {
   ['openai', 'replicate', 'anthropic'].forEach(prov => {
     const sel = document.getElementById(`apiKey-select-${prov}`);
     if (!sel) return;
     const currentVal = sel.value;
-    sel.innerHTML = '';
-
-    if (!vaultCryptoKey) {
-      sel.innerHTML = `<option value="">🔒 Desbloqueie o cofre para ver as keys</option>`;
-      sel.disabled = true;
-      return;
-    }
-
-    sel.disabled = false;
     const provKeys = vaultKeys.filter(k => k.provider === prov);
-
-    if (provKeys.length === 0) {
-      sel.innerHTML = `<option value="">— Nenhuma key cadastrada —</option>
-                       <option value="__add__">+ Cadastrar nova key…</option>`;
+    if (!provKeys.length) {
+      sel.innerHTML = `<option value="">— Nenhuma key —</option><option value="__add__">+ Adicionar key…</option>`;
     } else {
-      sel.innerHTML = `<option value="">— Selecione uma key —</option>`;
-      provKeys.forEach(k => {
-        sel.innerHTML += `<option value="${k.id}">${esc(k.name)}  (${k.value.slice(0,10)}••••)</option>`;
-      });
-      sel.innerHTML += `<option value="__add__">+ Cadastrar nova key…</option>`;
-      // Restaura seleção anterior se ainda existe
+      sel.innerHTML = `<option value="">— Selecione —</option>`;
+      provKeys.forEach(k => { sel.innerHTML += `<option value="${k.id}">${esc(k.name)} (${k.value.slice(0,8)}••••)</option>`; });
+      sel.innerHTML += `<option value="__add__">+ Adicionar key…</option>`;
       if (currentVal && provKeys.find(k => k.id === currentVal)) sel.value = currentVal;
     }
+  });
+}
+
+function autoSelectApiKeys() {
+  ['openai', 'replicate', 'anthropic'].forEach(prov => {
+    const sel = document.getElementById(`apiKey-select-${prov}`);
+    if (!sel || sel.value) return;
+    const first = vaultKeys.find(k => k.provider === prov);
+    if (first) sel.value = first.id;
   });
 }
 
@@ -4528,153 +4465,45 @@ function onApiKeySelect(prov) {
   const sel = document.getElementById(`apiKey-select-${prov}`);
   if (!sel || sel.value !== '__add__') return;
   sel.value = '';
-  // Scroll até o cofre e abre o formulário de adição
   setPage('config', document.querySelector('.nav-item[onclick*="config"]'));
-  document.getElementById('vault-card')?.scrollIntoView({ behavior: 'smooth' });
-  const details = document.querySelector('#vault-unlocked-ui details');
-  if (details) details.open = true;
+  document.getElementById('apikeys-card')?.scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('new-key-name')?.focus();
 }
 
-// Init: ajusta UI conforme estado do cofre
-(function initVaultUI() {
-  if (!vaultExists()) {
-    document.getElementById('vault-locked-ui').innerHTML = `
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-        Nenhum cofre criado. Salve suas API keys com criptografia AES-256.
-      </p>
-      <button class="btn btn-primary btn-sm" onclick="showCreateVaultModal()">🔐 Criar Cofre</button>
-    `;
-  }
-  updateApiKeySelects();
-})();
-
-async function unlockVault() {
-  const password = document.getElementById('vault-password')?.value;
-  if (!password) { toast('Digite a senha do cofre.', 'warn'); return;  }
-  try {
-    const salt = b64dec(localStorage.getItem(VAULT_SALT_KEY));
-    vaultCryptoKey = await deriveVaultKey(password, salt);
-    const stored = localStorage.getItem(VAULT_DATA_KEY);
-    vaultKeys = stored ? await decryptVault(stored) : [];
-    setVaultState(true);
-    document.getElementById('vault-password').value = '';
-    toast('Cofre desbloqueado!', 'ok');
-  } catch (_) {
-    toast('Senha incorreta ou cofre corrompido.', 'err');
-  }
-}
-
-async function createVault() {
-  const p1 = document.getElementById('new-vault-pass1')?.value;
-  const p2 = document.getElementById('new-vault-pass2')?.value;
-  if (!p1 || p1.length < 4) { toast('Senha mínima: 4 caracteres.', 'warn'); return; }
-  if (p1 !== p2)             { toast('As senhas não coincidem.', 'err'); return; }
-  try {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    localStorage.setItem(VAULT_SALT_KEY, b64enc(salt));
-    vaultCryptoKey = await deriveVaultKey(p1, salt);
-    vaultKeys = [];
-    await persistVault();
-    closeCreateVaultModal();
-    setVaultState(true);
-    // Restaura UI do locked state original (caso estava no modo "sem cofre")
-    document.getElementById('vault-locked-ui').innerHTML = `
-      <div class="form-row" style="align-items:flex-end;">
-        <div class="fg" style="flex:1;"><label>Senha do Cofre</label>
-          <input id="vault-password" type="password" placeholder="Digite a senha…" autocomplete="off"
-            onkeydown="if(event.key==='Enter')unlockVault()" /></div>
-        <button class="btn btn-primary" onclick="unlockVault()">🔓 Desbloquear</button>
-        <button class="btn btn-ghost" onclick="showCreateVaultModal()">+ Novo Cofre</button>
-      </div>
-      <p style="font-size:11px;color:var(--muted);margin-top:8px;">
-        Esqueceu a senha?
-        <span style="color:var(--error-fg);cursor:pointer;text-decoration:underline;" onclick="confirmResetVault()">Resetar cofre</span>
-        (apaga todas as keys salvas).
-      </p>`;
-    toast('Cofre criado com sucesso!', 'ok');
-  } catch (e) { toast('Erro ao criar cofre: ' + e.message, 'err'); }
-}
-
-function setVaultState(unlocked) {
-  document.getElementById('vault-locked-ui').style.display   = unlocked ? 'none' : '';
-  document.getElementById('vault-unlocked-ui').style.display = unlocked ? 'flex' : 'none';
-  document.getElementById('vault-status-chip').textContent   = unlocked ? '🔓 Desbloqueado' : '🔒 Bloqueado';
-  if (unlocked) { renderVaultKeys(); updateApiKeySelects(); restoreApiKeySelections(); }
-}
-
-function renderVaultKeys() {
-  const list = document.getElementById('vault-keys-list');
-  if (!vaultKeys.length) {
-    list.innerHTML = '<p style="font-size:12px;color:var(--muted);">Nenhuma key salva ainda. Adicione abaixo.</p>';
-    return;
-  }
-  list.innerHTML = vaultKeys.map(k => `
-    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);">
-      <span style="font-size:18px;flex-shrink:0;">${k.provider === 'openai' ? '🤖' : k.provider === 'anthropic' ? '🟣' : '⚡'}</span>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--text);">${esc(k.name)}</div>
-        <div style="font-size:11px;color:var(--muted);">${k.provider === 'openai' ? 'OpenAI' : k.provider === 'anthropic' ? 'Anthropic' : 'Replicate'} · ${esc(k.value.slice(0,10))}••••</div>
-      </div>
-      <button class="btn btn-ghost btn-sm" onclick="useVaultKey('${k.id}')">↳ Usar</button>
-      <button class="btn btn-sm" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);"
-        onclick="deleteVaultKey('${k.id}')">✕</button>
-    </div>
-  `).join('');
-}
-
-async function saveNewVaultKey() {
+async function saveNewApiKey() {
   const name  = document.getElementById('new-key-name')?.value.trim();
   const prov  = document.getElementById('new-key-provider')?.value;
   const value = document.getElementById('new-key-value')?.value.trim();
   if (!name)  { toast('Digite um nome para identificar a key.', 'warn'); return; }
   if (!value) { toast('Cole o valor da API key.', 'warn'); return; }
-  vaultKeys.push({ id: genId(), name, provider: prov, value });
-  await persistVault();
-  renderVaultKeys();
-  updateApiKeySelects();
-  document.getElementById('new-key-name').value  = '';
-  document.getElementById('new-key-value').value = '';
-  toast(`Key "${name}" salva!`, 'ok');
+  const keyId = genId();
+  try {
+    const res  = await authFetch('/api/db?action=save-api-key', {
+      method: 'POST',
+      body: JSON.stringify({ keyId, name, provider: prov, keyValue: value }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error);
+    vaultKeys.push({ id: keyId, name, provider: prov, value });
+    renderApiKeys();
+    updateApiKeySelects();
+    autoSelectApiKeys();
+    document.getElementById('new-key-name').value  = '';
+    document.getElementById('new-key-value').value = '';
+    toast(`Key "${name}" salva!`, 'ok');
+  } catch (e) { toast(`Erro ao salvar key: ${e.message}`, 'err'); }
 }
 
-function useVaultKey(id) {
+async function deleteApiKey(id) {
   const k = vaultKeys.find(k => k.id === id);
-  if (!k) return;
-  const sel = document.getElementById(`apiKey-select-${k.provider}`);
-  if (sel) sel.value = k.id;
-  if (k.provider === 'openai' && provider !== 'openai')
-    setProvider('openai', document.getElementById('tab-openai'));
-  else if (k.provider === 'replicate' && provider !== 'replicate')
-    setProvider('replicate', document.getElementById('tab-replicate'));
-  toast(`Key "${k.name}" selecionada.`, 'ok');
-}
-
-async function deleteVaultKey(id) {
-  const k = vaultKeys.find(k => k.id === id);
-  if (!k) return;
-  if (!confirm(`Remover a key "${k.name}"?`)) return;
-  vaultKeys = vaultKeys.filter(k => k.id !== id);
-  await persistVault();
-  renderVaultKeys();
-  updateApiKeySelects();
-  toast(`Key "${k.name}" removida.`, 'ok');
-}
-
-function confirmResetVault() {
-  if (!confirm('Isso apagará TODAS as keys salvas e o cofre atual. Confirmar?')) return;
-  localStorage.removeItem(VAULT_SALT_KEY);
-  localStorage.removeItem(VAULT_DATA_KEY);
-  vaultCryptoKey = null; vaultKeys = [];
-  location.reload();
-}
-
-function showCreateVaultModal() {
-  document.getElementById('create-vault-modal').classList.add('open');
-  setTimeout(() => document.getElementById('new-vault-pass1')?.focus(), 100);
-}
-function closeCreateVaultModal() {
-  document.getElementById('create-vault-modal').classList.remove('open');
-  ['new-vault-pass1','new-vault-pass2'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+  if (!k || !confirm(`Remover a key "${k.name}"?`)) return;
+  try {
+    await authFetch('/api/db?action=delete-api-key', { method: 'POST', body: JSON.stringify({ keyId: id }) });
+    vaultKeys = vaultKeys.filter(k => k.id !== id);
+    renderApiKeys();
+    updateApiKeySelects();
+    toast(`Key "${k.name}" removida.`, 'ok');
+  } catch (e) { toast('Erro ao remover key.', 'err'); }
 }
 </script>
 </body>
