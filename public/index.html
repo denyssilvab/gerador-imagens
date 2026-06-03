@@ -965,12 +965,24 @@
         <!-- Tipo de Arquivo -->
         <div class="card">
           <div class="card-head"><h2>Tipo de Arquivo</h2></div>
-          <div class="card-body">
-            <div class="tabs" style="flex-direction:column;width:100%;">
-              <button class="tab-btn active" onclick="setDocType('all', this)" style="border-right:none;border-bottom:1px solid var(--border);">All</button>
-              <button class="tab-btn" onclick="setDocType('lesson', this)" style="border-right:none;border-bottom:1px solid var(--border);">📖 Lesson</button>
-              <button class="tab-btn" onclick="setDocType('practice', this)" style="border-right:none;border-bottom:1px solid var(--border);">✏️ Practice Activities</button>
-              <button class="tab-btn" onclick="setDocType('lessonplan', this)" style="border-right:none;">📋 Lesson Plan</button>
+          <div class="card-body" style="padding:8px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+              <button class="tab-btn active" onclick="setDocType('all', this)"
+                style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);border-right:1px solid var(--border);">
+                All
+              </button>
+              <button class="tab-btn" onclick="setDocType('lesson', this)"
+                style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);border-right:1px solid var(--border);">
+                Lesson
+              </button>
+              <button class="tab-btn" onclick="setDocType('practice', this)"
+                style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);border-right:1px solid var(--border);">
+                Practice
+              </button>
+              <button class="tab-btn" onclick="setDocType('lessonplan', this)"
+                style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);border-right:1px solid var(--border);">
+                Lesson Plan
+              </button>
             </div>
           </div>
         </div>
@@ -978,53 +990,80 @@
         <!-- Configurações -->
         <div class="card">
           <div class="card-head"><h2>Configurações</h2></div>
-          <div class="card-body" style="display:flex;flex-direction:column;gap:14px;">
-            <div class="fg"><label>Unidade</label><input id="unit" type="number" min="1" value="3" placeholder="Ex: 3" /></div>
-            <div class="fg"><label>Lição</label><input id="lesson" type="number" min="1" value="32" placeholder="Ex: 32" /></div>
-            <div class="fg"><label>CCSS</label><input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" /></div>
-            <hr class="sep" />
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);">Provedor</span>
-              <div class="tabs" style="margin-left:auto;">
-                <button class="tab-btn active" id="tab-openai" onclick="setProvider('openai',this)">OpenAI</button>
-                <button class="tab-btn" id="tab-replicate" onclick="setProvider('replicate',this)">Replicate</button>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
+
+            <!-- Unit + Lesson na mesma linha -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="fg">
+                <label>Unit</label>
+                <input id="unit" type="number" min="1" value="3" placeholder="3" style="padding:6px 8px;font-size:12px;" />
+              </div>
+              <div class="fg">
+                <label>Lesson</label>
+                <input id="lesson" type="number" min="1" value="32" placeholder="32" style="padding:6px 8px;font-size:12px;" />
               </div>
             </div>
+
+            <!-- CCSS abaixo -->
+            <div class="fg">
+              <label>CCSS</label>
+              <input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" style="padding:6px 8px;font-size:12px;" />
+            </div>
+
+            <hr class="sep" />
+
+            <!-- Provedor compacto -->
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <label style="margin:0;">Provedor</label>
+              <div class="tabs">
+                <button class="tab-btn active" id="tab-openai" onclick="setProvider('openai',this)" style="padding:5px 12px;font-size:12px;">OpenAI</button>
+                <button class="tab-btn" id="tab-replicate" onclick="setProvider('replicate',this)" style="padding:5px 12px;font-size:12px;">Replicate</button>
+              </div>
+            </div>
+
             <!-- OpenAI -->
-            <div id="panel-openai" style="display:flex;flex-direction:column;gap:10px;">
-              <div class="fg"><label>Modelo</label>
-                <select id="model-openai" onchange="onModelChange()">
+            <div id="panel-openai" style="display:flex;flex-direction:column;gap:8px;">
+              <div class="fg">
+                <label>Modelo</label>
+                <select id="model-openai" onchange="onModelChange()" style="font-size:12px;padding:6px 8px;">
                   <option value="gpt-image-2" selected>GPT Image 2 ⭐</option>
                   <option value="gpt-image-1">GPT Image 1</option>
                   <option value="dall-e-3">DALL-E 3</option>
                 </select>
               </div>
-              <div class="fg"><label>Qualidade</label>
-                <select id="quality">
-                  <option value="medium" selected>Medium (~15s) ⚡</option>
-                  <option value="high">High (~35s)</option>
-                  <option value="low">Low (~6s)</option>
-                </select>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="fg">
+                  <label>Qualidade</label>
+                  <select id="quality" style="font-size:12px;padding:6px 8px;">
+                    <option value="medium" selected>Medium ⚡</option>
+                    <option value="high">High</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                <div class="fg">
+                  <label>Resolução</label>
+                  <select id="resolution-openai" style="font-size:12px;padding:6px 8px;">
+                    <option value="1056x1488" selected>A4 ⭐</option>
+                    <option value="1024x1536">Portrait</option>
+                    <option value="1024x1024">Square</option>
+                    <option value="1536x1024">Land.</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
               </div>
-              <div class="fg"><label>API Key</label>
-                <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')">
+              <div class="fg">
+                <label>API Key</label>
+                <select id="apiKey-select-openai" onchange="onApiKeySelect('openai')" style="font-size:12px;padding:6px 8px;">
                   <option value="">🔒 Desbloqueie o cofre</option>
                 </select>
               </div>
-              <div class="fg"><label>Resolução</label>
-                <select id="resolution-openai">
-                  <option value="1056x1488" selected>A4 — 1056×1488 ⭐</option>
-                  <option value="1024x1536">1024×1536</option>
-                  <option value="1024x1024">Quadrado</option>
-                  <option value="1536x1024">Paisagem</option>
-                  <option value="auto">Auto</option>
-                </select>
-              </div>
             </div>
+
             <!-- Replicate -->
-            <div id="panel-replicate" style="display:none;flex-direction:column;gap:10px;">
-              <div class="fg"><label>Modelo</label>
-                <select id="model-replicate" onchange="onModelChange()">
+            <div id="panel-replicate" style="display:none;flex-direction:column;gap:8px;">
+              <div class="fg">
+                <label>Modelo</label>
+                <select id="model-replicate" onchange="onModelChange()" style="font-size:12px;padding:6px 8px;">
                   <optgroup label="Google"><option value="google/nano-banana">Nano Banana 2 ⭐</option></optgroup>
                   <optgroup label="FLUX">
                     <option value="black-forest-labs/flux-1.1-pro">FLUX 1.1 Pro</option>
@@ -1033,7 +1072,7 @@
                     <option value="black-forest-labs/flux-schnell">FLUX Schnell</option>
                   </optgroup>
                   <optgroup label="Ideogram">
-                    <option value="ideogram-ai/ideogram-v2">Ideogram V2 ✏️</option>
+                    <option value="ideogram-ai/ideogram-v2">Ideogram V2</option>
                     <option value="ideogram-ai/ideogram-v2-turbo">Ideogram V2 Turbo</option>
                   </optgroup>
                   <optgroup label="Recraft">
@@ -1041,20 +1080,25 @@
                   </optgroup>
                 </select>
               </div>
-              <div class="fg"><label>Proporção</label>
-                <select id="resolution-replicate">
-                  <option value="2:3" selected>A4 Portrait — 2:3 ⭐</option>
-                  <option value="1:1">Quadrado — 1:1</option>
-                  <option value="3:2">Paisagem — 3:2</option>
-                  <option value="9:16">Vertical — 9:16</option>
-                </select>
-              </div>
-              <div class="fg"><label>API Token</label>
-                <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')">
-                  <option value="">🔒 Desbloqueie o cofre</option>
-                </select>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                <div class="fg">
+                  <label>Proporção</label>
+                  <select id="resolution-replicate" style="font-size:12px;padding:6px 8px;">
+                    <option value="2:3" selected>2:3 ⭐</option>
+                    <option value="1:1">1:1</option>
+                    <option value="3:2">3:2</option>
+                    <option value="9:16">9:16</option>
+                  </select>
+                </div>
+                <div class="fg">
+                  <label>API Token</label>
+                  <select id="apiKey-select-replicate" onchange="onApiKeySelect('replicate')" style="font-size:12px;padding:6px 8px;">
+                    <option value="">🔒 Cofre</option>
+                  </select>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
 
