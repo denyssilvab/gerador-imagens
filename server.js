@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
@@ -192,6 +193,12 @@ app.post('/api/cancelar/:id', (req, res) => {
     res.status(404).json({ error: 'Sessão não encontrada' });
   }
 });
+
+// ── Supabase DB proxy ─────────────────────────────────────────────────────
+const dbHandler = require('./api/db');
+app.get('/api/db',    (req, res) => dbHandler(req, res));
+app.post('/api/db',   (req, res) => dbHandler(req, res));
+app.delete('/api/db', (req, res) => dbHandler(req, res));
 
 app.delete('/api/limpar', (_req, res) => {
   try {

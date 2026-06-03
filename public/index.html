@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerador de Material Pedagógico</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root {
       --bg: #0e1117;
@@ -724,9 +725,134 @@
       display: flex; flex-direction: column; gap: 18px;
       position: sticky; top: 0;
     }
+  /* ── Auth screen ─────────────────────────────────────────────────────── */
+  .auth-screen {
+    position: fixed; inset: 0; z-index: 2000;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .auth-screen.hidden { display: none; }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 20px;
+    box-shadow: 0 24px 64px rgba(0,0,0,.5);
+  }
+  .auth-logo {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 4px;
+  }
+  .auth-logo-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--green), var(--primary));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+  }
+  .auth-logo-text h2 { font-size: 18px; font-weight: 700; margin: 0; }
+  .auth-logo-text small { font-size: 12px; color: var(--muted); }
+  .auth-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .auth-form { display: flex; flex-direction: column; gap: 12px; }
+  .auth-form input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 14px; padding: 10px 14px; outline: none; width: 100%; box-sizing: border-box;
+    transition: border-color .15s;
+  }
+  .auth-form input:focus { border-color: var(--primary); }
+  .auth-btn {
+    background: var(--primary); color: #fff; border: none; border-radius: 8px;
+    padding: 11px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s; margin-top: 4px;
+  }
+  .auth-btn:hover { opacity: .88; }
+  .auth-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .auth-toggle {
+    font-size: 13px; color: var(--muted); text-align: center;
+  }
+  .auth-toggle a { color: var(--primary); cursor: pointer; text-decoration: none; }
+  .auth-toggle a:hover { text-decoration: underline; }
+  .auth-error {
+    font-size: 13px; color: #f87171; background: rgba(239,68,68,.1);
+    border: 1px solid rgba(239,68,68,.25); border-radius: 7px; padding: 8px 12px;
+    display: none;
+  }
+  .auth-error.visible { display: block; }
+  .auth-divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+  /* User chip in sidebar */
+  .user-chip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; margin: 0 8px 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; font-size: 12px; color: var(--muted);
+  }
+  .user-chip-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .user-chip-logout {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 13px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0;
+    transition: color .15s;
+  }
+  .user-chip-logout:hover { color: #f87171; }
   </style>
 </head>
 <body>
+
+<!-- ── AUTH SCREEN ── -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-logo-icon">📚</div>
+      <div class="auth-logo-text">
+        <h2>Gerador Pedagógico</h2>
+        <small>Material Didático</small>
+      </div>
+    </div>
+
+    <!-- Login -->
+    <div id="auth-panel-login">
+      <p class="auth-title">Entrar na conta</p>
+      <div class="auth-form">
+        <input id="auth-email" type="email" placeholder="E-mail" autocomplete="email" />
+        <input id="auth-pass"  type="password" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')authLogin()" />
+        <div class="auth-error" id="auth-err-login"></div>
+        <button class="auth-btn" id="auth-btn-login" onclick="authLogin()">Entrar</button>
+      </div>
+      <hr class="auth-divider" />
+      <p class="auth-toggle">
+        Não tem conta? <a onclick="authShowPanel('register')">Cadastrar</a>
+        &nbsp;·&nbsp;
+        <a onclick="authShowPanel('reset')">Esqueceu a senha?</a>
+      </p>
+    </div>
+
+    <!-- Register -->
+    <div id="auth-panel-register" style="display:none">
+      <p class="auth-title">Criar conta</p>
+      <div class="auth-form">
+        <input id="auth-reg-name"  type="text"     placeholder="Seu nome" autocomplete="name" />
+        <input id="auth-reg-email" type="email"    placeholder="E-mail" autocomplete="email" />
+        <input id="auth-reg-pass"  type="password" placeholder="Senha (mín. 6 caracteres)" autocomplete="new-password" />
+        <input id="auth-reg-pass2" type="password" placeholder="Confirmar senha" autocomplete="new-password" onkeydown="if(event.key==='Enter')authRegister()" />
+        <div class="auth-error" id="auth-err-register"></div>
+        <button class="auth-btn" id="auth-btn-register" onclick="authRegister()">Criar conta</button>
+      </div>
+      <hr class="auth-divider" />
+      <p class="auth-toggle">Já tem conta? <a onclick="authShowPanel('login')">Entrar</a></p>
+    </div>
+
+    <!-- Reset password -->
+    <div id="auth-panel-reset" style="display:none">
+      <p class="auth-title">Recuperar senha</p>
+      <div class="auth-form">
+        <input id="auth-reset-email" type="email" placeholder="E-mail cadastrado" autocomplete="email" onkeydown="if(event.key==='Enter')authResetPassword()" />
+        <div class="auth-error" id="auth-err-reset"></div>
+        <button class="auth-btn" id="auth-btn-reset" onclick="authResetPassword()">Enviar link</button>
+      </div>
+      <hr class="auth-divider" />
+      <p class="auth-toggle"><a onclick="authShowPanel('login')">← Voltar ao login</a></p>
+    </div>
+  </div>
+</div>
 
 <div class="app-wrap">
 
@@ -757,6 +883,10 @@
     </button>
     <div class="nav-spacer"></div>
     <hr class="nav-divider" />
+    <div class="user-chip" id="user-chip" style="display:none">
+      <span class="user-chip-email" id="user-chip-email">—</span>
+      <button class="user-chip-logout" onclick="authLogout()" title="Sair">⏏</button>
+    </div>
     <button class="nav-item" onclick="setPage('config',this)">
       <span class="nav-icon">⚙</span><span>Configurações</span>
     </button>
@@ -899,6 +1029,10 @@
               <label>CCSS</label>
               <input id="content-ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" style="padding:6px 8px;font-size:12px;" />
             </div>
+            <div class="fg">
+              <label>Nome da Aula</label>
+              <input id="content-lesson-name" placeholder="Ex: Algebraic Expressions" style="padding:6px 8px;font-size:12px;" />
+            </div>
           </div>
         </div>
 
@@ -978,6 +1112,9 @@
         <textarea id="prompt" rows="18"
           placeholder="--PAGE 1 - OPENING CONTEXT--&#10;&#10;Conteúdo da página 1...&#10;&#10;--PAGE 2 - SECTION TITLE--&#10;&#10;Conteúdo da página 2..."
           oninput="onPromptInput()"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('single')">💾 Salvar TXT</button>
+        </div>
       </div>
       <!-- Modo All -->
       <div id="all-prompts-wrap" style="display:flex;flex-direction:column;gap:16px;">
@@ -989,6 +1126,9 @@
           <div style="padding:10px;">
             <textarea id="prompt-lesson" rows="10" style="margin:0;" oninput="onAllPromptInput('lesson')"
               placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('lesson')">💾 Salvar TXT</button>
+            </div>
           </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -999,6 +1139,9 @@
           <div style="padding:10px;">
             <textarea id="prompt-practice" rows="10" style="margin:0;" oninput="onAllPromptInput('practice')"
               placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('practice')">💾 Salvar TXT</button>
+            </div>
           </div>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
@@ -1009,6 +1152,9 @@
           <div style="padding:10px;">
             <textarea id="prompt-lessonplan" rows="10" style="margin:0;" oninput="onAllPromptInput('lessonplan')"
               placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('lessonplan')">💾 Salvar TXT</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1137,6 +1283,10 @@
             <div class="fg">
               <label>CCSS</label>
               <input id="ccss" value="6.EE.A.3, 6.EE.A.4" placeholder="Ex: 6.EE.A.3" style="padding:6px 8px;font-size:12px;" />
+            </div>
+            <div class="fg">
+              <label>Nome da Aula</label>
+              <input id="lesson-name" placeholder="Ex: Algebraic Expressions" style="padding:6px 8px;font-size:12px;" />
             </div>
 
             <hr class="sep" />
@@ -1448,285 +1598,95 @@ const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'
 // ── Specs de conteúdo por tipo ─────────────────────────────────────────────
 
 const CONTENT_SPECS = {
-lesson: `## VISÃO GERAL
-Você é um especialista em design instrucional CCSS (Common Core State Standards) e layout pedagógico. Gere um prompt com o conteúdo completo de uma aula de matemática com base nas nas informações de entrada.
-- Introduz conceito matemático de forma clara e sólida
-- Distribui conteúdo respeitando margens A4 (25-190mm H, 25-275mm V)
-- CADA PÁGINA tem conteúdo balanceado (veja referência abaixo)
-- Usa boxes estrategicamente (não em tudo)
-- Especifica elementos visuais com qualidade profissional
+lesson: `Você é especialista em design instrucional CCSS. Gere um prompt completo para uma LESSON de matemática (Grade 6) em 100% inglês, distribuída em ~10-15, páginas A4, com conteúdo balanceado (150-220mm por página).
 
----
+## PARÂMETRO DE REFERÊNCIA
 
-## PARÂMETRO DE REFERÊNCIA:
-
-Modelo de distribuição. Analise:
-
-**Content Example:**
-- 2-3 parágrafos de abertura (75-85 palavras)
-- 1 problema disparador (40-50 palavras)
-- Total visual: ~150-170mm de altura
-
-**Este é o tamanho máximo confortável por página.**
-
-Cada página subsequente deve ter APROXIMADAMENTE a mesma quantidade de conteúdo. Se uma seção ultrapassar esse volume, DIVIDA EM MÚLTIPLAS PÁGINAS.
-
----
+Cada página: 150-170mm de conteúdo + 15-20mm respiro.
+Máximo absoluto: 240mm por página. Se ultrapassar, DIVIDIR EM 2 PÁGINAS.
 
 ## IDIOMA: 100% ENGLISH
 
-**OBRIGATÓRIO:**
-- ✅ Todos os títulos em inglês
-- ✅ Todos os subtítulos em inglês
-- ✅ Todo o conteúdo em inglês
-- ✅ Todas as explicações em inglês
+## DISTRIBUIÇÃO (APROXIMADA)
 
-**PROIBIDO:**
-- ❌ Nenhuma palavra em língua diferente do inglês
-- ❌ Nenhum marcador de etapa como "Abertura", "Abordagem Inicial", "Síntese" nos títulos
-- ❌ Rótulos bilíngues (ex: "Abertura - Motivation and Context")
+PAGE 1: Motivation + Problem disparador (150-160mm)
+PAGE 2-3: Understanding the pattern (210mm cada)
+PAGE 4-5: Standard method (220mm + 180mm)
+PAGE 6: Key concepts - boxes formais (210mm, máx 3 conceitos)
+PAGE 7-8: Examples (220mm cada)
+PAGE 9: Special cases (150mm, opcional)
+PAGE 10-11: Synthesis + applications (200mm cada)
 
----
+## BOXES: APENAS 4 CASOS
 
-## ESTRATÉGIA DE VISUAL HIERARCHY
+1. Formal definitions (sempre)
+2. Key expressions/formulas (sempre)
+3. Step-by-step com 4+ passos (apenas se 4+ passos)
+4. Concept checks/key insights (máximo 1 por página, opcional)
 
-### QUANDO USAR BOXES (Apenas nestes 4 casos)
+Tudo mais: apenas HEADING (bold) + texto.
 
-**1. Formal Definitions (SEMPRE EM BOX)**
-- Definições matemáticas formais e nomeadas
-- Conceitos-chave fundamentais
-- Exemplo: "Variable: A Letter Representing an Unknown Number"
-- Frequência: 1-3 por lesson (máximo)
+## ESTRUTURA DAS SEÇÕES
 
-**2. Key Expressions or Formulas (SEMPRE EM BOX)**
-- Fórmulas, expressões, regras finais derivadas
-- Destacam resultado importante
-- Exemplo: "5b" ou "15 + 8w"
-- Frequência: 1-2 por página, conforme necessário
+**Título da Aula**
 
-**3. Structured Step-by-Step (BOX apenas se 4+ passos)**
-- Processo com múltiplas etapas estruturadas
-- Cada passo em seu próprio compartimento
-- Passos numerados com ① ② ③ ④ (círculos, não ícones)
-- Frequência: máximo 1 por página
+**Motivation and context** (PAGE 1)
+- 2-3 parágrafos (75-85 palavras)
+- Imagem opcional 80-100mm
 
-**4. Concept Checks or Key Insights (BOX opcional, máximo 1 por página)**
-- Reflexão rápida orientada ("Think About It...")
-- Contexto de importância ("Why It Matters")
-- Resumo de insight ("Key Takeaway")
-- Frequência: máximo 1 por página
+**The challenge** (PAGE 1 continuação)
+- 40-50 palavras, sem box
 
----
+**Understanding the pattern** (PAGE 2-3)
+- Descoberta passo-a-passo
+- Box opcional para conceito-chave
+- Imagem pedagógica opcional 80-100mm
 
-### O QUE NÃO DEVE SER BOX
+**The standard method** (PAGE 4-5)
+- 3-5 passos: 1 página; 6+ passos: 2 páginas
+- Box obrigatório se 4+ passos com círculos ① ② ③ ④
+- Exemplo rápido
 
-Estes devem ser apenas **HEADING (bold, English) + regular text**:
-- Seções introdutórias
-- Explicações narrativas
-- Exemplos (título + descrição)
-- Dicas ou "try it!" sections
-- Sínteses ou conclusões
-- Aplicações práticas
-- Passos quando menos de 4
+**Key concepts** (PAGE 6)
+- 2-3 conceitos = 1 página (cada em box separado)
+- 4+ conceitos = 2 páginas (máx 3 por página)
+- Cada concept box: 60-80mm
 
----
+**Examples applied** (PAGE 7-8)
+- 70-90mm por exemplo
+- 2 exemplos = 1 página; 3 exemplos = 2 páginas
+- Enunciado + solução + resultado
+- Imagem pedagógica opcional por exemplo
 
-## CÁLCULO RIGOROSO DE CONTEÚDO POR PÁGINA
+**Special cases** (PAGE 9, opcional)
+- Se houver: 1-3 casos (parágrafos + exemplos)
+- 100-150mm total
 
-### Espaço Disponível
-- **Altura:** 25mm a 275mm = 250mm vertical
-- **Largura:** 25mm a 190mm = 165mm horizontal
-- **Espaçamento máximo:** 4-6mm entre seções
-- **Respiro visual obrigatório:** 15-20mm por página
+**Synthesis and application** (PAGE 10-11, pode ocupar 2 páginas)
+- Resumo breve (50mm)
+- Aplicações práticas 3-4 (60mm)
+- Tips 2-3 (50mm)
+- Key takeaway (30mm)
+- Se > 220mm: dividir em 2 páginas
 
-**Conteúdo efetivo máximo por página: ~230mm (250mm - 20mm respiro)**
+## IMAGENS
 
----
+Especifique com [IMAGE: descrição técnica detalhada] quando essencial (80-100mm altura):
+- Contextual: realistic photograph, medium shot, natural lighting
+- Process: detailed illustration or technical diagram, clear detail, high quality
+- Example: real-world object photography, professional, visible context
 
-### Estimativa de Altura por Elemento
+Não use ícones ou miniaturas.
 
-- Título (20pt bold): 7-8mm
-- Subtitle (18pt regular): 6-7mm
-- Body text (18pt, 1.5 spacing): 9.5mm por linha
-- Parágrafo (60 palavras, 1.5 spacing): ~50-55mm
-- Definition box: 60-80mm
-- Formula box: 25-35mm
-- Example completo: 70-90mm
-- Imagem detalhada: 80-100mm
-- Espaço entre seções: 5-6mm
+## RESULTADO
 
----
-
-### Distribuição por Página (Referência)
-
-**Página "Leve" (150-180mm conteúdo):**
-- 1 título + 2 parágrafos
-- OU 1 título + exemplo pequeno
-- OU 1 título + box de definição
-
-**Página "Normal" (180-220mm conteúdo):**
-- 1 título + 3-4 parágrafos
-- OU 1 título + 2 exemplos
-- OU 1 título + 1 box + 2 parágrafos
-
-**Página "Densa" (220-240mm conteúdo - máximo):**
-- 1 título + 4-5 parágrafos + pequeno box
-- OU 1 título + 2-3 exemplos
-- OU passos estruturados (4-5 passos)
-
-**Nunca ultrapassar 250mm.** Se conteúdo > 240mm, divida em 2 páginas.
-
----
-
-### Checklist por Página (ANTES DE GERAR)
-
-Para cada página, verifique:
-- ✅ Conteúdo total está entre 150-240mm?
-- ✅ Há 15-20mm de respiro visual?
-- ✅ Número de boxes é minimal (máximo 2 por página)?
-- ✅ Tudo está em inglês?
-- ✅ Títulos não têm português?
-- ✅ Nenhum ícone decorativo nos títulos?
-- ✅ Se há imagem, é detalhada (80-100mm), não ícone?
-
-Se algum item falhar, DIVIDA A PÁGINA.
-
----
-
-## ESTRUTURA FUNDAMENTAL
-
-### [1] Motivation and Context
-**Localização:** PAGE 1
-**Distribuição:** 140-160mm
-- Título: "Motivation and Context" (apenas isso)
-- 2-3 parágrafos (máx. 75-85 palavras total)
-- Sem imagem obrigatória
-- Se inclui imagem: máximo 80mm, alinhada lateralmente
-
-### [2] Problem Disparador
-**Localização:** PAGE 1 (continuação)
-**Distribuição:** 40-60mm
-- Título: "The Challenge:" OU "Problem:"
-- 1-2 parágrafos (máx. 50 palavras)
-- Sem box obrigatória
-
-### [3] Intuitive Understanding
-**Localização:** PAGE 2-3 (pode ocupar 1-2 páginas)
-**Distribuição:** 180-220mm por página
-- Título: "Understanding the Pattern" OU "Discovering the Rule"
-- Passo-a-passo descoberta (8-12 linhas)
-- Box opcional para conceito-chave final
-- Imagem pedagógica OPCIONAL (80-100mm)
-**Se conteúdo > 220mm: DIVIDIR EM 2 PÁGINAS**
-
-### [4] Formal Method
-**Localização:** PAGE 3-4 (pode ocupar 1-2 páginas)
-**Distribuição:** 200-230mm por página
-- Título: "The Standard Method" OU "Writing Expressions Step by Step"
-- Passos estruturados (3-5 passos = 1 página; 6+ = 2 páginas)
-- BOX obrigatório para 4+ passos
-- Exemplo rápido de aplicação
-
-### [5] Key Concepts
-**Localização:** PAGE 5-6 (pode ocupar 1-2 páginas)
-**Distribuição:** 60-90mm por conceito
-- Título: "Key Concepts" OU "Essential Definitions"
-- Cada conceito em SEPARATE BOX (obrigatório para definições formais)
-- 2-3 conceitos por página (máximo 3 = ~210mm)
-- 4+ conceitos = 2 páginas
-
-### [6] Examples Applied
-**Localização:** PAGE 6-8 (depende de quantidade)
-**Distribuição:** 70-90mm por exemplo
-- Título: "Examples Applied" (uma única vez, no início)
-- Cada exemplo: enunciado + solução + resultado
-- Sem box; apenas HEADING + texto estruturado
-- Imagem detalhada OPCIONAL por exemplo (80-100mm)
-
-### [7] Special Cases
-**Localização:** PAGE 8-9 (após exemplos)
-**Distribuição:** 100-150mm
-- Título: "Special Cases" OU "Important Considerations"
-- 1-3 casos (cada um é parágrafo + exemplo)
-- Sem box obrigatória
-
-### [8] Synthesis and Application
-**Localização:** PAGE 9-10
-**Distribuição:** 180-220mm (pode ocupar 1-2 páginas)
-- Título: "Synthesis and Application"
-- Resumo breve (1 parágrafo, ~50mm)
-- Aplicações práticas (3-4 bullet points, ~60mm)
-- Helpful tips (2-3 pontos, ~50mm)
-- Key takeaway final (1 parágrafo, ~30mm)
-
----
-
-## IMAGENS: QUANDO E COMO
-
-### Contextual/Opening Images
-- **Tipo:** Realistic photograph
-- **Altura:** 80-100mm
-- **Composição:** Medium shot, rule of thirds, clear context
-- **Lighting:** Natural daylight, warm, professional
-
-### Pedagogical Process Images
-- **Tipo:** Detailed illustration OU technical diagram
-- **Altura:** 80-100mm
-- **Composição:** Centered, clear focal point, visual depth
-- **Detalhe:** Shading, color coding, professional quality
-
-### Example Context Images
-- **Tipo:** Realistic photograph
-- **Altura:** 80-100mm
-- **Composição:** Close-up OU medium shot, recognizable situation
-
----
-
-## SEM ÍCONES DECORATIVOS
-
-**Proibido:**
-- ❌ Ícones para títulos ou subtítulos
-- ❌ Símbolos decorativos antes de headings
-- ❌ Miniaturas estilo emoji
-- ❌ Português em qualquer lugar
-
-**Permitido:**
-- ✅ Números em circles: ① ② ③ ④ ⑤ (para passos)
-- ✅ Bullet points (•)
-- ✅ Bordas/fundo de boxes
-
----
-
-## DISTRIBUIÇÃO ESPERADA (EXEMPLO)
-
-PAGE 1:  Motivation + Problem (~150mm) ✓
-PAGE 2:  Understanding Pattern Part 1 (~210mm) ✓
-PAGE 3:  Understanding Pattern Part 2 (~200mm) ✓
-PAGE 4:  Standard Method Part 1 (~220mm) ✓
-PAGE 5:  Standard Method Part 2 (~180mm) ✓
-PAGE 6:  Key Concepts (2-3 boxes) (~210mm) ✓
-PAGE 7:  Examples 1-2 (~220mm) ✓
-PAGE 8:  Examples 3-4 (~210mm) ✓
-PAGE 9:  Special Cases + Synthesis Part 1 (~220mm) ✓
-PAGE 10: Synthesis Part 2 + Tips (~200mm) ✓
-PAGE 11: Teacher's Notes (~180mm) ✓
-
----
-
-## RESULTADO ESPERADO
-
-Uma LESSON que:
-1. ✓ Dividida em páginas com --PAGE X--
-2. ✓ 100% EM INGLÊS (zero português)
-3. ✓ Títulos sem rótulos de etapa em português
-4. ✓ Conteúdo balanceado (150-220mm por página, máximo 240mm)
-5. ✓ Cada página com 15-20mm respiro visual
-6. ✓ Boxes apenas em 4 casos específicos
-7. ✓ Sem ícones decorativos nos títulos
-8. ✓ Imagens detalhadas quando usadas (80-100mm, não miniaturas)
-9. ✓ Pronta para tipografia 18pt body, 20pt títulos
-10. ✓ Um professor americano compreende em 15 minutos
-11. ✓ Roteiro para aula de 45-50 minutos`,
+- 10-15 páginas com --PAGE X--
+- 100% inglês
+- Conteúdo 150-220mm por página (respiro visual obrigatório)
+- Boxes apenas nos 4 casos
+- Sem ícones em títulos
+- Pronta para impressão A4, 300 DPI
+- Base para Practice Activities e Lesson Plan`,
 
 practice: `## VISÃO GERAL
 
@@ -2209,6 +2169,10 @@ async function generateContent() {
       if (outputEl) outputEl.value = combined;
       updateContentTabs();
 
+      // Sync all 3 to Supabase
+      sbSaveContent('lesson',     lessonContent);
+      sbSaveContent('practice',   practiceContent);
+      sbSaveContent('lessonplan', planContent);
       toast('Lesson + Activities + Lesson Plan gerados!', 'ok');
 
     } else {
@@ -2228,6 +2192,7 @@ async function generateContent() {
       if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
       updateContentTabs();
       if (outputEl) outputEl.value = content;
+      sbSaveContent(contentDocType, content);
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
 
@@ -2745,6 +2710,136 @@ There's no need to add the lesson number, such as "lesson X," to the title.`
 };
 
 // ── IndexedDB ──────────────────────────────────────────────────────────────
+// ── Supabase client + Auth ─────────────────────────────────────────────────
+const _SB_URL  = 'https://ztbvmkmfaqpfzuohvsbe.supabase.co';
+const _SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp0YnZta21mYXFwZnp1b2h2c2JlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0ODcxMjAsImV4cCI6MjA5NjA2MzEyMH0.grwKA3_qM4YPfSsXwJPNuahQnTQ0O1D1YjLNTObhx7g';
+const _sb = supabase.createClient(_SB_URL, _SB_KEY);
+
+let _authSession = null; // current Supabase session
+
+function _getToken() { return _authSession?.access_token || null; }
+
+// Authenticated fetch helper — automatically sends the JWT
+function authFetch(url, opts = {}) {
+  const token = _getToken();
+  const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  return fetch(url, { ...opts, headers });
+}
+
+// Show/hide the auth overlay
+function _showApp()      { document.getElementById('auth-screen').classList.add('hidden'); }
+function _showAuthScreen(){ document.getElementById('auth-screen').classList.remove('hidden'); }
+
+function authShowPanel(name) {
+  ['login','register','reset'].forEach(p => {
+    document.getElementById(`auth-panel-${p}`).style.display = p === name ? '' : 'none';
+  });
+  document.getElementById(`auth-err-${name}`)?.classList.remove('visible');
+}
+
+function _setAuthError(panel, msg) {
+  const el = document.getElementById(`auth-err-${panel}`);
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('visible', !!msg);
+}
+
+function _setBtnLoading(id, loading) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.disabled = loading;
+  el.textContent = loading ? 'Aguarde…' : el.dataset.label || el.textContent;
+}
+
+async function authLogin() {
+  const email = document.getElementById('auth-email').value.trim();
+  const pass  = document.getElementById('auth-pass').value;
+  _setAuthError('login', '');
+  if (!email || !pass) return _setAuthError('login', 'Preencha e-mail e senha.');
+  _setBtnLoading('auth-btn-login', true);
+  const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
+  _setBtnLoading('auth-btn-login', false);
+  if (error) return _setAuthError('login', error.message);
+}
+
+async function authRegister() {
+  const name  = document.getElementById('auth-reg-name').value.trim();
+  const email = document.getElementById('auth-reg-email').value.trim();
+  const pass  = document.getElementById('auth-reg-pass').value;
+  const pass2 = document.getElementById('auth-reg-pass2').value;
+  _setAuthError('register', '');
+  if (!name || !email || !pass) return _setAuthError('register', 'Preencha todos os campos.');
+  if (pass.length < 6)          return _setAuthError('register', 'Senha deve ter ao menos 6 caracteres.');
+  if (pass !== pass2)            return _setAuthError('register', 'As senhas não coincidem.');
+  _setBtnLoading('auth-btn-register', true);
+  const { error } = await _sb.auth.signUp({ email, password: pass, options: { data: { name } } });
+  _setBtnLoading('auth-btn-register', false);
+  if (error) return _setAuthError('register', error.message);
+  _setAuthError('register', '');
+  // Supabase may log in immediately or require email confirmation
+  const { data } = await _sb.auth.getSession();
+  if (!data.session) {
+    document.getElementById('auth-reg-email').value = '';
+    document.getElementById('auth-reg-pass').value  = '';
+    document.getElementById('auth-reg-pass2').value = '';
+    alert('Conta criada! Verifique seu e-mail para confirmar o cadastro, depois faça login.');
+    authShowPanel('login');
+  }
+}
+
+async function authResetPassword() {
+  const email = document.getElementById('auth-reset-email').value.trim();
+  _setAuthError('reset', '');
+  if (!email) return _setAuthError('reset', 'Informe o e-mail.');
+  _setBtnLoading('auth-btn-reset', true);
+  const { error } = await _sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin,
+  });
+  _setBtnLoading('auth-btn-reset', false);
+  if (error) return _setAuthError('reset', error.message);
+  alert('Link de recuperação enviado! Verifique sua caixa de entrada.');
+  authShowPanel('login');
+}
+
+async function authLogout() {
+  await _sb.auth.signOut();
+}
+
+function _onAuthChange(event, session) {
+  _authSession = session;
+  if (session) {
+    _showApp();
+    const chip  = document.getElementById('user-chip');
+    const email = document.getElementById('user-chip-email');
+    if (chip)  chip.style.display  = '';
+    if (email) email.textContent   = session.user.email;
+  } else {
+    _showAuthScreen();
+    const chip = document.getElementById('user-chip');
+    if (chip) chip.style.display = 'none';
+    // Clear in-memory results on logout
+    Object.keys(results).forEach(k => delete results[k]);
+    document.getElementById('img-grid').innerHTML =
+      '<div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>';
+    document.getElementById('results-card').style.display = 'none';
+  }
+}
+
+// Listen for auth state changes (login, logout, token refresh)
+_sb.auth.onAuthStateChange(_onAuthChange);
+
+// Restore session on page load
+(async () => {
+  const { data } = await _sb.auth.getSession();
+  if (data.session) {
+    _onAuthChange('INITIAL_SESSION', data.session);
+  } else {
+    _showAuthScreen();
+  }
+})();
+
+// ── IndexedDB (local fallback) ─────────────────────────────────────────────
 const DB_NAME = 'gerador-ped-v1', DB_STORE = 'imagens';
 let _db = null;
 async function openDB() {
@@ -2756,26 +2851,90 @@ async function openDB() {
     r.onerror   = e => rej(e.target.error);
   });
 }
-async function dbSave(rec) {
+async function _idbSave(rec) {
   const d = await openDB();
   return new Promise((res, rej) => {
     const r = d.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).add({...rec, ts: Date.now()});
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   });
 }
-async function dbLoadAll() {
+async function _idbLoadAll() {
   const d = await openDB();
   return new Promise((res, rej) => {
     const r = d.transaction(DB_STORE,'readonly').objectStore(DB_STORE).getAll();
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   });
 }
-async function dbClear() {
+async function _idbClear() {
   const d = await openDB();
   return new Promise((res, rej) => {
     const r = d.transaction(DB_STORE,'readwrite').objectStore(DB_STORE).clear();
     r.onsuccess = () => res(); r.onerror = () => rej(r.error);
   });
+}
+
+// ── Unified persistence (Supabase primary, IndexedDB fallback) ─────────────
+async function dbSave(rec) {
+  // Always persist locally first (fast, offline-safe)
+  const localId = await _idbSave(rec).catch(() => null);
+
+  // Then sync to Supabase in background
+  const key = rec.key || (localId ? `db_${localId}` : `ts_${Date.now()}`);
+  authFetch('/api/db?action=save-image', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      key,
+      dataUrl:     rec.dataUrl || rec.url || '',
+      filename:    rec.filename || '',
+      pageNum:     rec.pageNum || null,
+      title:       rec.title   || '',
+      docType:     rec.docType || '',
+      originalUrl: rec.originalUrl || null,
+    }),
+  }).catch(e => console.warn('[supabase sync]', e));
+
+  return localId;
+}
+
+async function dbLoadAll() {
+  // Try Supabase first, fall back to IndexedDB
+  try {
+    const res  = await authFetch('/api/db?action=load-images');
+    const data = await res.json();
+    if (data.ok && data.images?.length) {
+      return data.images.map(r => ({
+        id:          r.id,
+        key:         r.key,
+        dataUrl:     r.url,
+        url:         r.url,
+        filename:    r.filename,
+        pageNum:     r.page_num,
+        title:       r.title,
+        docType:     r.doc_type,
+        ts:          new Date(r.created_at).getTime(),
+      }));
+    }
+  } catch (e) { console.warn('[supabase load]', e); }
+  return _idbLoadAll();
+}
+
+async function dbClear() {
+  await _idbClear().catch(() => {});
+  authFetch('/api/db?action=clear-images', { method: 'POST' }).catch(() => {});
+}
+
+// ── Save Claude-generated content to Supabase ──────────────────────────────
+function sbSaveContent(docTypeVal, content) {
+  const unit       = document.getElementById('content-unit')?.value       || document.getElementById('unit')?.value       || '';
+  const lesson     = document.getElementById('content-lesson')?.value     || document.getElementById('lesson')?.value     || '';
+  const lessonName = document.getElementById('content-lesson-name')?.value || document.getElementById('lesson-name')?.value || '';
+  const ccss       = document.getElementById('content-ccss')?.value       || document.getElementById('ccss')?.value       || '';
+  authFetch('/api/db?action=save-content', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ docType: docTypeVal, unit, lesson, lessonName, ccss, content }),
+  }).catch(e => console.warn('[supabase content]', e));
 }
 
 // ── State ──────────────────────────────────────────────────────────────────
@@ -3421,9 +3580,12 @@ function openByKey(key) {
 }
 
 async function downloadAll() {
-  const imgs = Object.values(results);
-  if (!imgs.length) { toast('Nenhuma imagem disponível.', 'warn'); return; }
-  toast('Preparando ZIP...', '');
+  const keys = selectedKeys.size > 0
+    ? [...selectedKeys].filter(k => results[k]?.url)
+    : Object.keys(results).filter(k => results[k]?.url);
+  if (!keys.length) { toast('Nenhuma imagem para baixar.', 'warn'); return; }
+  const imgs = keys.map(k => results[k]);
+  toast(`Preparando ZIP com ${imgs.length} imagem${imgs.length > 1 ? 'ns' : ''}…`, '');
   try {
     const zip = new JSZip();
     for (const img of imgs) {
@@ -3437,7 +3599,7 @@ async function downloadAll() {
     const blob = await zip.generateAsync({ type: 'blob' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'material-pedagogico.zip';
+    a.download = buildFilename(docType, 'zip');
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -3530,6 +3692,12 @@ async function deleteSelected() {
         });
       } catch (_) {}
     }
+    // Remove do Supabase
+    authFetch('/api/db?action=delete-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key }),
+    }).catch(() => {});
 
     delete results[key];
     selectedKeys.delete(key);
@@ -4071,6 +4239,41 @@ function _overlayTextsForType(type) {
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
+function buildFilename(docTypeOverride, ext) {
+  const lesson = document.getElementById('lesson')?.value || '';
+  const ccss   = document.getElementById('ccss')?.value || '';
+  const name   = document.getElementById('lesson-name')?.value || '';
+  const dt = docTypeOverride || docType;
+  const dtLabel = dt === 'lesson'     ? 'Lesson'
+               : dt === 'practice'    ? 'Practice Activities'
+               : dt === 'lessonplan'  ? 'Lesson Plan'
+               : '';
+  const parts = [];
+  if (lesson)  parts.push(`Lesson ${lesson}`);
+  if (dtLabel) parts.push(`(${dtLabel})`);
+  if (name)    parts.push(`- ${name}`);
+  if (ccss)    parts.push(`(${ccss})`);
+  const base = parts.length ? parts.join(' ') : 'arquivo';
+  return `${base}.${ext}`;
+}
+
+function savePromptAsTxt(type) {
+  const idMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan', single: 'prompt' };
+  const dtMap = { lesson: 'lesson', practice: 'practice', lessonplan: 'lessonplan', single: docType };
+  const text = document.getElementById(idMap[type])?.value || '';
+  if (!text.trim()) { toast('Prompt vazio — nada para salvar.', 'warn'); return; }
+  const filename = buildFilename(dtMap[type], 'txt');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  toast(`Salvo: ${filename}`, 'ok');
+}
+
 async function createPDF() {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem para o PDF.', 'warn'); return; }
@@ -4136,7 +4339,9 @@ async function _buildPDF(keys, version) {
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `material-pedagogico${version === 'upscale' ? '_upscale' : ''}.pdf`;
+    const pdfType = sorted.length === 1 ? (sorted[0].docType || docType) : docType;
+    const pdfSuffix = version === 'upscale' ? ' (upscale)' : '';
+    a.download = buildFilename(pdfType, 'pdf').replace(/\.pdf$/, `${pdfSuffix}.pdf`);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -4159,6 +4364,8 @@ function saveSettings() {
       unit:                document.getElementById('unit')?.value ?? '',
       lesson:              document.getElementById('lesson')?.value ?? '',
       ccss:                document.getElementById('ccss')?.value ?? '',
+      lessonName:          document.getElementById('lesson-name')?.value ?? '',
+      contentLessonName:   document.getElementById('content-lesson-name')?.value ?? '',
       provider, docType,
       modelOpenai:         document.getElementById('model-openai')?.value,
       quality:             document.getElementById('quality')?.value,
@@ -4185,6 +4392,8 @@ function loadSettings() {
     set('unit', s.unit);
     set('lesson', s.lesson);
     set('ccss', s.ccss);
+    set('lesson-name', s.lessonName);
+    set('content-lesson-name', s.contentLessonName);
     set('quality', s.quality);
     set('model-openai', s.modelOpenai);
     set('resolution-openai', s.resolutionOpenai);
@@ -4233,8 +4442,8 @@ function toast(msg, type = '') {
   el.textContent = msg;
   c.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(10px)';
-    el.style.transition = 'all .3s'; }, 5000);
-  setTimeout(() => { if (el.parentNode) c.removeChild(el); }, 5400);
+    el.style.transition = 'all .3s'; }, 10000);
+  setTimeout(() => { if (el.parentNode) c.removeChild(el); }, 10400);
 }
 
 // ── Util ───────────────────────────────────────────────────────────────────
