@@ -1026,11 +1026,37 @@
     }
     .combinar-item.dragging { opacity: .35; cursor: grabbing; }
     .combinar-item.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.2); }
+    .combinar-item.selected { border-color: var(--primary); background: rgba(99,102,241,.1); }
     .drag-handle { color: var(--muted); font-size: 15px; cursor: grab; flex-shrink: 0; line-height: 1; }
+    .combinar-item input[type=checkbox] { accent-color: var(--primary); cursor: pointer; flex-shrink: 0; width: 14px; height: 14px; }
     .combinar-item img { width: 32px; height: 45px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
     .combinar-item-label { flex: 1; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
     .combinar-item-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
     .combinar-item-remove:hover { color: var(--error-fg); background: rgba(239,68,68,.1); }
+    /* Combinar add-files modal */
+    .combinar-modal-bg { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; }
+    .combinar-modal { background: var(--surface); border-radius: 14px; padding: 20px; width: min(90vw, 700px); max-height: 82vh; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .combinar-modal-header { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .combinar-modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; padding: 4px; }
+    .combinar-modal-item { position: relative; aspect-ratio: 210/297; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid var(--border); transition: border-color .15s, box-shadow .15s; }
+    .combinar-modal-item:hover { border-color: var(--border2); }
+    .combinar-modal-item.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.3); }
+    .combinar-modal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .combinar-modal-item-check { position: absolute; top: 5px; left: 5px; accent-color: var(--primary); width: 15px; height: 15px; cursor: pointer; }
+    .combinar-modal-item-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.65); color: #fff; font-size: 9px; padding: 3px 5px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* Dashboard card selection */
+    .dash-card { position: relative; }
+    .dash-card-check-wrap { position: absolute; top: 7px; left: 7px; z-index: 3; opacity: 0; transition: opacity .12s; }
+    .dash-card:hover .dash-card-check-wrap, .dash-card.selected .dash-card-check-wrap { opacity: 1; }
+    .dash-card-check-wrap input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+    .dash-card.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.35) !important; }
+    /* Dashboard bulk action bar */
+    .dash-bulk-bar {
+      position: sticky; bottom: 0; z-index: 50;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+      margin: 0 -24px -60px; margin-top: auto;
+    }
 
     /* ── Gerar page two-column layout ── */
     .gerar-layout { display: flex; gap: 20px; width: 100%; align-items: flex-start; }
@@ -1213,9 +1239,7 @@
 
   <!-- Chips bar fixa (persiste em todas as páginas) -->
   <div class="chips-bar">
-    <span class="chips-bar-title" id="page-title">Gerar</span>
-    <span class="chip" id="provider-chip">OpenAI</span>
-    <span class="chip" id="model-chip">gpt-image-2</span>
+    <span class="chips-bar-title" id="page-title">Gerar Imagens</span>
   </div>
 
   <!-- ══════════════════════════════════════════════
@@ -1303,6 +1327,16 @@
           </div>
         </div>
 
+        <!-- Bulk action bar (appears when items are selected) -->
+        <div class="dash-bulk-bar" id="dash-bulk-bar" style="display:none;">
+          <span id="dash-bulk-count" style="font-size:13px;font-weight:600;"></span>
+          <span style="flex:1;"></span>
+          <button class="btn btn-ghost btn-sm" onclick="dashBulkSelectAll()">Selecionar tudo</button>
+          <button class="btn btn-ghost btn-sm" onclick="dashBulkMove()">📁 Mover</button>
+          <button class="btn btn-sm" onclick="dashBulkDelete()" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
+          <button class="btn btn-ghost btn-sm" onclick="dashClearSelection()">✕ Cancelar</button>
+        </div>
+
       </div>
     </div>
   </div>
@@ -1331,6 +1365,27 @@
     <div class="file-ctx-item" onclick="fileCtxMove()">📁 &nbsp;Mover para…</div>
     <hr class="file-ctx-sep">
     <div class="file-ctx-item danger" onclick="fileCtxDelete()">🗑 &nbsp;Excluir</div>
+  </div>
+
+  <!-- Combinar: add-files modal -->
+  <div class="combinar-modal-bg" id="combinar-add-modal" style="display:none" onclick="if(event.target===this)closeCombinarModal()">
+    <div class="combinar-modal">
+      <div class="combinar-modal-header">
+        <h3 style="margin:0;font-size:15px;">Selecionar imagens</h3>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-left:8px;cursor:pointer;">
+          <input type="checkbox" id="combinar-modal-all" onchange="combinarModalSelectAll(this.checked)" style="accent-color:var(--primary);" />
+          Selecionar todas
+        </label>
+        <span style="flex:1;"></span>
+        <span id="combinar-modal-count" style="font-size:12px;color:var(--muted);">0 selecionadas</span>
+        <button class="btn btn-ghost btn-sm" onclick="closeCombinarModal()">✕</button>
+      </div>
+      <div class="combinar-modal-grid" id="combinar-modal-grid"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;">
+        <button class="btn btn-ghost" onclick="closeCombinarModal()">Cancelar</button>
+        <button class="btn btn-primary" onclick="combinarModalConfirm()">Adicionar selecionadas</button>
+      </div>
+    </div>
   </div>
 
   <!-- Folder card context menu -->
@@ -1971,10 +2026,10 @@
         <div class="combinar-right-header">
           <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Páginas</span>
           <span style="flex:1;"></span>
-          <button class="btn btn-ghost btn-sm" title="Adicionar todas" onclick="combinarAddAll()">+ Todas</button>
+          <button class="btn btn-ghost btn-sm" id="combinar-clear-sel-btn" style="display:none;font-size:11px;color:#f87171;" title="Remover selecionadas" onclick="combinarRemoveSelected()">🗑 sel.</button>
+          <button class="btn btn-ghost btn-sm" title="Adicionar imagens" onclick="combinarOpenAddModal()">+ Adicionar</button>
           <button class="btn btn-ghost btn-sm" title="Limpar lista" onclick="combinarClear()">🗑</button>
         </div>
-        <p class="hint" style="padding:8px 14px;flex-shrink:0;margin:0;">Arraste para reordenar antes de exportar.</p>
         <div id="combinar-list" class="combinar-right-list">
           <div class="empty"><span class="ico">📄</span><p>Adicione imagens</p></div>
         </div>
@@ -2865,6 +2920,95 @@ let dashFolderFilter = null; // folder id (number) or null
 let dashSort       = 'recent';
 let dashFolders    = [];
 let _dashFolderMenuKey = null;
+let dashSelected   = new Set(); // keys of selected dashboard items (images, txt)
+
+function toggleDashSelect(key, checked, e) {
+  if (e) e.stopPropagation();
+  if (checked) dashSelected.add(key); else dashSelected.delete(key);
+  const card = document.querySelector(`.dash-card[data-key="${key}"]`);
+  if (card) card.classList.toggle('selected', checked);
+  _updateDashBulkBar();
+}
+
+function _updateDashBulkBar() {
+  const bar = document.getElementById('dash-bulk-bar');
+  const cnt = document.getElementById('dash-bulk-count');
+  if (!bar) return;
+  const n = dashSelected.size;
+  bar.style.display = n > 0 ? '' : 'none';
+  if (cnt) cnt.textContent = `${n} selecionado${n !== 1 ? 's' : ''}`;
+}
+
+function dashClearSelection() {
+  dashSelected.clear();
+  document.querySelectorAll('.dash-card.selected').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.dash-card-check-wrap input').forEach(c => c.checked = false);
+  _updateDashBulkBar();
+}
+
+function dashBulkSelectAll() {
+  document.querySelectorAll('.dash-card[data-key]').forEach(card => {
+    const key = card.dataset.key;
+    dashSelected.add(key);
+    card.classList.add('selected');
+    const chk = card.querySelector('.dash-card-check-wrap input');
+    if (chk) chk.checked = true;
+  });
+  _updateDashBulkBar();
+}
+
+async function dashBulkDelete() {
+  const keys = [...dashSelected];
+  if (!keys.length) return;
+  if (!confirm(`Excluir ${keys.length} arquivo${keys.length !== 1 ? 's' : ''}?`)) return;
+  for (const key of keys) {
+    if (key.startsWith('db_')) {
+      const id = parseInt(key.replace('db_', ''));
+      await dbDelete(id).catch(() => {});
+    }
+    delete results[key];
+  }
+  dashSelected.clear();
+  refreshDashboard();
+  _updateDashBulkBar();
+  toast(`${keys.length} arquivo${keys.length !== 1 ? 's' : ''} excluído${keys.length !== 1 ? 's' : ''}.`, 'ok');
+}
+
+function dashBulkMove() {
+  if (!dashSelected.size) return;
+  // Reuse existing move-modal with bulk operation
+  _moveSelectedFolderId = null;
+  const modal = document.getElementById('move-modal');
+  const list  = document.getElementById('move-folder-list');
+  list.innerHTML = `<div class="move-folder-item" onclick="_moveSelectedFolderId=null;document.querySelectorAll('.move-folder-item').forEach(x=>x.classList.remove('selected'));this.classList.add('selected')">📂 Raiz (sem pasta)</div>`;
+  dashFolders.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'move-folder-item';
+    div.textContent = `📁 ${f.name}`;
+    div.onclick = () => { _moveSelectedFolderId = f.id; document.querySelectorAll('.move-folder-item').forEach(x => x.classList.remove('selected')); div.classList.add('selected'); };
+    list.appendChild(div);
+  });
+  modal.style.display = '';
+  // Override confirm button to handle bulk
+  document.querySelector('#move-modal .btn-primary').onclick = confirmBulkMove;
+}
+
+async function confirmBulkMove() {
+  const folderId = _moveSelectedFolderId;
+  const keys = [...dashSelected];
+  document.getElementById('move-modal').style.display = 'none';
+  for (const key of keys) {
+    if (results[key]) results[key].folderId = folderId;
+    if (key.startsWith('db_')) {
+      const id = parseInt(key.replace('db_', ''));
+      await authFetch('/api/db?action=move-image', { method: 'POST', body: JSON.stringify({ imageId: id, folderId }) }).catch(() => {});
+    }
+  }
+  dashSelected.clear();
+  refreshDashboard();
+  _updateDashBulkBar();
+  toast(folderId ? `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''}.` : `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''} para a raiz.`, 'ok');
+}
 
 function filterDashboard(type, el) {
   dashFilter       = type;
@@ -3321,13 +3465,17 @@ function refreshDashboard() {
     });
   }
 
+  const isSel = (key) => dashSelected.has(key);
+
   allItems.forEach(r => {
     if (r.kind === 'txt') {
       const typ  = typeLabel[r.type] || '';
       const meta = [typ, 'TXT', _relTime(r.ts)].filter(Boolean).join(' · ');
       const div  = document.createElement('div');
-      div.className = 'dash-card txt-card';
+      div.className = 'dash-card txt-card' + (isSel(r.key) ? ' selected' : '');
+      div.dataset.key = r.key;
       div.innerHTML = `
+        <div class="dash-card-check-wrap"><input type="checkbox" ${isSel(r.key) ? 'checked' : ''} onchange="toggleDashSelect('${r.key}',this.checked,event)" /></div>
         <div class="dash-card-thumb"></div>
         <div class="dash-card-info">
           <div class="dash-card-text">
@@ -3342,11 +3490,19 @@ function refreshDashboard() {
     const s    = `${r.url || ''} ${r.filename || ''}`.toLowerCase();
     const fmt  = s.includes('.jpg') || s.includes('.jpeg') || (r.url||'').startsWith('data:image/jpeg') ? 'JPG' : 'PNG';
     const typ  = typeLabel[r.docType] || '';
-    const disp = r.customTitle || r.title || (r.pageNum ? `Pág. ${r.pageNum}` : '');
-    const meta = [typ, fmt, _relTime(r.ts)].filter(Boolean).join(' · ');
+    // Format: [Page X][Type] — title (or customTitle)
+    const rawTitle = r.customTitle || r.title || '';
+    const pageTag  = r.pageNum ? `[Pág. ${r.pageNum}]` : '';
+    const typeTag  = typ ? `[${typ}]` : '';
+    const disp     = r.customTitle
+      ? r.customTitle
+      : [pageTag, typeTag, rawTitle].filter(Boolean).join(' ');
+    const meta = [fmt, _relTime(r.ts)].filter(Boolean).join(' · ');
     const div  = document.createElement('div');
-    div.className = 'dash-card';
+    div.className = 'dash-card' + (isSel(r.key) ? ' selected' : '');
+    div.dataset.key = r.key;
     div.innerHTML = `
+      <div class="dash-card-check-wrap"><input type="checkbox" ${isSel(r.key) ? 'checked' : ''} onchange="toggleDashSelect('${r.key}',this.checked,event)" /></div>
       <div class="dash-card-thumb">
         <img src="${esc(r.url)}" loading="lazy" alt="${esc(disp)}" />
       </div>
@@ -3357,7 +3513,7 @@ function refreshDashboard() {
         </div>
         <button class="dash-card-more" onclick="showFileCtxMenu(event,'${r.key}')">···</button>
       </div>`;
-    div.onclick = (e) => { if (!e.target.closest('.dash-card-more')) window.open(r.url, '_blank'); };
+    div.onclick = (e) => { if (!e.target.closest('.dash-card-more') && !e.target.closest('.dash-card-check-wrap')) window.open(r.url, '_blank'); };
     grid.appendChild(div);
   });
 }
@@ -3534,40 +3690,123 @@ let combinarDragSrc = null;
 
 function refreshCombinarPage() { renderCombinarList(); }
 
-function combinarAddAll() {
-  const items = Object.entries(results).filter(([k,r]) => r && r.url);
-  if (!items.length) { toast('Nenhuma imagem gerada ainda.', 'warn'); return; }
-  combinarItems = items.map(([k,r]) => ({ key:k, pageNum:r.pageNum, title:r.title||'', url:r.upscaledUrl||r.url, docType:r.docType||'' }));
-  combinarItems.sort((a,b) => (a.pageNum||0) - (b.pageNum||0));
-  renderCombinarList();
+let combinarSelected = new Set(); // indices of selected combinar items
+let _combinarModalSel = new Set(); // keys selected in add-modal
+
+function combinarOpenAddModal() {
+  const available = Object.entries(results).filter(([k,r]) => r && r.url);
+  if (!available.length) { toast('Nenhuma imagem disponível ainda.', 'warn'); return; }
+  _combinarModalSel.clear();
+  const grid = document.getElementById('combinar-modal-grid');
+  const allChk = document.getElementById('combinar-modal-all');
+  if (allChk) allChk.checked = false;
+  _updateCombinarModalCount();
+  grid.innerHTML = '';
+  const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
+  available.sort(([,a],[,b]) => (a.pageNum||0) - (b.pageNum||0)).forEach(([key, r]) => {
+    const typ  = typeLabel[r.docType] || '';
+    const label = [typ, r.pageNum ? `Pág. ${r.pageNum}` : '', r.title].filter(Boolean).join(' · ');
+    const div  = document.createElement('div');
+    div.className = 'combinar-modal-item';
+    div.dataset.key = key;
+    div.innerHTML = `
+      <img src="${r.upscaledUrl || r.url}" loading="lazy" />
+      <input class="combinar-modal-item-check" type="checkbox" onclick="event.stopPropagation();combinarModalToggle('${key}',this.checked)" />
+      <div class="combinar-modal-item-label">${esc(label)}</div>`;
+    div.onclick = () => {
+      const chk = div.querySelector('input');
+      chk.checked = !chk.checked;
+      combinarModalToggle(key, chk.checked);
+    };
+    grid.appendChild(div);
+  });
+  document.getElementById('combinar-add-modal').style.display = '';
 }
-function combinarClear() { combinarItems = []; renderCombinarList(); }
+
+function combinarModalToggle(key, checked) {
+  if (checked) _combinarModalSel.add(key); else _combinarModalSel.delete(key);
+  const item = document.querySelector(`.combinar-modal-item[data-key="${key}"]`);
+  if (item) item.classList.toggle('selected', checked);
+  _updateCombinarModalCount();
+  const total = document.querySelectorAll('.combinar-modal-item').length;
+  const allChk = document.getElementById('combinar-modal-all');
+  if (allChk) { allChk.checked = _combinarModalSel.size === total && total > 0; allChk.indeterminate = _combinarModalSel.size > 0 && _combinarModalSel.size < total; }
+}
+
+function combinarModalSelectAll(checked) {
+  document.querySelectorAll('.combinar-modal-item').forEach(item => {
+    const key = item.dataset.key;
+    const chk = item.querySelector('input');
+    if (checked) { _combinarModalSel.add(key); item.classList.add('selected'); if(chk) chk.checked = true; }
+    else { _combinarModalSel.delete(key); item.classList.remove('selected'); if(chk) chk.checked = false; }
+  });
+  _updateCombinarModalCount();
+}
+
+function _updateCombinarModalCount() {
+  const el = document.getElementById('combinar-modal-count');
+  if (el) el.textContent = `${_combinarModalSel.size} selecionada${_combinarModalSel.size !== 1 ? 's' : ''}`;
+}
+
+function combinarModalConfirm() {
+  if (!_combinarModalSel.size) { toast('Nenhuma imagem selecionada.', 'warn'); return; }
+  const existing = new Set(combinarItems.map(i => i.key));
+  _combinarModalSel.forEach(key => {
+    if (existing.has(key)) return;
+    const r = results[key];
+    if (!r) return;
+    combinarItems.push({ key, pageNum: r.pageNum, title: r.title||'', url: r.upscaledUrl||r.url, docType: r.docType||'' });
+  });
+  combinarItems.sort((a,b) => (a.pageNum||0) - (b.pageNum||0));
+  closeCombinarModal();
+  renderCombinarList();
+  toast(`${_combinarModalSel.size} imagem${_combinarModalSel.size !== 1 ? 'ns' : ''} adicionada${_combinarModalSel.size !== 1 ? 's' : ''}.`, 'ok');
+}
+
+function closeCombinarModal() {
+  document.getElementById('combinar-add-modal').style.display = 'none';
+  _combinarModalSel.clear();
+}
+
+function combinarAddAll() {
+  // Legacy — now opens modal
+  combinarOpenAddModal();
+}
+
+function combinarClear() { combinarItems = []; combinarSelected.clear(); renderCombinarList(); }
 
 function renderCombinarList() {
   const list    = document.getElementById('combinar-list');
   const countEl = document.getElementById('combinar-count');
   if (!list) return;
 
-  // Update preview first
   _refreshCombinarPreview();
+
+  const selBtn = document.getElementById('combinar-clear-sel-btn');
 
   if (!combinarItems.length) {
     list.innerHTML = '<div class="empty"><span class="ico">📄</span><p>Adicione imagens</p></div>';
     if (countEl) countEl.textContent = '0 páginas';
+    if (selBtn) selBtn.style.display = 'none';
+    combinarSelected.clear();
     return;
   }
   if (countEl) countEl.textContent = `${combinarItems.length} página${combinarItems.length > 1 ? 's' : ''}`;
+  if (selBtn) selBtn.style.display = combinarSelected.size ? '' : 'none';
+
   list.innerHTML = '';
   combinarItems.forEach((item, i) => {
+    const isSel = combinarSelected.has(i);
     const div = document.createElement('div');
-    div.className = 'combinar-item';
+    div.className = 'combinar-item' + (isSel ? ' selected' : '');
     div.draggable = true;
     div.dataset.index = i;
     div.innerHTML = `
+      <input type="checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation();combinarToggleSelect(${i},this.checked)" />
       <span class="drag-handle">⋮⋮</span>
       <img src="${item.url}" />
       <span class="combinar-item-label">Pág. ${item.pageNum || (i+1)}${item.title ? ' — '+item.title : ''}</span>
-      <button class="combinar-item-remove" onclick="combinarRemove(${i})">×</button>`;
+      <button class="combinar-item-remove" onclick="event.stopPropagation();combinarRemove(${i})">×</button>`;
     div.addEventListener('dragstart', e => { combinarDragSrc = i; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
     div.addEventListener('dragend',   () => { div.classList.remove('dragging'); document.querySelectorAll('.combinar-item').forEach(d=>d.classList.remove('drag-over')); });
     div.addEventListener('dragover',  e => { e.preventDefault(); div.classList.add('drag-over'); });
@@ -3584,7 +3823,30 @@ function renderCombinarList() {
   });
 }
 
-function combinarRemove(i) { combinarItems.splice(i, 1); renderCombinarList(); }
+function combinarToggleSelect(i, checked) {
+  if (checked) combinarSelected.add(i); else combinarSelected.delete(i);
+  const selBtn = document.getElementById('combinar-clear-sel-btn');
+  if (selBtn) selBtn.style.display = combinarSelected.size ? '' : 'none';
+  const item = document.querySelectorAll('.combinar-item')[i];
+  if (item) item.classList.toggle('selected', checked);
+}
+
+function combinarRemoveSelected() {
+  const indices = [...combinarSelected].sort((a,b) => b - a);
+  indices.forEach(i => combinarItems.splice(i, 1));
+  combinarSelected.clear();
+  renderCombinarList();
+}
+
+function combinarRemove(i) {
+  combinarSelected.delete(i);
+  // Remap indices above i
+  const newSel = new Set();
+  combinarSelected.forEach(idx => { if (idx < i) newSel.add(idx); else if (idx > i) newSel.add(idx - 1); });
+  combinarSelected.clear(); newSel.forEach(x => combinarSelected.add(x));
+  combinarItems.splice(i, 1);
+  renderCombinarList();
+}
 
 function _refreshCombinarPreview() {
   const preview = document.getElementById('combinar-pdf-preview');
@@ -4255,14 +4517,7 @@ function setProvider(p, el) {
 
 function onModelChange() { updateTopbarChips(); }
 
-function updateTopbarChips() {
-  const modelId = provider === 'openai'
-    ? document.getElementById('model-openai').value
-    : document.getElementById('model-replicate').value;
-  const label = modelId.includes('/') ? modelId.split('/')[1] : modelId;
-  document.getElementById('provider-chip').textContent = provider === 'openai' ? 'OpenAI' : 'Replicate';
-  document.getElementById('model-chip').textContent = label;
-}
+function updateTopbarChips() { /* chips removed — no-op */ }
 
 function getApiKeyByProvider(prov) {
   const sel = document.getElementById(`apiKey-select-${prov}`);
