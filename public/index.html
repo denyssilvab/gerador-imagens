@@ -1378,17 +1378,65 @@
           </div>
         </div>
 
-        <!-- Output -->
+        <!-- Output: individual mode -->
         <div class="card" id="claude-output-card" style="display:none;">
           <div class="card-head">
             <h2>Conteúdo Gerado</h2>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-ghost btn-sm" onclick="copyClaudeOutput()">⎘ Copiar</button>
-              <button class="btn btn-primary btn-sm" onclick="sendToGerar()">→ Usar no Gerar Imagens</button>
+              <button class="btn btn-primary btn-sm" onclick="sendToGerar()">→ Exportar para Gerar Imagens</button>
             </div>
           </div>
           <div class="card-body">
             <textarea id="claude-output" rows="24" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="O conteúdo gerado aparecerá aqui…"></textarea>
+          </div>
+        </div>
+
+        <!-- Output: All mode (3 boxes) -->
+        <div id="claude-output-all" style="display:none;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#89c13b;">📖 Lesson</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="all-badge-lesson"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('all-lesson')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendToGerarSingle('lesson')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="claude-output-lesson" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Lesson gerada aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#0251af;">✏️ Practice Activities</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="all-badge-practice"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('all-practice')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendToGerarSingle('practice')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="claude-output-practice" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Practice Activities gerada aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#ff6b35;">📋 Lesson Plan</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="all-badge-lessonplan"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('all-lessonplan')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendToGerarSingle('lessonplan')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="claude-output-lessonplan" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Lesson Plan gerada aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <!-- Export all at once -->
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button class="btn btn-ghost" onclick="copyAllOutputs()">⎘ Copiar tudo</button>
+            <button class="btn btn-primary" onclick="sendToGerar()">→ Exportar tudo para Gerar Imagens</button>
           </div>
         </div>
 
@@ -2246,6 +2294,22 @@ Quando incluir [IMAGE: ...], descrever com detalhe técnico:
 
 lessonplan: `## Você é um especialista instrucional da CCSS (Common Core State Standards) e precisa criar um prompt completo com o conteúdo de uma Lesson Plan baseada na lesson e practice activities fornecida.
 
+## FORMATO OBRIGATÓRIO DE PÁGINAS
+
+Use EXATAMENTE este formato para marcar cada página (com hífens duplos e sem asteriscos):
+
+--PAGE 1 - TÍTULO DA SEÇÃO--
+
+[conteúdo]
+
+--PAGE 2 - TÍTULO DA SEÇÃO--
+
+[conteúdo]
+
+NÃO use **PAGE X**, *PAGE X*, ## PAGE X ou qualquer outra variação. APENAS --PAGE X--.
+
+---
+
 ## CRÍTICO
 
 **Máximo de conteúdo por página: 120-140mm**
@@ -2530,42 +2594,54 @@ async function generateContent() {
   const outputEl = document.getElementById('claude-output');
   const card     = document.getElementById('claude-output-card');
 
+  // helpers for All mode separate boxes
+  const allOut     = document.getElementById('claude-output-all');
+  const outLesson  = document.getElementById('claude-output-lesson');
+  const outPractice= document.getElementById('claude-output-practice');
+  const outPlan    = document.getElementById('claude-output-lessonplan');
+
+  function _setBadge(id, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
+    el.className = 'pg-badge' + (text ? ' has' : '');
+  }
+
   try {
     if (contentDocType === 'all') {
-      // ── Geração sequencial: Lesson → Activities → Lesson Plan ──────────
-      let combined   = '';
-
-      const sep = (title) => `${'─'.repeat(60)}\n${title}\n${'─'.repeat(60)}\n\n`;
+      // ── Geração sequencial: caixas separadas ──────────────────────────
+      if (card)   card.style.display   = 'none';
+      if (allOut) allOut.style.display = 'flex';
 
       // 1. Lesson
       if (label) label.textContent = 'Gerando Lesson… (1/3)';
-      if (card) card.style.display = '';
-      const lessonPrefix = sep('LESSON');
       const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
-        (partial) => { if (outputEl) outputEl.value = lessonPrefix + partial; });
+        (partial) => { if (outLesson) outLesson.value = partial; });
       savedContent.lesson = lessonContent;
-      combined = lessonPrefix + lessonContent;
-      if (outputEl) outputEl.value = combined;
+      if (outLesson) outLesson.value = lessonContent;
+      const lpages = (lessonContent.match(/^--PAGE /gm) || []).length;
+      _setBadge('all-badge-lesson', lpages ? `${lpages} pág.` : '');
       updateContentTabs();
 
       // 2. Activities
       if (label) label.textContent = 'Gerando Activities… (2/3)';
-      const practicePrefix = `\n\n${sep('ACTIVITIES')}`;
       const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
-        (partial) => { if (outputEl) outputEl.value = combined + practicePrefix + partial; });
+        (partial) => { if (outPractice) outPractice.value = partial; });
       savedContent.practice = practiceContent;
-      combined += practicePrefix + practiceContent;
-      if (outputEl) outputEl.value = combined;
+      if (outPractice) outPractice.value = practiceContent;
+      const ppages = (practiceContent.match(/^--PAGE /gm) || []).length;
+      _setBadge('all-badge-practice', ppages ? `${ppages} pág.` : '');
       updateContentTabs();
 
       // 3. Lesson Plan
       if (label) label.textContent = 'Gerando Lesson Plan… (3/3)';
-      const planPrefix = `\n\n${sep('LESSON PLAN')}`;
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
-        (partial) => { if (outputEl) outputEl.value = combined + planPrefix + partial; });
+        (partial) => { if (outPlan) outPlan.value = partial; });
       savedContent.lessonplan = planContent;
-      combined += planPrefix + planContent;
-      if (outputEl) outputEl.value = combined;
+      if (outPlan) outPlan.value = planContent;
+      const plpages = (planContent.match(/^--PAGE /gm) || []).length;
+      _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág.` : '');
       updateContentTabs();
 
       // Sync all 3 to Supabase
@@ -2629,33 +2705,62 @@ function copyClaudeOutput() {
   navigator.clipboard.writeText(output.value).then(() => toast('Copiado!', 'ok'));
 }
 
-function sendToGerar() {
-  const content = document.getElementById('claude-output')?.value;
-  if (!content) { toast('Nenhum conteúdo para transferir.', 'warn'); return; }
+function copyAllOutputs() {
+  const parts = [
+    savedContent.lesson     ? `${'─'.repeat(60)}\nLESSON\n${'─'.repeat(60)}\n\n${savedContent.lesson}` : '',
+    savedContent.practice   ? `\n\n${'─'.repeat(60)}\nACTIVITIES\n${'─'.repeat(60)}\n\n${savedContent.practice}` : '',
+    savedContent.lessonplan ? `\n\n${'─'.repeat(60)}\nLESSON PLAN\n${'─'.repeat(60)}\n\n${savedContent.lessonplan}` : '',
+  ].filter(Boolean).join('');
+  if (!parts) { toast('Nenhum conteúdo para copiar.', 'warn'); return; }
+  navigator.clipboard.writeText(parts).then(() => toast('Tudo copiado!', 'ok'));
+}
 
-  // Detecta tipo e distribui nos textareas corretos
-  if (contentDocType === 'all') {
-    // Tenta separar seções por padrão
-    document.getElementById('prompt-lesson')?.value && null;
-    document.getElementById('prompt-lesson').value     = content;
-    document.getElementById('prompt-practice').value   = '';
-    document.getElementById('prompt-lessonplan').value = '';
-    onAllPromptInput('lesson');
-  } else if (contentDocType === 'lesson') {
-    document.getElementById('prompt-lesson').value = content;
-    onAllPromptInput('lesson');
-  } else if (contentDocType === 'practice') {
-    document.getElementById('prompt-practice').value = content;
-    onAllPromptInput('practice');
-  } else if (contentDocType === 'lessonplan') {
-    document.getElementById('prompt-lessonplan').value = content;
-    onAllPromptInput('lessonplan');
-  }
+// Auto-fill Gerar section fields from Content section
+function _autoFillGerarFields() {
+  const map = [
+    ['content-unit',        'unit'],
+    ['content-lesson',      'lesson'],
+    ['content-ccss',        'ccss'],
+    ['content-lesson-name', 'lesson-name'],
+  ];
+  map.forEach(([src, dst]) => {
+    const val = document.getElementById(src)?.value;
+    if (val) { const el = document.getElementById(dst); if (el) el.value = val; }
+  });
+}
 
-  // Muda para página Gerar
+function sendToGerarSingle(type) {
+  const srcMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', lessonplan: 'claude-output-lessonplan' };
+  const content = document.getElementById(srcMap[type])?.value || savedContent[type];
+  if (!content) { toast('Conteúdo vazio.', 'warn'); return; }
+  const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan' };
+  document.getElementById(dstMap[type]).value = content;
+  onAllPromptInput(type);
+  _autoFillGerarFields();
   const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
   setPage('gerar', gerarBtn);
-  toast('Conteúdo transferido para Gerar Imagens!', 'ok');
+  toast(`${type === 'lesson' ? 'Lesson' : type === 'practice' ? 'Activities' : 'Lesson Plan'} exportado para Gerar Imagens!`, 'ok');
+}
+
+function sendToGerar() {
+  _autoFillGerarFields();
+
+  if (contentDocType === 'all') {
+    // Exporta os 3 conteúdos separados para seus inputs
+    if (savedContent.lesson)     { document.getElementById('prompt-lesson').value     = savedContent.lesson;     onAllPromptInput('lesson'); }
+    if (savedContent.practice)   { document.getElementById('prompt-practice').value   = savedContent.practice;   onAllPromptInput('practice'); }
+    if (savedContent.lessonplan) { document.getElementById('prompt-lessonplan').value = savedContent.lessonplan; onAllPromptInput('lessonplan'); }
+  } else {
+    const content = document.getElementById('claude-output')?.value;
+    if (!content) { toast('Nenhum conteúdo para transferir.', 'warn'); return; }
+    const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan' };
+    const dst = dstMap[contentDocType];
+    if (dst) { document.getElementById(dst).value = content; onAllPromptInput(contentDocType); }
+  }
+
+  const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
+  setPage('gerar', gerarBtn);
+  toast('Conteúdo exportado para Gerar Imagens!', 'ok');
 }
 
 function setPage(name, el) {
@@ -5146,11 +5251,29 @@ function buildFilename(docTypeOverride, ext) {
 }
 
 function savePromptAsTxt(type) {
-  const idMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan', single: 'prompt' };
-  const dtMap = { lesson: 'lesson', practice: 'practice', lessonplan: 'lessonplan', single: docType };
+  const idMap = {
+    lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan', single: 'prompt',
+    'all-lesson': 'claude-output-lesson', 'all-practice': 'claude-output-practice', 'all-lessonplan': 'claude-output-lessonplan',
+  };
+  const dtMap = {
+    lesson: 'lesson', practice: 'practice', lessonplan: 'lessonplan', single: docType,
+    'all-lesson': 'lesson', 'all-practice': 'practice', 'all-lessonplan': 'lessonplan',
+  };
   const text = document.getElementById(idMap[type])?.value || '';
-  if (!text.trim()) { toast('Prompt vazio — nada para salvar.', 'warn'); return; }
-  const filename = buildFilename(dtMap[type], 'txt');
+  if (!text.trim()) { toast('Conteúdo vazio — nada para salvar.', 'warn'); return; }
+  // For All-mode saves, use content-section fields for filename
+  const useContentFields = type.startsWith('all-');
+  const lesson   = (useContentFields ? document.getElementById('content-lesson') : document.getElementById('lesson'))?.value || '';
+  const ccss     = (useContentFields ? document.getElementById('content-ccss')   : document.getElementById('ccss'))?.value   || '';
+  const name     = (useContentFields ? document.getElementById('content-lesson-name') : document.getElementById('lesson-name'))?.value || '';
+  const dt       = dtMap[type];
+  const dtLabel  = dt === 'lesson' ? 'Lesson' : dt === 'practice' ? 'Practice Activities' : 'Lesson Plan';
+  const parts    = [];
+  if (lesson) parts.push(`Lesson ${lesson}`);
+  parts.push(`(${dtLabel})`);
+  if (name)   parts.push(`- ${name}`);
+  if (ccss)   parts.push(`(${ccss})`);
+  const filename = (parts.join(' ') || 'arquivo') + '.txt';
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
