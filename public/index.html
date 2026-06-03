@@ -2168,11 +2168,12 @@ async function generateContent() {
 
   claudeAbortCtrl = new AbortController();
 
+  const outputEl = document.getElementById('claude-output');
+  const card     = document.getElementById('claude-output-card');
+
   try {
     if (contentDocType === 'all') {
       // ── Geração sequencial: Lesson → Activities → Lesson Plan ──────────
-      const outputEl = document.getElementById('claude-output');
-      const card     = document.getElementById('claude-output-card');
       let combined   = '';
 
       const sep = (title) => `${'─'.repeat(60)}\n${title}\n${'─'.repeat(60)}\n\n`;
