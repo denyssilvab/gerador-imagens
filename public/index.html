@@ -2873,21 +2873,21 @@ A document that:
 - Ready for A4 printing at 300 DPI
 - Complements the corresponding LESSON`,
 
-lessonplan: `## Você é um especialista instrucional da CCSS (Common Core State Standards) e precisa criar um prompt completo com o conteúdo de uma Lesson Plan baseada na lesson e practice activities fornecida.
+lessonplan: `# You are a CCSS (Common Core State Standards) instructional expert and need to create a complete prompt with the content of a Lesson Plan based on the lesson and practice activities provided.
 
-## CRÍTICO
+## CRITICAL
 
-**Máximo de conteúdo por página: 120-140mm**
+**Maximum content per page: 120-140mm**
 
-Isso é não-negociável. Se passar de 140mm, DIVIDIR em 2 páginas.
+This is non-negotiable. If it exceeds 140mm, DIVIDE into 2 pages.
 
 ---
 
-## SEM ESTRUTURAS NUMERADAS
+## NO NUMBERED STRUCTURES
 
-Remover TUDO que pareça "estrutura":
+Remove EVERYTHING that looks like "structure":
 
-❌ NÃO FAZER:
+DO NOT:
 - Step 1: Discovering the pattern
 - Problem 1: (reference PRACTICE ACTIVITIES, Q1)
 - Question 1: A ticket costs...
@@ -2896,7 +2896,7 @@ Remover TUDO que pareça "estrutura":
 - Ask during modeling:
 - What to watch for:
 
-✅ FAZER:
+DO:
 - Discovering the pattern
 - The first example (reference PRACTICE ACTIVITIES, Q1): A soccer ball costs...
 - A ticket costs...
@@ -2907,30 +2907,27 @@ Remover TUDO que pareça "estrutura":
 
 ---
 
-## SEM CAIXA ALTA
+## NO ALL CAPS
 
-**Remover QUALQUER palavra inteira em maiúsculas:**
+**Remove ANY word entirely in uppercase:**
 
-❌ NÃO: "ALWAYS:", "NEVER:", "IMPORTANT:"
-✅ SIM: "Always do this:", "Never do this:", "Important note:"
-
-❌ NÃO: "Q7:", "PAGE 1:", "CCSS"
-✅ SIM: "Question 7:", "Page 1:", "CCSS code"
+NO: "ALWAYS:", "NEVER:", "IMPORTANT:"
+YES: "Always do this:", "Never do this:", "Important note:"
 
 ---
 
-## SEM ÍCONES E SEM ESTRUTURAS
+## NO ICONS AND NO STRUCTURES
 
-**Remover:**
-- Bullets numerados ou símbolos
+**Remove:**
+- Numbered bullets or symbols
 - "a)", "b)", "c)"
-- Listas estruturadas
-- Colunas | de tabela
-- Hífens que parecem listas
+- Structured lists
+- Column | tables
+- Hyphens that look like lists
 
-**Se for uma lista de 3 itens:**
+**If you have a list of 3 items:**
 
-❌ ERRADO:
+❌ WRONG:
 \`\`\`
 Teacher actions:
 - Let students attempt first
@@ -2938,84 +2935,60 @@ Teacher actions:
 - Watch for confusion
 \`\`\`
 
-✅ CERTO:
+✅ CORRECT:
 \`\`\`
 The teacher lets students attempt the problem first. Then ask them what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
 \`\`\`
 
 ---
 
-## MÁXIMO 120-140mm POR PÁGINA
+## MAXIMUM 120-140mm PER PAGE
 
-Conteúdo deve caber em ~120-140mm de altura.
+Content must fit in ~120-140mm height.
 
-**Distribuição de páginas:**
+**Page distribution:**
 
-Se tem 3 misconceptions, não coloca os 3 na mesma página.
+If you have 3 misconceptions, do not put all 3 on the same page.
 
-Exemplo CORRETO:
+Example CORRECT:
 \`\`\`
-PAGE 7: Misconception 1 (120mm)
-PAGE 8: Misconception 2 (130mm)
-PAGE 9: Misconceptions 3 e 4 (140mm)
+PAGE X: Misconception 1 (120mm)
+PAGE Y: Misconception 2 (130mm)
+PAGE Z: Misconceptions 3 and 4 (140mm)
 \`\`\`
 
-Exemplo ERRADO:
+Example WRONG:
 \`\`\`
-PAGE 7: Misconceptions 1, 2, 3, 4, 5 (400mm!)
+PAGE X: Misconceptions 1, 2, 3, 4, 5 (400mm!)
 \`\`\`
 
 ---
 
-## FORMATO OBRIGATÓRIO DE PÁGINAS
-
-Use EXATAMENTE este formato para marcar cada página (com hífens duplos e sem asteriscos):
-
---PAGE 1 - TÍTULO DA SEÇÃO--
-
-[conteúdo]
-
---PAGE 2 - TÍTULO DA SEÇÃO--
-
-[conteúdo]
-
-NÃO use **PAGE X**, *PAGE X*, ## PAGE X ou qualquer outra variação. APENAS --PAGE X--.
-
----
-
-## ESTRUTURA FINAL: 15-17 PÁGINAS
-
-\`\`\`
-PAGE 1:
-- Título: Lesson Overview
-- Subtítulo: Nome da aula
-- Duration, Unit, grade, Standard, Lesson X + Name Lesson, objectives + materials
-- Tudo isso ficará organizado em um único box.
-PAGE 2: Prior knowledge (100mm)
-PAGE 3: Key vocabulary (110mm)
-PAGE 4: Warm-up activity (120mm)
-PAGE 5: Problem disparador (120mm)
-PAGE 6: Introduction — first part (120mm)
-PAGE 7: Introduction — second part (120mm)
-PAGE 8: Direct instruction — step 1 (130mm)
-PAGE 9: Direct instruction — step 2 (130mm)
-PAGE 10: Direct instruction — step 3 (130mm)
-PAGE 11: Guided practice — problem 1 (120mm)
-PAGE 12: Guided practice — problem 2 (120mm)
-PAGE 13: Independent practice (120mm)
-PAGE 14: Closure and exit ticket (130mm)
-PAGE 15: Common misconception 1 + 2 (140mm max)
-PAGE 16: Common misconception 3 + 4 (140mm max)
-PAGE 17: Differentiation + connections (140mm max)
-\`\`\`
-
-Total: 15-17 páginas, TODAS balanceadas.
+## STRUCTURE:
+- Title: Lesson Overview
+- Subtitle: Lesson name
+- Duration, Unit, grade, Standard, Lesson X + Lesson Name, objectives + materials. (All of this will be organized in a single box.)
+- Prior knowledge (100mm)
+- Key vocabulary (110mm)
+- Warm-up activity (120mm)
+- Problem disparador (120mm)
+- Introduction — first part (120mm)
+- Direct instruction — step 1 (130mm)
+- Direct instruction — step 2 (130mm)
+- Direct instruction — step 3 (130mm)
+- Guided practice — problem 1 (120mm)
+- Guided practice — problem 2 (120mm)
+- Independent practice (120mm)
+- Closure and exit ticket (130mm)
+- Common misconception 1 + 2 (140mm max)
+- Common misconception 3 + 4 (140mm max)
+- Differentiation + connections (140mm max)
 
 ---
 
-## COMO ESCREVER SEM ESTRUTURAS
+## HOW TO WRITE WITHOUT STRUCTURES
 
-**Ao invés de:**
+**Instead of:**
 \`\`\`
 Step 1: Discovering the pattern
 
@@ -3027,7 +3000,7 @@ Ask during modeling:
 - "What does 5 mean?"
 \`\`\`
 
-**Escrever:**
+**Write:**
 \`\`\`
 Discovering the pattern
 
@@ -3038,9 +3011,9 @@ During this modeling, ask students what the letter b stands for. Ask what the nu
 
 ---
 
-## TÍTULOS
+## TITLES
 
-**SEMPRE Sentence case:**
+**ALWAYS Sentence case:**
 
 - Discovering the pattern
 - Introduction and problem disparador
@@ -3049,18 +3022,18 @@ During this modeling, ask students what the letter b stands for. Ask what the nu
 - Closure with exit ticket
 - Common misconception about variables
 
-**NUNCA:**
+**NEVER:**
 - DISCOVERING THE PATTERN
 - Discovery Pattern
 - Step 1: Discovering
 
 ---
 
-## CONTEÚDO DEVE FLUIR
+## CONTENT MUST FLOW
 
-Parágrafos conectados, narrativos.
+Connected, narrative paragraphs.
 
-**ERRADO (parece lista/estrutura):**
+**WRONG (looks like list/structure):**
 \`\`\`
 Warm-up activity
 
@@ -3076,28 +3049,14 @@ Teacher actions:
 - Ask: "How did you figure these out?"
 \`\`\`
 
-**CERTO (narrativo, fluido):**
+**CORRECT (narrative, fluid):**
 \`\`\`
 Warm-up activity
 
 Display on the board a simple question: If your friend Maya sells bracelets for $5 each, how much does she earn if she sells 10? How much if she sells 20? How much if she sells 100?
 
 Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."
-\`\`\`
-
----
-
-## RESULTADO ESPERADO
-
-- 15-17 páginas bem distribuídas
-- Máximo 120-140mm de conteúdo por página
-- Sem "Step 1:", "Problem 1:", "Question 1:"
-- Sem listas com hífens ou bullets
-- Sem estruturas numeradas
-- Sem caixa alta (nem uma letra)
-- Conteúdo narrativo e fluido
-- Títulos em Sentence case
-- Pronto para impressão A4, 300 DPI`,
+\`\`\``,
 
 all: `You are an expert 6th grade mathematics educator. Generate a complete lesson package.
 
