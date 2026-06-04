@@ -3875,11 +3875,11 @@ function refreshDashboard() {
     grid.appendChild(div);
   };
 
-  if (dashFilter === 'folder' && dashFolderFilter !== null) {
-    // Inside a folder: show its direct subfolders
+  if (dashFolderFilter !== null) {
+    // Inside a folder: show direct subfolders of the current folder
     dashFolders.filter(f => Number(f.parent_id) === Number(dashFolderFilter)).forEach(_renderFolderCard);
-  } else if (dashFilter !== 'folder' && dashFolders.length) {
-    // Root / type-filtered view: show top-level folders
+  } else if (dashFolders.length) {
+    // Root view: show top-level folders only
     dashFolders.filter(f => !f.parent_id).forEach(_renderFolderCard);
   }
 
