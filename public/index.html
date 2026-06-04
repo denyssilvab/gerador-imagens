@@ -1890,6 +1890,7 @@
       <span class="sel-count" id="sel-count" style="display:none;"></span>
       <span style="flex:1;"></span>
       <button class="btn btn-sm" id="btn-del" onclick="deleteSelected()" disabled style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
+      <button class="btn btn-ghost btn-sm" id="btn-export-upscale" onclick="exportSelectedToUpscale()" disabled title="Adicionar selecionadas à fila de Upscale">⬆ Exportar para Upscale</button>
       <button class="btn btn-ghost btn-sm" onclick="downloadAll()">⬇ ZIP</button>
       <button class="btn btn-ghost btn-sm" onclick="clearResults()">🗑 Limpar</button>
     </div>
@@ -6388,9 +6389,29 @@ function updateSelectionUI() {
   count.textContent   = `${n} selecionada${n !== 1 ? 's' : ''}`;
   const btnDel = document.getElementById('btn-del');
   if (btnDel) btnDel.disabled = !has;
+  const btnExport = document.getElementById('btn-export-upscale');
+  if (btnExport) btnExport.disabled = !has;
   const chkAll = document.getElementById('chk-all');
   const total  = document.querySelectorAll('.icard-check').length;
   if (chkAll) { chkAll.checked = n === total && total > 0; chkAll.indeterminate = n > 0 && n < total; }
+}
+
+function exportSelectedToUpscale() {
+  const keys = [...selectedKeys].filter(k => results[k]?.url);
+  if (!keys.length) return;
+  let added = 0;
+  keys.forEach(key => {
+    if (upscaleQueue.find(i => i.key === key)) return;
+    const r = results[key];
+    if (!r) return;
+    const label = r.customTitle || r.title || (r.pageNum != null ? `Pág. ${r.pageNum}` : r.filename || key);
+    upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label });
+    added++;
+  });
+  _renderUpscaleQueue();
+  setPage('upscale', document.querySelector('.nav-item[onclick*="upscale"]'));
+  if (added) toast(`${added} imagem${added !== 1 ? 'ns' : ''} adicionada${added !== 1 ? 's' : ''} à fila de Upscale.`, 'ok');
+  else toast('As imagens selecionadas já estão na fila de Upscale.', 'warn');
 }
 
 async function deleteSelected() {
