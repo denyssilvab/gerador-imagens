@@ -5579,6 +5579,10 @@ function setDocType(type, el) {
     updateAllBadge();
   } else {
     document.getElementById('specs').value = SPECS[type];
+    // Sync: copy All-mode textarea content into the single-mode textarea
+    const allContent  = document.getElementById(`prompt-${type}`)?.value || '';
+    const singleEl    = document.getElementById('prompt');
+    if (singleEl && allContent) singleEl.value = allContent;
     onPromptInput();
   }
   saveSettings();
