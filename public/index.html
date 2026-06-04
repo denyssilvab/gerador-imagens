@@ -843,6 +843,9 @@
     .dash-card.txt-card .dash-card-thumb { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 38px; }
     .dash-card.txt-card .dash-card-thumb img { display: none; }
     .dash-card.txt-card .dash-card-thumb::before { content: '📄'; }
+    .dash-card.pdf-card .dash-card-thumb { background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 38px; }
+    .dash-card.pdf-card .dash-card-thumb img { display: none; }
+    .dash-card.pdf-card .dash-card-thumb::before { content: '📑'; }
     /* Folder cards in dashboard grid */
     .dash-card.folder-card { cursor: pointer; }
     .dash-card.folder-card .dash-card-thumb {
@@ -2127,6 +2130,9 @@
         <button class="btn btn-sm" id="btn-stop-upscale" onclick="stopUpscale()" style="display:none;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">
           ⏹ Parar
         </button>
+        <button class="btn btn-sm" id="btn-send-combinar" onclick="sendUpscaledToCombinar()" style="display:none;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">
+          📄 Combinar
+        </button>
       </div>
 
       <!-- Processing log -->
@@ -2183,6 +2189,7 @@
           <span style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Pré-visualização PDF</span>
           <span id="combinar-count" style="font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 10px;">0 páginas</span>
           <span style="flex:1;"></span>
+          <button class="btn btn-ghost btn-sm" onclick="combinarSaveToLibrary()" title="Gerar PDF e salvar no Dashboard">💾 Salvar na Biblioteca</button>
           <button class="btn btn-primary btn-sm" onclick="combinarExportPDF()">📄 Exportar PDF</button>
         </div>
         <div class="combinar-pdf-scroll" id="combinar-pdf-preview">
@@ -4304,6 +4311,27 @@ function refreshDashboard() {
       grid.appendChild(div);
       return;
     }
+    // Detect PDF files
+    if ((r.filename || '').toLowerCase().endsWith('.pdf') || (r.url || '').startsWith('data:application/pdf')) {
+      const meta = ['PDF', _relTime(r.ts)].filter(Boolean).join(' · ');
+      const disp = r.customTitle || r.title || r.filename || 'Documento PDF';
+      const div  = document.createElement('div');
+      div.className = 'dash-card pdf-card' + (isSel(r.key) ? ' selected' : '');
+      div.dataset.key = r.key;
+      div.innerHTML = `
+        <div class="dash-card-check-wrap"><input type="checkbox" ${isSel(r.key) ? 'checked' : ''} onchange="toggleDashSelect('${r.key}',this.checked,event)" /></div>
+        <div class="dash-card-thumb"></div>
+        <div class="dash-card-info">
+          <div class="dash-card-text">
+            <div class="dash-card-title">${esc(disp)}</div>
+            <div class="dash-card-meta">${esc(meta)}</div>
+          </div>
+          <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'documento.pdf')}" title="Baixar PDF" onclick="event.stopPropagation()">⬇</a>
+        </div>`;
+      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) { const a = document.createElement('a'); a.href = r.url; a.download = r.filename || 'documento.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); } };
+      grid.appendChild(div);
+      return;
+    }
     // Detect persisted TXT files (saved as data:text/plain or .txt filename)
     if ((r.url || '').startsWith('data:text/') || (r.filename || '').endsWith('.txt')) {
       const typ  = typeLabel[r.docType] || '';
@@ -4472,6 +4500,7 @@ let upscaleQueue = [];            // [{ key, url, filename, label }]
 let _upscaleScale = 2;
 let _slibFilter   = null;         // null = all, folder id = that folder
 let _slibSelected = new Set();    // keys selected in storage library
+let _sessionUpscaledKeys = [];    // db_ keys of images upscaled in current session
 
 function refreshUpscalePage() { /* replaced by new queue UI */ }
 
@@ -4842,6 +4871,79 @@ async function combinarExportPDF() {
     toast(`PDF com ${combinarItems.length} página${combinarItems.length > 1 ? 's' : ''} exportado!`, 'ok');
   } catch (e) {
     toast(`Erro ao criar PDF: ${e?.message || String(e)}`, 'err');
+  } finally {
+    overlay.remove();
+  }
+}
+
+async function combinarSaveToLibrary() {
+  if (!combinarItems.length) { toast('Adicione imagens primeiro.', 'warn'); return; }
+
+  // Determine folderId: use common folder if all items share one, else null (root)
+  const folderIds = [...new Set(combinarItems.map(i => results[i.key]?.folderId).filter(Boolean))];
+  const folderId = folderIds.length === 1 ? folderIds[0] : null;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay';
+  overlay.innerHTML = `<div class="spinner"></div><p id="pdf-prog-lib">Gerando PDF…</p>`;
+  document.body.appendChild(overlay);
+
+  try {
+    const pdfDoc = await PDFLib.PDFDocument.create();
+    for (let i = 0; i < combinarItems.length; i++) {
+      const item = combinarItems[i];
+      document.getElementById('pdf-prog-lib').textContent = `Incorporando página ${i + 1} de ${combinarItems.length}…`;
+      await new Promise(r => setTimeout(r, 0));
+      const srcUrl = item.url;
+      if (!srcUrl?.startsWith('data:')) continue;
+      const imgData = await imgBytesForPdf(srcUrl);
+      if (!imgData) continue;
+      const pdfImg = imgData.fmt === 'jpeg'
+        ? await pdfDoc.embedJpg(imgData.bytes)
+        : await pdfDoc.embedPng(imgData.bytes);
+      const page = pdfDoc.addPage([595.28, 841.89]);
+      page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+    }
+    document.getElementById('pdf-prog-lib').textContent = 'Salvando na biblioteca…';
+    await new Promise(r => setTimeout(r, 0));
+    const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+
+    // Convert blob → base64 data URL
+    const dataUrl = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload  = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(blob);
+    });
+
+    const filename = _buildCombinarFilename();
+    const title = filename.replace(/\.pdf$/i, '');
+    const newLocalId = await dbSave({
+      dataUrl, url: dataUrl, filename,
+      pageNum: null, title,
+      docType: 'pdf', folderId,
+    }).catch(() => null);
+
+    if (newLocalId) {
+      const newKey = `db_${newLocalId}`;
+      results[newKey] = {
+        url: dataUrl, originalUrl: dataUrl,
+        filename, pageNum: null,
+        title, customTitle: null,
+        docType: 'pdf', folderId: folderId || null,
+        ts: Date.now(), localId: newLocalId,
+      };
+      refreshDashboard();
+      const folderName = folderId
+        ? (dashFolders.find(f => Number(f.id) === Number(folderId))?.name || null)
+        : null;
+      toast(`PDF salvo na biblioteca${folderName ? ` — pasta "${folderName}"` : ''}!`, 'ok');
+    } else {
+      toast('Erro ao salvar PDF na biblioteca.', 'err');
+    }
+  } catch (e) {
+    toast(`Erro: ${e?.message || String(e)}`, 'err');
   } finally {
     overlay.remove();
   }
@@ -6606,6 +6708,11 @@ async function upscaleSelected(scale) {
 
   const upscaleModel = document.getElementById('upscale-model-pg')?.value ?? 'nightmareai/real-esrgan';
 
+  // Reset session tracking and hide Combinar button from previous session
+  _sessionUpscaledKeys = [];
+  const _combBtn = document.getElementById('btn-send-combinar');
+  if (_combBtn) _combBtn.style.display = 'none';
+
   // Init processing log
   const logQueue = keys.map(k => ({ key: k, filename: results[k]?.filename || k }));
   _ulogInit(logQueue, upscaleModel, scale);
@@ -6718,6 +6825,7 @@ async function upscaleSelected(scale) {
             docType: r.docType || '', folderId: r.folderId || null,
             ts: Date.now(), localId: newLocalId,
           };
+          _sessionUpscaledKeys.push(newKey);
           refreshDashboard();
         }
 
@@ -6743,7 +6851,27 @@ async function upscaleSelected(scale) {
     if (stopBtn) stopBtn.style.display = 'none';
     const runBtn = document.getElementById('btn-run-upscale');
     if (runBtn) runBtn.disabled = upscaleQueue.length === 0;
+    const combBtn = document.getElementById('btn-send-combinar');
+    if (combBtn) combBtn.style.display = _sessionUpscaledKeys.length ? '' : 'none';
   }
+}
+
+function sendUpscaledToCombinar() {
+  if (!_sessionUpscaledKeys.length) { toast('Nenhuma imagem upscalada nesta sessão.', 'warn'); return; }
+  const existing = new Set(combinarItems.map(i => i.key));
+  let added = 0;
+  _sessionUpscaledKeys.forEach(key => {
+    if (existing.has(key)) return;
+    const r = results[key];
+    if (!r) return;
+    combinarItems.push({ key, pageNum: r.pageNum, title: r.title || '', url: r.url, docType: r.docType || '' });
+    added++;
+  });
+  combinarItems.sort((a, b) => (a.pageNum || 0) - (b.pageNum || 0));
+  const btn = document.querySelector('.nav-item[onclick*="\'combinar\'"]');
+  setPage('combinar', btn);
+  renderCombinarList();
+  toast(`${added} imagem${added !== 1 ? 'ns' : ''} enviada${added !== 1 ? 's' : ''} para Combinar!`, 'ok');
 }
 
 // Detecta PNG/JPEG pelos magic bytes; converte WebP/outros via canvas → PNG

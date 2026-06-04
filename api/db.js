@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
         const base64 = dataUrl.split(',')[1];
         const buffer = Buffer.from(base64, 'base64');
         const mime   = dataUrl.split(';')[0].split(':')[1];
-        const ext    = mime === 'image/jpeg' ? 'jpg' : 'png';
+        const ext    = mime === 'image/jpeg' ? 'jpg' : mime === 'application/pdf' ? 'pdf' : 'png';
         const path   = `${userId}/${key.replace(/[^a-z0-9_-]/gi, '_')}_${Date.now()}.${ext}`;
 
         const { data: upData, error: upErr } = await sb.storage
