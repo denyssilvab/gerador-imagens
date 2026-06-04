@@ -4235,7 +4235,7 @@ function refreshDashboard() {
   // Merge and sort files
   const allItems = [...items, ...txtItems];
   allItems.sort((a, b) => {
-    if (dashSort === 'title') return (a.customTitle||a.title||a.filename||'').localeCompare(b.customTitle||b.title||b.filename||'');
+    if (dashSort === 'title') return (a.customTitle||a.title||a.filename||'').localeCompare(b.customTitle||b.title||b.filename||'', undefined, { numeric: true, sensitivity: 'base' });
     const ta = a.ts || 0;
     const tb = b.ts || 0;
     return dashSort === 'recent' ? tb - ta : ta - tb;
@@ -4271,12 +4271,17 @@ function refreshDashboard() {
     grid.appendChild(div);
   };
 
+  const _natSort = (a, b) => (a || '').localeCompare(b || '', undefined, { numeric: true, sensitivity: 'base' });
   if (dashFolderFilter !== null) {
-    // Inside a folder: show direct subfolders of the current folder
-    dashFolders.filter(f => Number(f.parent_id) === Number(dashFolderFilter)).forEach(_renderFolderCard);
+    // Inside a folder: show direct subfolders of the current folder, sorted by name
+    dashFolders.filter(f => Number(f.parent_id) === Number(dashFolderFilter))
+      .sort((a, b) => _natSort(a.name, b.name))
+      .forEach(_renderFolderCard);
   } else if (dashFolders.length) {
-    // Root view: show top-level folders only
-    dashFolders.filter(f => !f.parent_id).forEach(_renderFolderCard);
+    // Root view: show top-level folders only, sorted by name
+    dashFolders.filter(f => !f.parent_id)
+      .sort((a, b) => _natSort(a.name, b.name))
+      .forEach(_renderFolderCard);
   }
 
   // Empty state for files only (folders above are already rendered)
