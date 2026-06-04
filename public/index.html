@@ -856,6 +856,53 @@
     }
     .content-file-entry-name { flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .content-file-entry-meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+    /* ── Dashboard file preview modal ── */
+    .dash-preview-overlay {
+      position: fixed; inset: 0; z-index: 900;
+      background: rgba(0,0,0,.88); display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .dash-preview-close {
+      position: absolute; top: 16px; right: 20px;
+      background: rgba(255,255,255,.1); border: none; border-radius: 50%;
+      width: 40px; height: 40px; font-size: 20px; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+    }
+    .dash-preview-close:hover { background: rgba(255,255,255,.25); }
+    .dash-preview-body {
+      flex: 1; width: 100%; display: flex; align-items: center; justify-content: center;
+      overflow: hidden; padding: 56px 70px 16px; position: relative;
+    }
+    .dash-preview-img {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+      border-radius: 4px; box-shadow: 0 8px 48px rgba(0,0,0,.6);
+    }
+    .dash-preview-txt {
+      max-width: 760px; width: 100%; max-height: 100%; overflow-y: auto;
+      background: var(--surface); border-radius: 8px; padding: 20px 24px;
+      font-family: monospace; font-size: 13px; line-height: 1.7;
+      white-space: pre-wrap; color: var(--text);
+    }
+    .dash-preview-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,.12); border: none; border-radius: 50%;
+      width: 48px; height: 48px; font-size: 22px; color: #fff;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background .15s; flex-shrink: 0;
+    }
+    .dash-preview-nav:hover { background: rgba(255,255,255,.28); }
+    .dash-preview-nav:disabled { opacity: .25; cursor: default; }
+    .dash-preview-nav.prev { left: 14px; }
+    .dash-preview-nav.next { right: 14px; }
+    .dash-preview-footer {
+      width: 100%; padding: 12px 24px; display: flex; align-items: center; gap: 14px;
+      background: rgba(0,0,0,.4); flex-shrink: 0;
+    }
+    .dash-preview-footer-info { flex: 1; min-width: 0; }
+    .dash-preview-footer-title { font-size: 14px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-preview-footer-meta  { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 2px; }
+    .dash-preview-counter { font-size: 12px; color: rgba(255,255,255,.5); white-space: nowrap; }
     /* List view override */
     .dash-card-grid.list-view { display: flex; flex-direction: column; gap: 3px; }
     .dash-card-grid.list-view .dash-card { flex-direction: row; border-radius: 8px; transform: none !important; box-shadow: none !important; }
@@ -1432,6 +1479,25 @@
         <button class="btn btn-ghost" onclick="closeCombinarModal()">Cancelar</button>
         <button class="btn btn-primary" onclick="combinarModalConfirm()">Adicionar selecionadas</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Dashboard file preview modal -->
+  <div class="dash-preview-overlay" id="dash-preview" style="display:none" onclick="if(event.target===this)closePreview()">
+    <button class="dash-preview-close" onclick="closePreview()" title="Fechar (Esc)">✕</button>
+    <div class="dash-preview-body">
+      <button class="dash-preview-nav prev" id="preview-prev" onclick="navigatePreview(-1)" title="Anterior (←)">‹</button>
+      <div id="preview-content" style="max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center;"></div>
+      <button class="dash-preview-nav next" id="preview-next" onclick="navigatePreview(1)" title="Próximo (→)">›</button>
+    </div>
+    <div class="dash-preview-footer">
+      <div class="dash-preview-footer-info">
+        <div class="dash-preview-footer-title" id="preview-title"></div>
+        <div class="dash-preview-footer-meta"  id="preview-meta"></div>
+      </div>
+      <span class="dash-preview-counter" id="preview-counter"></span>
+      <a id="preview-download" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" download>⬇ Baixar</a>
+      <a id="preview-open" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" target="_blank">🔗 Abrir</a>
     </div>
   </div>
 
@@ -3690,6 +3756,109 @@ async function dashDeleteFolder(id) {
   } catch (e) { toast('Erro ao excluir pasta.', 'err'); }
 }
 
+// ── Dashboard file preview ────────────────────────────────────────────────
+let _previewItems = [];  // ordered list of previewable items
+let _previewIdx   = 0;
+
+function openPreview(key) {
+  // Build list from current visible items (same order as grid)
+  _previewItems = [...document.querySelectorAll('#dash-grid .dash-card[data-key]')]
+    .map(c => c.dataset.key)
+    .filter(k => {
+      const r = results[k];
+      return r && r.url && !(r.url.startsWith('data:text/') || (r.filename || '').endsWith('.txt'));
+    });
+  // Also include in-memory txt items for TXT preview
+  _previewItems = [...document.querySelectorAll('#dash-grid .dash-card[data-key]')]
+    .map(c => c.dataset.key);
+  _previewIdx = _previewItems.indexOf(key);
+  if (_previewIdx === -1) { _previewItems = [key]; _previewIdx = 0; }
+  _renderPreview();
+  document.getElementById('dash-preview').style.display = '';
+  document.addEventListener('keydown', _previewKeyHandler);
+}
+
+function closePreview() {
+  document.getElementById('dash-preview').style.display = 'none';
+  document.removeEventListener('keydown', _previewKeyHandler);
+}
+
+function navigatePreview(dir) {
+  _previewIdx = Math.max(0, Math.min(_previewItems.length - 1, _previewIdx + dir));
+  _renderPreview();
+}
+
+function _previewKeyHandler(e) {
+  if (e.key === 'Escape') { closePreview(); return; }
+  if (e.key === 'ArrowLeft')  { navigatePreview(-1); e.preventDefault(); }
+  if (e.key === 'ArrowRight') { navigatePreview(1);  e.preventDefault(); }
+}
+
+function _renderPreview() {
+  const key = _previewItems[_previewIdx];
+  const r   = results[key];
+  // Also check generatedFiles for in-memory TXT
+  const txtEntry = generatedFiles.find(f => f.key === key);
+
+  const contentEl  = document.getElementById('preview-content');
+  const titleEl    = document.getElementById('preview-title');
+  const metaEl     = document.getElementById('preview-meta');
+  const counterEl  = document.getElementById('preview-counter');
+  const dlBtn      = document.getElementById('preview-download');
+  const openBtn    = document.getElementById('preview-open');
+  const prevBtn    = document.getElementById('preview-prev');
+  const nextBtn    = document.getElementById('preview-next');
+
+  prevBtn.disabled = _previewIdx === 0;
+  nextBtn.disabled = _previewIdx === _previewItems.length - 1;
+  counterEl.textContent = `${_previewIdx + 1} / ${_previewItems.length}`;
+
+  const typeLabel = { lesson: 'Lesson', practice: 'Practice', lessonplan: 'Lesson Plan' };
+
+  if (txtEntry) {
+    // In-memory TXT file
+    titleEl.textContent = txtEntry.filename;
+    metaEl.textContent  = [typeLabel[txtEntry.type] || '', 'TXT'].filter(Boolean).join(' · ');
+    contentEl.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.className = 'dash-preview-txt';
+    pre.textContent = txtEntry.content;
+    contentEl.appendChild(pre);
+    const blob = new Blob([txtEntry.content], { type: 'text/plain' });
+    const blobUrl = URL.createObjectURL(blob);
+    dlBtn.href = blobUrl; dlBtn.download = txtEntry.filename;
+    openBtn.style.display = 'none';
+    return;
+  }
+
+  if (!r) return;
+  const isTxt = (r.url || '').startsWith('data:text/') || (r.filename || '').endsWith('.txt');
+  const disp  = r.customTitle || r.title || r.filename || `Pág. ${r.pageNum || ''}`;
+  const typ   = typeLabel[r.docType] || '';
+  const fmt   = isTxt ? 'TXT' : ((r.url||'').startsWith('data:image/jpeg') || (r.filename||'').includes('.jpg') ? 'JPG' : 'PNG');
+  titleEl.textContent = disp;
+  metaEl.textContent  = [typ, fmt, _relTime(r.ts)].filter(Boolean).join(' · ');
+
+  if (isTxt) {
+    contentEl.innerHTML = '';
+    const pre = document.createElement('pre');
+    pre.className = 'dash-preview-txt';
+    pre.textContent = '⏳ Carregando…';
+    contentEl.appendChild(pre);
+    // Decode base64 text
+    try {
+      const b64  = r.url.split(',')[1];
+      pre.textContent = decodeURIComponent(escape(atob(b64)));
+    } catch { pre.textContent = '(não foi possível decodificar)'; }
+    dlBtn.href = r.url; dlBtn.download = r.filename || 'arquivo.txt';
+    openBtn.style.display = 'none';
+  } else {
+    contentEl.innerHTML = `<img class="dash-preview-img" src="${esc(r.url)}" alt="${esc(disp)}" />`;
+    dlBtn.href = r.url; dlBtn.download = r.filename || 'imagem.png';
+    openBtn.href = r.url; openBtn.style.display = '';
+  }
+}
+
 // ── Folder card context menu ───────────────────────────────────────────────
 let _folderCardMenuId = null;
 
@@ -3971,6 +4140,7 @@ function refreshDashboard() {
           </div>
           <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${r.key}')" title="Baixar TXT">⬇</button>
         </div>`;
+      div.onclick = (e) => { if (!e.target.closest('button') && !e.target.closest('.dash-card-check-wrap')) openPreview(r.key); };
       grid.appendChild(div);
       return;
     }
@@ -3991,6 +4161,7 @@ function refreshDashboard() {
           </div>
           <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'arquivo.txt')}" title="Baixar TXT">⬇</a>
         </div>`;
+      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) openPreview(r.key); };
       grid.appendChild(div);
       return;
     }
@@ -4020,7 +4191,7 @@ function refreshDashboard() {
         </div>
         <button class="dash-card-more" onclick="showFileCtxMenu(event,'${r.key}')">···</button>
       </div>`;
-    div.onclick = (e) => { if (!e.target.closest('.dash-card-more') && !e.target.closest('.dash-card-check-wrap')) window.open(r.url, '_blank'); };
+    div.onclick = (e) => { if (!e.target.closest('.dash-card-more') && !e.target.closest('.dash-card-check-wrap')) openPreview(r.key); };
     grid.appendChild(div);
   });
 }
