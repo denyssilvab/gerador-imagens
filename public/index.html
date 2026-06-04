@@ -719,10 +719,23 @@
       padding: 22px 28px 16px; gap: 12px; flex-shrink: 0;
     }
     .dash-breadcrumb {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 20px; font-weight: 700; color: var(--text); min-width: 0;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 20px; font-weight: 700; color: var(--text); min-width: 0; flex-wrap: wrap;
     }
-    .dash-breadcrumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dash-back-btn {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--text); cursor: pointer;
+      font-size: 16px; flex-shrink: 0; transition: background .12s;
+    }
+    .dash-back-btn:hover { background: var(--border); }
+    .dash-breadcrumb-seg {
+      font-size: 20px; font-weight: 700; cursor: pointer; color: var(--muted);
+      transition: color .12s;
+    }
+    .dash-breadcrumb-seg:hover { color: var(--text); }
+    .dash-breadcrumb-sep { font-size: 16px; color: var(--muted); opacity: .5; }
+    .dash-breadcrumb-current { font-size: 20px; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .create-btn {
       display: flex; align-items: center; gap: 7px; flex-shrink: 0;
       background: var(--primary); color: #fff; border: none; border-radius: 22px;
@@ -1320,8 +1333,9 @@
 
         <!-- Header -->
         <div class="dash-header">
-          <div class="dash-breadcrumb">
-            <span>📁</span><span id="dash-breadcrumb-label">Todos os arquivos</span>
+          <div class="dash-breadcrumb" id="dash-breadcrumb">
+            <button class="dash-back-btn" id="dash-back-btn" onclick="dashGoBack()" title="Voltar" style="display:none;">←</button>
+            <span class="dash-breadcrumb-current" id="dash-breadcrumb-label">📁 Todos os arquivos</span>
           </div>
           <button class="create-btn" onclick="openCreateMenu(event)">+ Criar</button>
         </div>
@@ -3372,33 +3386,79 @@ async function confirmBulkMove() {
   toast(folderId ? `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''}.` : `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''} para a raiz.`, 'ok');
 }
 
+// ── Breadcrumb helpers ─────────────────────────────────────────────────────
+function _getFolderPath(folderId) {
+  const path = [];
+  let cur = folderId;
+  while (cur != null) {
+    const f = dashFolders.find(x => x.id === cur || Number(x.id) === Number(cur));
+    if (!f) break;
+    path.unshift({ id: f.id, name: f.name });
+    cur = f.parent_id || null;
+  }
+  return path;
+}
+
+function _updateBreadcrumb() {
+  const backBtn = document.getElementById('dash-back-btn');
+  const bc      = document.getElementById('dash-breadcrumb');
+  if (!backBtn || !bc) return;
+
+  if (!dashFolderFilter) {
+    // Root
+    backBtn.style.display = 'none';
+    bc.innerHTML = `<button class="dash-back-btn" id="dash-back-btn" onclick="dashGoBack()" title="Voltar" style="display:none;">←</button>
+      <span class="dash-breadcrumb-current" id="dash-breadcrumb-label">📁 Todos os arquivos</span>`;
+    return;
+  }
+
+  const path = _getFolderPath(dashFolderFilter);
+  let html = `<button class="dash-back-btn" id="dash-back-btn" onclick="dashGoBack()" title="Voltar">←</button>`;
+  // "Todos" segment
+  html += `<span class="dash-breadcrumb-seg" onclick="filterDashboard('all',document.querySelector('#pg-dashboard .folder-item'))">Todos</span>`;
+  path.forEach((seg, i) => {
+    html += `<span class="dash-breadcrumb-sep">›</span>`;
+    if (i < path.length - 1) {
+      html += `<span class="dash-breadcrumb-seg" onclick="filterDashboardFolder(${seg.id},null)">${esc(seg.name)}</span>`;
+    } else {
+      html += `<span class="dash-breadcrumb-current" id="dash-breadcrumb-label">${esc(seg.name)}</span>`;
+    }
+  });
+  bc.innerHTML = html;
+}
+
+function dashGoBack() {
+  if (!dashFolderFilter) return;
+  const cur = dashFolders.find(f => Number(f.id) === Number(dashFolderFilter));
+  const parentId = cur?.parent_id || null;
+  if (parentId) {
+    filterDashboardFolder(parentId, document.getElementById(`fitem-${parentId}`));
+  } else {
+    filterDashboard('all', document.querySelector('#pg-dashboard .folder-item'));
+  }
+}
+
 function filterDashboard(type, el) {
   dashFilter       = type;
   dashFolderFilter = null;
   document.querySelectorAll('#pg-dashboard .folder-item').forEach(i => i.classList.remove('active'));
-  // Sync type-tab active state (setDashType will re-add if needed, but direct sidebar calls won't)
   document.querySelectorAll('.dash-type-tab').forEach(b => b.classList.remove('active'));
   const todosTab = document.querySelector('.dash-type-tab[onclick*="\'all\'"]');
   if (todosTab) todosTab.classList.add('active');
   if (el) el.classList.add('active');
-  const labels = { all: 'Todos os arquivos', lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
-  const bc = document.getElementById('dash-breadcrumb-label');
-  if (bc) bc.textContent = labels[type] || 'Todos os arquivos';
+  _updateBreadcrumb();
   refreshDashboard();
 }
 
 function filterDashboardFolder(folderId, el) {
   dashFolderFilter = folderId;
-  dashFilter       = 'all'; // reset type filter when entering folder
+  dashFilter       = 'all';
   document.querySelectorAll('#pg-dashboard .folder-item').forEach(i => i.classList.remove('active'));
-  // Reset type tabs to "Todos"
   document.querySelectorAll('.dash-type-tab').forEach(b => b.classList.remove('active'));
   const todosTab = document.querySelector('.dash-type-tab[onclick*="\'all\'"]');
   if (todosTab) todosTab.classList.add('active');
   if (el) el.classList.add('active');
-  const f = dashFolders.find(f => f.id === folderId);
-  const bc = document.getElementById('dash-breadcrumb-label');
-  if (bc) bc.textContent = f ? f.name : 'Pasta';
+  _updateBreadcrumb();
   refreshDashboard();
 }
 
