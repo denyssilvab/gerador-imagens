@@ -457,11 +457,25 @@
     .icard-cancelled .skip-ico { font-size: 28px; display: block; margin-bottom: 10px; }
 
     .icard-foot {
-      padding: 9px 12px;
+      padding: 6px 10px;
       display: flex;
       gap: 6px;
       border-top: 1px solid var(--border);
+      justify-content: flex-end;
     }
+    .icard-preview { cursor: zoom-in; }
+    /* icard context menu (···) */
+    .icard-ctx-menu {
+      position: fixed; z-index: 700; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 5px; box-shadow: 0 8px 32px rgba(0,0,0,.45); min-width: 160px;
+    }
+    .icard-ctx-item {
+      display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+      border-radius: 6px; font-size: 13px; cursor: pointer; color: var(--text);
+    }
+    .icard-ctx-item:hover { background: var(--surface2); }
+    .icard-ctx-item.danger { color: var(--error-fg); }
+    .icard-ctx-item.danger:hover { background: rgba(239,68,68,.1); }
 
     /* ── Checkbox select ── */
     .icard { position: relative; }
@@ -1505,6 +1519,14 @@
       <a id="preview-download" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" download>⬇ Baixar</a>
       <a id="preview-open" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" target="_blank">🔗 Abrir</a>
     </div>
+  </div>
+
+  <!-- Icard (Gerar Imagens) context menu -->
+  <div class="icard-ctx-menu" id="icard-ctx-menu" style="display:none">
+    <div class="icard-ctx-item" onclick="icardMenuDownload()">⬇ &nbsp;Baixar</div>
+    <div class="icard-ctx-item" onclick="icardMenuRefazer()">🔄 &nbsp;Refazer</div>
+    <hr class="file-ctx-sep">
+    <div class="icard-ctx-item danger" onclick="icardMenuDelete()">🗑 &nbsp;Excluir</div>
   </div>
 
   <!-- Dashboard right-click context menu -->
@@ -4203,17 +4225,59 @@ function refreshDashboard() {
 }
 
 // ── Load images into results on login ────────────────────────────────────
+function _getOrCreateTypeGroups(grid, saved) {
+  // Reuse existing groups created during generation session (have data-doctype attr)
+  const existing = {};
+  grid.querySelectorAll('.type-group-grid[data-doctype]').forEach(g => {
+    existing[g.dataset.doctype] = g;
+  });
+  if (Object.keys(existing).length) return existing;
+
+  // Check if multiple docTypes exist among persisted items
+  const types = [...new Set(saved.map(r => r.docType).filter(Boolean))];
+  if (types.length < 2) return {}; // no grouping needed
+
+  // Create group structure (similar to setupTypeGroupsForGen)
+  const TYPE_META = {
+    lesson:     { label: '📖 Lesson',              color: '#89c13b' },
+    practice:   { label: '✏️ Practice Activities', color: '#0251af' },
+    lessonplan: { label: '📋 Lesson Plan',         color: '#ff6b35' },
+  };
+  const container = document.createElement('div');
+  container.className = 'type-groups-container';
+  const groupGrids = {};
+  ['lesson','practice','lessonplan'].forEach(type => {
+    if (!types.includes(type)) return;
+    const count = saved.filter(r => r.docType === type).length;
+    const { label, color } = TYPE_META[type];
+    const section = document.createElement('div'); section.className = 'type-group';
+    const header = document.createElement('div');
+    header.className = 'type-group-header'; header.style.borderLeftColor = color;
+    header.innerHTML = `<span class="type-group-label" style="color:${color}">${label}</span><span class="type-group-count">${count} página${count!==1?'s':''}</span>`;
+    const innerGrid = document.createElement('div');
+    innerGrid.className = 'type-group-grid'; innerGrid.dataset.doctype = type;
+    groupGrids[type] = innerGrid;
+    section.appendChild(header); section.appendChild(innerGrid); container.appendChild(section);
+  });
+  grid.insertBefore(container, grid.firstChild);
+  return groupGrids;
+}
+
 function _applyLoadedImages(saved, overwrite = false) {
   const grid  = document.getElementById('img-grid');
   const empty = grid?.querySelector('.empty');
   if (empty) empty.remove();
   if (grid && saved.length) document.getElementById('results-card').style.display = '';
+  // Resolve type groups once for this batch
+  const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
     // Add card to Gerar Imagens grid if visible and not already there
     if (grid && !document.getElementById(`card_db_${r.id}`)) {
-      grid.appendChild(makePersistedCard(r)); // also sets results[domKey]
+      const card = makePersistedCard(r); // also sets results[domKey]
+      const target = groupGrids[r.docType] || grid;
+      target.appendChild(card);
     } else {
       // Update results entry (Supabase overwrite phase, or no grid)
       results[domKey] = {
@@ -5598,6 +5662,7 @@ function setupTypeGroupsForGen(grid, pages) {
 
     const innerGrid = document.createElement('div');
     innerGrid.className = 'type-group-grid';
+    innerGrid.dataset.doctype = type; // identificador para reuso ao carregar
 
     groupGrids[type] = innerGrid; // guarda referência direta
 
@@ -5641,23 +5706,23 @@ function makeCard(gen, idx, num, title) {
 
 function makePersistedCard(r) {
   const domKey = `db_${r.id}`;
-  results[domKey] = { url: r.dataUrl, originalUrl: r.dataUrl, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
+  results[domKey] = { url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
   const d = document.createElement('div');
   d.className = 'icard';
+  d.id = `card_${domKey}`;
+  d.dataset.key = domKey;
   d.innerHTML = `
     <div class="icard-head">
       <input type="checkbox" class="icard-check" onchange="toggleSelect('${domKey}',this.checked)" />
       <span class="icard-num">Pág. ${r.pageNum}</span>
-      <span class="icard-title">${esc(r.title || '')}</span>
+      <span class="icard-title">${esc(r.customTitle || r.title || '')}</span>
       <span class="icard-status s-done">✓ Salva</span>
     </div>
-    <div class="icard-preview">
-      <img src="${esc(r.dataUrl)}" loading="lazy" alt="Pág. ${r.pageNum}" />
+    <div class="icard-preview" onclick="openIcardPreview('${domKey}')">
+      <img src="${esc(r.dataUrl || r.url)}" loading="lazy" alt="Pág. ${r.pageNum}" />
     </div>
     <div class="icard-foot" style="display:flex;">
-      <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}',this)">⬇ Baixar</button>
-      <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
-      <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${r.pageNum})">🔄 Refazer</button>
+      <button class="btn btn-ghost btn-sm" onclick="showIcardMenu(event,'${domKey}',${r.pageNum || 0})">···</button>
     </div>
   `;
   return d;
@@ -5672,15 +5737,15 @@ function cardDone(gen, idx, url, domKey, result) {
   st.className = 'icard-status s-done';
   st.textContent = '✓ Pronta';
   pv.innerHTML = `<img src="${esc(url)}" loading="lazy" alt="Pág. ${idx + 1}" />`;
+  pv.onclick = () => openIcardPreview(domKey);
+  // Add data-key for preview navigation
+  const card = document.getElementById(`card_${key}`);
+  if (card) card.dataset.key = domKey;
   const chk = document.getElementById(`chk_${key}`);
   if (chk) chk.disabled = false;
   ft.style.display = 'flex';
   const pageNum = result?.pageNum || (idx + 1);
-  ft.innerHTML = `
-    <button class="btn btn-ghost btn-sm" onclick="downloadByKey('${domKey}',this)">⬇ Baixar</button>
-    <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
-    <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pageNum})">🔄 Refazer</button>
-  `;
+  ft.innerHTML = `<button class="btn btn-ghost btn-sm" onclick="showIcardMenu(event,'${domKey}',${pageNum})">···</button>`;
 }
 
 function cardError(gen, idx, msg) {
@@ -5715,6 +5780,56 @@ function cardCancelled(gen, idx) {
       <span class="skip-ico">🚫</span>
       Cancelada pelo usuário
     </div>`;
+}
+
+// ── Icard context menu (··· button) ───────────────────────────────────────
+let _icardMenuKey     = null;
+let _icardMenuPageNum = null;
+
+function showIcardMenu(evt, key, pageNum) {
+  evt.stopPropagation();
+  _icardMenuKey     = key;
+  _icardMenuPageNum = pageNum;
+  const menu = document.getElementById('icard-ctx-menu');
+  menu.style.display = '';
+  const x = Math.min(evt.clientX, window.innerWidth  - 175);
+  const y = Math.min(evt.clientY, window.innerHeight - 130);
+  menu.style.left = `${x}px`; menu.style.top = `${y}px`;
+  setTimeout(() => document.addEventListener('click', () => { menu.style.display = 'none'; }, { once: true }), 10);
+}
+
+function icardMenuDownload() {
+  if (_icardMenuKey) downloadByKey(_icardMenuKey, null);
+}
+
+function icardMenuRefazer() {
+  if (_icardMenuKey) openRefazer(_icardMenuKey, _icardMenuPageNum);
+}
+
+async function icardMenuDelete() {
+  const key = _icardMenuKey;
+  if (!key) return;
+  if (!confirm('Excluir esta imagem?')) return;
+  await authFetch('/api/db?action=delete-image', {
+    method: 'POST', body: JSON.stringify(_deletePayload(key)),
+  }).catch(() => {});
+  delete results[key];
+  document.getElementById(`card_${key}`)?.remove();
+  refreshDashboard();
+  toast('Imagem excluída.', 'ok');
+}
+
+// Click on icard image → open preview modal (same as dashboard)
+function openIcardPreview(key) {
+  // Build list from all icards that have an image loaded
+  _previewItems = [...document.querySelectorAll('#img-grid .icard[data-key]')]
+    .map(c => c.dataset.key)
+    .filter(k => results[k]?.url);
+  _previewIdx = _previewItems.indexOf(key);
+  if (_previewIdx === -1) { _previewItems = [key]; _previewIdx = 0; }
+  _renderPreview();
+  document.getElementById('dash-preview').style.display = '';
+  document.addEventListener('keydown', _previewKeyHandler);
 }
 
 // ── Download ───────────────────────────────────────────────────────────────
