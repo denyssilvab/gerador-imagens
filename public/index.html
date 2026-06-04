@@ -1441,9 +1441,9 @@
               <span class="dash-version-label" id="vtog-label">Originais</span>
             </label>
             <select class="dash-sort-sel" id="dash-sort-sel" onchange="setDashSortSel(this.value)">
+              <option value="title" selected>Título</option>
               <option value="recent">Última edição</option>
               <option value="oldest">Data de criação</option>
-              <option value="title">Título</option>
             </select>
             <button class="dash-view-btn active" id="vbtn-grid" onclick="setDashView('grid')" title="Grade">⊞</button>
             <button class="dash-view-btn" id="vbtn-list" onclick="setDashView('list')" title="Lista">☰</button>
@@ -3515,7 +3515,7 @@ function setPage(name, el) {
 // ── Dashboard ──────────────────────────────────────────────────────────────
 let dashFilter     = 'all';
 let dashFolderFilter = null; // folder id (number) or null
-let dashSort       = 'recent';
+let dashSort       = 'title';
 let dashVersion    = 'orig'; // 'orig' = originals, 'edit' = upscaled
 let dashFolders    = [];
 let _dashFolderMenuKey = null;
