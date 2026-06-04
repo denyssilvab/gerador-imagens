@@ -46,14 +46,6 @@ async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
   });
 
   const data = await res.json().catch(async () => ({ _raw: await res.text().catch(() => '') }));
-  if (res.status === 429) {
-    const msg      = data.error?.message || '';
-    const match    = msg.match(/try again in (\d+(\.\d+)?)s/i);
-    const waitMs   = match ? Math.ceil(parseFloat(match[1]) * 1000) + 2000 : 15000;
-    console.log(`[rate-limit] Waiting ${waitMs}ms before retry…`);
-    await new Promise(r => setTimeout(r, waitMs));
-    return generateOpenAI(apiKey, model, quality, size, prompt, signal); // single retry
-  }
   if (!res.ok) throw new Error(data.error?.message || data._raw || `OpenAI HTTP ${res.status}`);
 
   const item = data.data?.[0];

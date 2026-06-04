@@ -5873,6 +5873,9 @@ async function handleEvent(ev) {
       for (let i = 0; i < ev.total; i++) startCardTimer(currentGen, i);
       break;
     case 'image': {
+      const domKey = ck(currentGen, ev.index);
+      // Guard against duplicate SSE events for the same index (network/load-balancer replay)
+      if (results[domKey]?.url) { doneCount++; updateProg(); break; }
       doneCount++;
       stopCardTimer(currentGen, ev.index);
       let displayUrl = ev.dataUrl || ev.url || '';
@@ -5882,7 +5885,6 @@ async function handleEvent(ev) {
         const { header, footer } = _overlayTextsForType(pageDocType);
         displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType);
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
-      const domKey = ck(currentGen, ev.index);
       const result = {
         url: displayUrl,
         originalUrl: displayUrl,
