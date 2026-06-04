@@ -4264,14 +4264,16 @@ function _getOrCreateTypeGroups(grid, saved) {
 }
 
 function _applyLoadedImages(saved, overwrite = false) {
+  // Read clearTs fresh from localStorage every call to avoid any init-order issues
+  const _clearTs = parseInt(localStorage.getItem('gerar_history_clear_ts') || '0');
   const grid  = document.getElementById('img-grid');
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
-    // Hidden if: timestamp-cleared (Limpar button), OR key-hidden (individual delete)
-    const _isHidden = (_historyClearedBeforeTs > 0 && r.ts && r.ts <= _historyClearedBeforeTs)
+    // !(r.ts > _clearTs) is true for null/undefined/past ts — hides anything not created after the clear
+    const _isHidden = (_clearTs > 0 && !(r.ts > _clearTs))
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
     if (grid && !document.getElementById(`card_db_${r.id}`) && !_isHidden) {
