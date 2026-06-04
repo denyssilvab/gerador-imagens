@@ -863,7 +863,7 @@
       align-items: center; justify-content: center;
     }
     .dash-preview-close {
-      position: absolute; top: 16px; right: 20px;
+      position: absolute; top: 16px; right: 20px; z-index: 10;
       background: rgba(255,255,255,.1); border: none; border-radius: 50%;
       width: 40px; height: 40px; font-size: 20px; color: #fff;
       cursor: pointer; display: flex; align-items: center; justify-content: center;
@@ -1489,14 +1489,14 @@
   </div>
 
   <!-- Dashboard file preview modal -->
-  <div class="dash-preview-overlay" id="dash-preview" style="display:none" onclick="if(event.target===this)closePreview()">
-    <button class="dash-preview-close" onclick="closePreview()" title="Fechar (Esc)">✕</button>
-    <div class="dash-preview-body">
-      <button class="dash-preview-nav prev" id="preview-prev" onclick="navigatePreview(-1)" title="Anterior (←)">‹</button>
-      <div id="preview-content" style="max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center;"></div>
-      <button class="dash-preview-nav next" id="preview-next" onclick="navigatePreview(1)" title="Próximo (→)">›</button>
+  <div class="dash-preview-overlay" id="dash-preview" style="display:none" onclick="closePreview()">
+    <button class="dash-preview-close" onclick="event.stopPropagation();closePreview()" title="Fechar (Esc)">✕</button>
+    <div class="dash-preview-body" onclick="event.stopPropagation()">
+      <button class="dash-preview-nav prev" id="preview-prev" onclick="event.stopPropagation();navigatePreview(-1)" title="Anterior (←)">‹</button>
+      <div id="preview-content" style="max-width:100%;max-height:100%;display:flex;align-items:center;justify-content:center;" onclick="event.stopPropagation()"></div>
+      <button class="dash-preview-nav next" id="preview-next" onclick="event.stopPropagation();navigatePreview(1)" title="Próximo (→)">›</button>
     </div>
-    <div class="dash-preview-footer">
+    <div class="dash-preview-footer" onclick="event.stopPropagation()">
       <div class="dash-preview-footer-info">
         <div class="dash-preview-footer-title" id="preview-title"></div>
         <div class="dash-preview-footer-meta"  id="preview-meta"></div>
