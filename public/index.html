@@ -4097,7 +4097,7 @@ async function fileCtxRename() {
   _closeFileCtx();
   const r = results[_fileCtxKey];
   if (!r) return;
-  const current = r.customTitle || r.title || `Pág. ${r.pageNum}`;
+  const current = r.customTitle || r.title || (r.pageNum != null ? `Pág. ${r.pageNum}` : '');
   const name = prompt('Novo nome:', current);
   if (!name || name === current) return;
   try {
@@ -4457,16 +4457,16 @@ function _getOrCreateTypeGroups(grid, saved) {
 }
 
 function _applyLoadedImages(saved, overwrite = false) {
-  // Read clearTs fresh from localStorage every call to avoid any init-order issues
-  const _clearTs = parseInt(localStorage.getItem('gerar_history_clear_ts') || '0');
   const grid  = document.getElementById('img-grid');
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
-    // !(r.ts > _clearTs) is true for null/undefined/past ts — hides anything not created after the clear
-    const _isHidden = (_clearTs > 0 && !(r.ts > _clearTs))
+    // PDFs belong only in the dashboard, not in the generation history grid
+    const _isPdf = r.docType === 'pdf' || (r.filename || '').toLowerCase().endsWith('.pdf');
+    // Hidden by explicit per-key delete (both Supabase ID key and stable IDB-derived key)
+    const _isHidden = _isPdf
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
     if (grid && !document.getElementById(`card_db_${r.id}`) && !_isHidden) {
@@ -5505,25 +5505,32 @@ async function _idbClear() {
 
 // ── Unified persistence (Supabase primary, IndexedDB fallback) ─────────────
 async function dbSave(rec) {
-  // Always persist locally first (fast, offline-safe)
+  // Persist locally first (fast, offline-safe)
   const localId = await _idbSave(rec).catch(() => null);
 
-  // Then sync to Supabase in background
   const key = rec.key || (localId ? `db_${localId}` : `ts_${Date.now()}`);
-  authFetch('/api/db?action=save-image', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      key,
-      dataUrl:     rec.dataUrl || rec.url || '',
-      filename:    rec.filename || '',
-      pageNum:     rec.pageNum || null,
-      title:       rec.title   || '',
-      docType:     rec.docType || '',
-      originalUrl: rec.originalUrl || null,
-      folderId:    rec.folderId || null,
-    }),
-  }).catch(e => console.warn('[supabase sync]', e));
+  try {
+    const res  = await authFetch('/api/db?action=save-image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        key,
+        dataUrl:     rec.dataUrl || rec.url || '',
+        filename:    rec.filename || '',
+        pageNum:     rec.pageNum || null,
+        title:       rec.title   || '',
+        docType:     rec.docType || '',
+        originalUrl: rec.originalUrl || null,
+        folderId:    rec.folderId || null,
+      }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Erro ao salvar');
+  } catch (e) {
+    console.warn('[supabase sync]', e);
+    toast('⚠ Falha ao salvar imagem no servidor. Verifique sua conexão.', 'err');
+  }
 
   return localId;
 }
@@ -5927,7 +5934,8 @@ async function handleEvent(ev) {
         folderId: dashFolderFilter || null, // auto-assign to active folder
       };
       results[domKey] = result;
-      dbSave({ ...result, dataUrl: displayUrl }).then(id => { if (id && results[domKey]) results[domKey].localId = id; }).catch(() => {});
+      const _savedId = await dbSave({ ...result, dataUrl: displayUrl });
+      if (_savedId && results[domKey]) results[domKey].localId = _savedId;
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
       break;
@@ -6070,12 +6078,12 @@ function makePersistedCard(r) {
   d.innerHTML = `
     <div class="icard-head">
       <input type="checkbox" class="icard-check" onchange="toggleSelect('${domKey}',this.checked)" />
-      <span class="icard-num">Pág. ${r.pageNum}</span>
+      <span class="icard-num">${r.pageNum != null ? `Pág. ${r.pageNum}` : ''}</span>
       <span class="icard-title">${esc(r.customTitle || r.title || '')}</span>
       <span class="icard-status s-done">✓ Salva</span>
     </div>
     <div class="icard-preview" onclick="openIcardPreview('${domKey}')">
-      <img src="${esc(r.dataUrl || r.url)}" loading="lazy" alt="Pág. ${r.pageNum}" />
+      <img src="${esc(r.dataUrl || r.url)}" loading="lazy" alt="${r.pageNum != null ? `Pág. ${r.pageNum}` : (r.customTitle || r.title || 'Imagem')}" />
     </div>
     <div class="icard-foot" style="display:flex;">
       <button class="btn btn-ghost btn-sm" onclick="showIcardMenu(event,'${domKey}',${r.pageNum || 0})">···</button>
@@ -6164,7 +6172,6 @@ function icardMenuRefazer() {
 
 // Keys hidden from Gerar Imagens history (but kept in Dashboard / Supabase)
 const _HISTORY_HIDDEN_KEY = 'gerar_history_hidden_v1';
-const _HISTORY_CLEAR_TS_KEY = 'gerar_history_clear_ts';
 function _loadHiddenHistory() {
   try { return new Set(JSON.parse(localStorage.getItem(_HISTORY_HIDDEN_KEY) || '[]')); }
   catch { return new Set(); }
@@ -6173,8 +6180,8 @@ function _saveHiddenHistory(set) {
   try { localStorage.setItem(_HISTORY_HIDDEN_KEY, JSON.stringify([...set])); } catch {}
 }
 let _hiddenFromHistory = _loadHiddenHistory();
-// Timestamp set by "Limpar": images with ts <= this value are hidden from history
-let _historyClearedBeforeTs = parseInt(localStorage.getItem(_HISTORY_CLEAR_TS_KEY) || '0');
+// Remove stale timestamp key that was hiding too many images
+try { localStorage.removeItem('gerar_history_clear_ts'); } catch {}
 
 function icardMenuDelete() {
   const key = _icardMenuKey;
@@ -6323,11 +6330,15 @@ async function downloadAll() {
 }
 
 function clearResults() {
-  // Record the current moment; any image with ts <= this value is hidden from history on reload
-  _historyClearedBeforeTs = Date.now();
-  try {
-    localStorage.setItem(_HISTORY_CLEAR_TS_KEY, String(_historyClearedBeforeTs));
-  } catch(e) { console.warn('[clearResults ts]', e); }
+  // Explicitly hide each currently visible card by its stable key (persists across reloads)
+  document.querySelectorAll('#img-grid .icard[data-key]').forEach(card => {
+    const key = card.dataset.key;
+    if (!key) return;
+    _hiddenFromHistory.add(key);
+    const r = results[key];
+    if (r?.sbKey) _hiddenFromHistory.add(r.sbKey); // also store stable Supabase key column value
+  });
+  _saveHiddenHistory(_hiddenFromHistory);
 
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
