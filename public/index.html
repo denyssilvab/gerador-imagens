@@ -4729,36 +4729,135 @@ function syncCfg(field) {
 // ── Specs por tipo ─────────────────────────────────────────────────────────
 
 const SPECS = {
-lesson: `FORMAT: A4 (210mm × 297mm), 300 DPI
+lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
-⚠️ CRITICAL — Header and footer are added programmatically after generation.
-• DO NOT draw headers, footers, page borders or side lines of any kind.
-• DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
+- CRITICAL — Header and footer are added programmatically after generation.
+- DO NOT draw headers, footers, page borders or side lines of any kind.
+- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
-CONTENT AREA — draw ONLY inside this zone:
-• Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-• Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
-• Spacing: max 4–6mm between sections — never overflow past y=278mm
-• Use the FULL horizontal width — text must reach close to x=190mm
+## CONTENT AREA — draw ONLY inside this zone:
+- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
+- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
+- Spacing: max 4–6mm between sections — never overflow past y=278mm
+- CRITICAL - Use the FULL horizontal width — text must reach close to x=190mm
 
-TYPOGRAPHY (NEVER SMALLER THAN):
-• Titles: 20pt Bold #092964
-• Subtitles: 20pt Bold #0251af
-• Body text: 18pt Regular #000000
-• Annotations: 16pt Regular #666666
-• ALL TITLES: Sentence case — NEVER all caps
+## TYPOGRAPHY
+- Titles: 20pt Bold #092964
+- Subtitles: 20pt Bold #0251af
+- Body text: 18pt Regular #000000
+- Annotations: 16pt Regular #666666
+- ALL TITLES: Sentence case — NEVER all caps
 
-COLORS: Navy #0251af | Dark Blue #092964 | Green #89c13b | Light Green #a8c735
-        Orange #ff6b35 | Purple #9b59b6 | Pink #c2185b
-        Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
+## COLORS
+Navy #0251af | Dark Blue #092964 | Green #89c13b | Light Green #a8c735
+Orange #ff6b35 | Purple #9b59b6 | Pink #c2185b
+Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
 
-LAYOUT PRINCIPLES:
-✓ Pedagogical textbook style, mix boxes and open text
-✓ Dotted lines for section divisions, sidebars for enrichment
-✓ Text aligned LEFT only
-✓ Rounded boxes: 5mm corners, 15mm padding
-✓ White space is acceptable — do NOT stretch content to fill page
-✓ NEVER stretch or distort text — natural typography, letter aspect ratios unchanged`,
+## LAYOUT PRINCIPLES:
+- Pedagogical textbook style, mix boxes and open text
+- Text aligned LEFT only
+- Rounded boxes: 5mm corners, 15mm padding
+- White space is acceptable — do NOT stretch content to fill page
+- NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
+
+---
+
+## VISUAL HIERARCHY STRATEGY
+
+### WHEN TO USE BOXES (Only in these 4 cases)
+
+**1. Formal Definitions (ALWAYS IN BOX)**
+- Formal mathematical definitions and named concepts
+- Fundamental key concepts
+- Example: "Variable: A Letter Representing an Unknown Number"
+- Frequency: 1-3 per lesson (maximum)
+
+**2. Key Expressions or Formulas (ALWAYS IN BOX)**
+- Formulas, expressions, final derived rules
+- Highlight important result
+- Example: "5b" or "15 + 8w"
+- Frequency: 1-2 per page, as needed
+
+**3. Structured Step-by-Step (BOX only if 4+ steps)**
+- Process with multiple structured steps
+- Each step in its own compartment
+- Steps numbered with ① ② ③ ④ (circles, not icons)
+- Frequency: maximum 1 per page
+
+**4. Concept Checks or Key Insights (BOX optional, maximum 1 per page)**
+- Quick guided reflection ("Think About It...")
+- Importance context ("Why It Matters")
+- Insight summary ("Key Takeaway")
+- Frequency: maximum 1 per page
+
+---
+
+### WHAT SHOULD NOT BE IN A BOX
+
+These should be only **HEADING (bold, English) + regular text**:
+- Introductory sections
+- Narrative explanations
+- Examples (title + description)
+- Tips or "try it!" sections
+- Synthesis or conclusions
+- Practical applications
+- Steps when fewer than 4
+
+---
+
+## RIGOROUS CALCULATION OF CONTENT PER PAGE
+
+### Available Space
+- **Height:** 25mm to 275mm = 250mm vertical
+- **Width:** 35mm to 190mm = 165mm horizontal
+- **Maximum spacing:** 4-6mm between sections
+- **Mandatory visual breathing room:** 15-20mm per page
+
+**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
+
+---
+
+### Height Estimate per Element
+
+- Title (20pt bold): 7-8mm
+- Subtitle (18pt regular): 6-7mm
+- Body text (18pt, 1.5 spacing): 9.5mm per line
+- Paragraph (60 words, 1.5 spacing): ~50-55mm
+- Definition box: 60-80mm
+- Formula box: 25-35mm
+- Complete example: 70-90mm
+- Detailed image: 80-100mm
+- Space between sections: 5-6mm
+
+---
+
+### Checklist per Page (BEFORE GENERATING)
+
+For each page, verify:
+- Is total content between 150-240mm?
+- Is there 15-20mm of visual breathing room?
+- Is the number of boxes minimal (maximum 2 per page)?
+- Is everything in English?
+- Are there no decorative icons in titles?
+- If there is an image, is it detailed (80-100mm), not an icon?
+- CRITICAL: Is the text within established limits? Is nothing exceeding margins, especially left and right?
+
+If any item fails, DIVIDE THE PAGE.
+
+---
+
+## NO DECORATIVE ICONS
+
+**Prohibited:**
+- Icons for titles or subtitles
+- Decorative symbols before headings
+- Emoji-style thumbnails
+- Portuguese anywhere
+
+**Allowed:**
+- Numbers in circles: ① ② ③ ④ ⑤ (for steps)
+- Bullet points (•)
+- Borders/backgrounds of boxes`,
 
 practice: `## FORMAT: A4 (210mm × 297mm), 300 DPI
 
