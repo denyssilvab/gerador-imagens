@@ -2365,56 +2365,56 @@ Não use ícones ou miniaturas.
 - Pronta para impressão A4, 300 DPI
 - Base para Practice Activities e Lesson Plan`,
 
-practice: `## VISÃO GERAL
+practice: `# OVERVIEW
 
-Você é um especialista em design instrucional CCSS. Gere um prompt completo com um conjunto de **PRACTICE ACTIVITIES** (10-15 questões) baseado em uma LESSON já criada. Cada questão:
+You are an expert in CCSS instructional design. Generate a complete prompt with a set of **PRACTICE ACTIVITIES** (10-15 questions) based on an already created LESSON. Each question:
 
-- Reforça conceitos da lesson correspondente
-- Varia em formato (múltipla escolha, aberta, V/F, análise, etc.)
-- É contextualizada em situações americanas realistas
-- **Especifica ilustração APENAS quando pedagogicamente essencial** (no próprio texto com [IMAGE: ...])
-- NÃO possui espaço, linhas ou área para resposta
-- É desafiadora mas acessível ao nível de grade
-- Está pronta para ser passada para a API de geração de imagens
+- Reinforces concepts from the corresponding lesson
+- Varies in format (multiple choice, open-ended, true/false, analysis, etc.)
+- Is contextualized in realistic American situations
+- **Specifies illustration ONLY when pedagogically essential** (in the text itself with [IMAGE: ...])
+- Does NOT have space, lines, or areas for answers
+- Is challenging but accessible to the grade level
+- Is ready to be passed to the image generation API
 
-## IDIOMA: 100% ENGLISH
+## LANGUAGE: 100% ENGLISH
 
-## QUANDO ESPECIFICAR ILUSTRAÇÃO NO TEXTO
+## WHEN TO SPECIFY ILLUSTRATION IN THE TEXT
 
-Quando uma questão REALMENTE PRECISA de ilustração para ser compreendida, inclua no texto do enunciado:
+When a question REALLY NEEDS illustration to be understood, include in the statement text:
 
 \`\`\`
 [IMAGE: Detailed description of what should be illustrated]
 \`\`\`
 
-**Critério: Incluir [IMAGE: ...] APENAS quando:**
-- ✅ Imagem é ESSENCIAL para resolver a questão (não opcional)
-- ✅ Sem imagem, a questão fica ambígua ou incompleta
-- ✅ A imagem mostra dados/medidas/objetos que aluno precisa
-- ✅ Questão referencia "Look at...", "The table shows...", "The diagram shows..."
+**Criteria: Include [IMAGE: ...] ONLY when:**
+- Image is ESSENTIAL to solve the question (not optional)
+- Without the image, the question is ambiguous or incomplete
+- The image shows data/measurements/objects the student needs
+- Question references "Look at...", "The table shows...", "The diagram shows..."
 
-**Critério: NÃO incluir [IMAGE: ...] quando:**
-- ❌ Questão é matemática pura (sem contexto visual)
-- ❌ Questão é clara sem imagem
-- ❌ Imagem seria decorativa ou "nice to have"
+**Criteria: DO NOT include [IMAGE: ...] when:**
+- Question is pure mathematics (no visual context needed)
+- Question is clear without the image
+- Image would be decorative or "nice to have"
 
-## EXEMPLOS DE ESPECIFICAÇÃO CORRETA
+## EXAMPLES OF CORRECT SPECIFICATION
 
-### Exemplo 1: COM ilustração necessária
+### Example 1: WITH necessary illustration
 
 \`\`\`
-7. The digital scale below shows the weight of apples. Apples cost $2.50 per pound. 
+- The digital scale below shows the weight of apples. Apples cost $2.50 per pound.
    Write an expression for the total cost.
 
-[IMAGE: Photo of digital scale showing "3.5 lbs" on display, 
-close-up with clear numbers visible, professional product photography, 
+[IMAGE: Photo of digital scale showing "3.5 lbs" on display,
+close-up with clear numbers visible, professional product photography,
 realistic lighting, high contrast]
 \`\`\`
 
-### Exemplo 2: COM ilustração necessária (tabela)
+### Example 2: WITH necessary illustration (table)
 
 \`\`\`
-9. Use the table to write an expression for the total earnings for h hours 
+- Use the table to write an expression for the total earnings for h hours
    in each job.
 
 [IMAGE: Clean technical table with borders showing:
@@ -2425,28 +2425,35 @@ Dog walking | $12/hour
 High contrast, clean typography, professional formatting]
 \`\`\`
 
-### Exemplo 3: SEM ilustração (não necessária)
+### Example 3: WITHOUT illustration (not necessary)
 
 \`\`\`
-3. True or False: The expression 3x + 2 means "multiply x by 3, then add 2."
+- True or False: The expression 3x + 2 means "multiply x by 3, then add 2."
 \`\`\`
 
-(Nenhuma imagem adicionada porque questão é conceitual e clara)
+(No image added because the question is conceptual and clear)
 
-### Exemplo 4: SEM ilustração (contexto suficiente)
+### Example 4: WITHOUT illustration (sufficient context)
 
 \`\`\`
-5. Marcus earns $15 per hour at his part-time job. Write an expression 
+- Marcus earns $15 per hour at his part-time job. Write an expression
    for his total earnings after h hours of work.
 \`\`\`
 
-(Nenhuma imagem - contexto é claro no enunciado)
+(No image - context is clear in the statement)
 
-## VARIAÇÃO DE FORMATOS (Obrigatório misturar)
+# FORMAT VARIATION (Flexibility of Use)
 
-**Total: 10-15 questões, distribuídas entre:**
+Different question formats can be used to create variety and engage students. The following formats are available and can be used strategically based on the content. There are no fixed rules about:
 
-**Multiple Choice** (2-3 questões)
+- How many questions of each format to include
+- Whether to use all formats or only some
+- The sequence or order of formats in the activity list
+
+**You have complete freedom to choose which formats best suit the content.** This approach ensures that activity lists are always different from one another, avoiding standardized patterns.
+
+## Available Formats (Use as Needed)
+
 \`\`\`
 Which expression means "8 times a number x, plus 5"?
 
@@ -2456,24 +2463,20 @@ c) 8(x + 5)
 d) (8 + x) × 5
 \`\`\`
 
-**Open-Ended** (3-4 questões)
 \`\`\`
-Write an algebraic expression for: A phone costs $200. Every year, 
-   it loses $50 in value. Write an expression for its value after y years.
-\`\`\`
-
-**True or False** (1-2 questões)
-\`\`\`
-The expression 3x + 2 means "multiply x by 3, then add 2." 
-   True or False?
+Write an algebraic expression for: A phone costs $200. Every year,
+it loses $50 in value. Write an expression for its value after y years.
 \`\`\`
 
-**Fill-in-the-Blank** (1-2 questões)
+\`\`\`
+The expression 3x + 2 means "multiply x by 3, then add 2."
+True or False?
+\`\`\`
+
 \`\`\`
 The expression _____ represents "8 times a number n."
 \`\`\`
 
-**Matching** (1 questão)
 \`\`\`
 Match each situation with its expression:
 
@@ -2485,7 +2488,6 @@ b) 8t
 c) s + 8
 \`\`\`
 
-**Problem-Solving with Steps** (2-3 questões)
 \`\`\`
 A store charges $12 per item plus a $5 shipping fee.
 
@@ -2494,131 +2496,138 @@ b) If someone buys 3 items, what is the total cost?
 c) If the total cost was $65, how many items were bought?
 \`\`\`
 
-**Real-World Scenario with Data** (1-2 questões)
 \`\`\`
-The table shows hourly wages for different jobs. Write an expression 
-    for the total earnings for h hours in each job:
+The table shows hourly wages for different jobs. Write an expression
+for the total earnings for h hours in each job:
 
-[IMAGE: Table with Jobs and Hourly Rates - ESSENCIAL]
+[IMAGE: Table with Jobs and Hourly Rates - ESSENTIAL]
 \`\`\`
 
-**Error Identification** (1 questão)
 \`\`\`
-Marcus wrote the expression 2x + 3x = 5x. Is this correct? 
-    If not, explain the mistake.
+Marcus wrote the expression 2x + 3x = 5x. Is this correct?
+If not, explain the mistake.
 \`\`\`
+
+## Guidelines
+
+- Total questions: 10-15 (or as appropriate for the content)
+- Format selection: Choose formats that best match the learning objectives
+- Format frequency: Use any format once, multiple times, or not at all
+- Format order: Arrange formats in any sequence that flows logically
+- Format mix: Can use all formats or only those that fit the content
+- Result: Each activity list will be unique and tailored to specific content
+
+This flexibility ensures pedagogical variety and prevents standardized, repetitive activity patterns.
+
+**CRITICAL: Do NOT specify the question type (such as "Multiple Choice", "True or False", "Fill-in-the-Blank", etc.). Insert the question statement directly without labeling the format.**
 
 ---
 
-## ESTRUTURA DO DOCUMENTO
+## DOCUMENT STRUCTURE
 
-### Formatação obrigatória
+### Mandatory formatting
 
 \`\`\`
 --PAGE 1--
 
-Practice Activities
+Title: Practice Activities
+Lesson Topic: Subject here
 
-1. [Questão 1]
-
-2. [Questão 2]
-
-3. [Questão 3]
-
-[Continua até 5-6 questões por página]
-
---PAGE 2--
-
-[Questões 6-11 ou 7-12]
-
-[Continua se necessário]
-
---PAGE FINAL--
-
-ANSWER KEY
-
-1. [Resposta 1]
-2. [Resposta 2]
+1. [Question 1]
+2. [Question 2]
 ...
 \`\`\`
-- As resoluções precisam ser comentadas, dando um argumento para a resolução.
-- Se o conteúdo dessa página ficar muito extenso, divida em duas páginas.
+
+--PAGE X--
+
+[Continuation of questions]
+
+--PAGE X--
+
+Title: Answer Key
+
+1. [Answer 1]
+2. [Answer 2]
+...
+\`\`\`
+
+Considerations:
+
+- Divide the Answer Key across pages, avoiding overloading a single page.
+- Not every open-ended question needs subquestions. It can be just a simple statement.
+- Distribution of questions per page: (~180-240mm of content)
+- Questions numbered 1, 2, 3, etc.
+- Multiple choice options in a), b), c), d)
+
+**If page content < 120mm: Leave blank space (NORMAL, do not fill)**
 
 ---
 
-## DISTRIBUIÇÃO DE QUESTÕES POR PÁGINA
+## DIFFICULTY PROGRESSION
 
-**Parâmetro de referência:**
+**Beginner**
+- Identify variables
+- Write simple expressions
+- Recognize basic components
 
-Distribuição por página:
-- PAGE 1: Questões 1-5/6 (~220-240mm conteúdo)
-- PAGE 2: Questões 6/7-11/12 (~220-240mm conteúdo)
-- PAGE 3+: Questões restantes (~160-200mm)
-- ÚLTIMA PAGE: Answer Key (separada, ~240-260mm)
+**Intermediate**
+- Write expressions with multiple operations
+- Analyze and verify expressions
+- Solve problems with 2-3 steps
 
-⚠️ **Se conteúdo em página < 120mm: Deixe espaço em branco (NORMAL, não preencha)**
+**Advanced**
+- Complex expressions
+- Critical analysis and error identification
+- Multi-step situations
+- Synthesis of concepts
 
----
-
-## PROGRESSÃO DE DIFICULDADE
-
-**Questões 1-5:** Iniciante
-- Identificar variáveis
-- Escrever expressões simples
-- Reconhecer componentes básicos
-
-**Questões 6-10:** Intermediário
-- Escrever expressões com múltiplas operações
-- Analisar e verificar expressões
-- Resolver problemas com 2-3 passos
-
-**Questões 11-15:** Avançado
-- Expressões complexas
-- Análise crítica e erro identification
-- Situações multi-etapa
-- Síntese de conceitos
+The distribution of difficulty progression is at your discretion, depending on the content covered.
+There are no fixed rules regarding the number of questions at each difficulty level.
 
 ---
 
-## CONTEXTO: 100% AMERICANO
+## CONTEXT: 100% AMERICAN
 
-Todas as questões devem usar:
-- ✅ Moeda: US Dollar ($)
-- ✅ Medidas: inches, feet, miles, pounds, Fahrenheit
-- ✅ Contextos: escolas americanas, lojas, situações USA
-- ✅ Nomes: nomes americanos (Maya, Marcus, Alex, etc.)
-- ✅ Produtos/serviços: coisas que existem nos EUA
+All questions should use:
+- Currency: US Dollar ($)
+- Measurements: inches, feet, miles, pounds, Fahrenheit
+- Contexts: American schools, stores, USA situations
+- Names: American names (Maya, Marcus, Alex, etc.)
+- Products/services: things that exist in the USA
 
-**Evitar:**
-- ❌ Outras moedas
-- ❌ Contextos estrangeiros
-- ❌ Medidas métricas
-- ❌ Situações fora dos EUA
+**Avoid:**
+- Other currencies
+- Foreign contexts
+- Metric measurements
+- Situations outside the USA
 
 ---
 
-## ESPECIFICAÇÃO DE ILUSTRAÇÕES
+## ILLUSTRATION SPECIFICATION
 
-### Quando incluir [IMAGE: ...]
+### When to include [IMAGE: ...]
 
-A ilustração DEVE ser especificada NO TEXTO da questão quando:
+Illustration MUST be specified IN THE TEXT of the question when:
 
 \`\`\`
 [IMAGE: Detailed technical description for API generation]
 \`\`\`
 
-**Componentes da descrição:**
-1. **Tipo:** (Photo of..., Screenshot of..., Technical diagram of...)
-2. **Conteúdo específico:** (what exactly should be shown)
-3. **Contexto:** (what is the setting/background)
-4. **Qualidade técnica:** (professional lighting, clear detail, high contrast, etc.)
-5. **Tamanho implicado:** (será renderizado em 70-90mm de altura)
+**Components of the description:**
+1. **Type:** (Photo of..., Screenshot of..., Technical diagram of...)
+2. **Specific content:** (what exactly should be shown)
+3. **Context:** (what is the setting/background)
+4. **Technical quality:** (professional lighting, clear detail, high contrast, etc.)
+5. **Implied size:** (will be rendered at 70-90mm height)
+- Describe with TECHNICAL DETAIL for API to generate well
+- Include context, composition, lighting, quality
+- Frequency varies as needed (can be 0, can be 5)
 
-**Exemplos bem especificados:**
+**Well-specified examples:**
 
 \`\`\`
-[IMAGE: Photo of digital kitchen scale showing 3.5 lbs on large LED display, 
-white background, clear numbers visible, professional product photography, 
+[IMAGE: Photo of digital kitchen scale showing 3.5 lbs on large LED display,
+white background, clear numbers visible, professional product photography,
 realistic lighting, high contrast]
 
 [IMAGE: Clean technical table with borders showing:
@@ -2628,78 +2637,50 @@ Tutoring    | $20/hour
 Dog walking | $12/hour
 Black text on white background, professional typography, clear grid lines]
 
-[IMAGE: Blueprint-style diagram of a rectangle with labeled dimensions: 
-length = 5 in, width = 3 in, clean lines, professional engineering-style 
+[IMAGE: Blueprint-style diagram of a rectangle with labeled dimensions:
+length = 5 in, width = 3 in, clean lines, professional engineering-style
 drawing, clear measurements]
 \`\`\`
 
-## RESPOSTA E ESPAÇO
+## ANSWERS AND SPACE
 
-### Proibição absoluta
+### Absolute prohibition
 
-❌ **NUNCA inclua:**
-- Linhas em branco
-- Sublinhados para resposta
-- Parênteses vazios
-- Pontilhados
-- Caixas para preenchimento
-- Qualquer espaço para escrita
-
-✅ **SEMPRE termine questão com:**
-- Múltipla escolha: Última opção (letra)
-- Aberta: Ponto final (.)
-- Matching: Último item
-- Nenhum espaço após
+**NEVER include:**
+- Blank lines
+- Underscores for answers
+- Empty parentheses
+- Dotted lines
+- Filling boxes
+- Any space for writing
 
 ---
 
-## ANSWER KEY (ÚLTIMA PÁGINA)
+## ANSWER KEY (LAST PAGE)
 
-- Separada das questões
-- Respostas completas e explicadas
-- Inclui passos para problema-solving
-- Não aparece nas páginas de questões
-
----
-
-## RESULTADO ESPERADO
-
-Um documento que:
-
-1. ✓ Contém 10-15 questões variadas
-2. ✓ 100% em inglês
-3. ✓ Mistura múltiplos formatos
-4. ✓ Especifica [IMAGE: ...] APENAS quando essencial
-5. ✓ Nenhum espaço para resposta
-6. ✓ Distribuído em 2-3 páginas
-7. ✓ Cada página ~200-240mm de conteúdo
-8. ✓ Progressão de dificuldade
-9. ✓ Contexto 100% americano
-10. ✓ Answer Key separada
-11. ✓ Pronto para passar à API de geração de imagens
-12. ✓ Pronto para impressão A4, 300 DPI
-13. ✓ Complementa a LESSON correspondente
+- Separated from the questions
+- Complete and explained answers
+- Includes steps for problem-solving
+- Does not appear on the question pages
 
 ---
 
-## NOTAS FINAIS
+## EXPECTED RESULT
 
-**Sobre [IMAGE: ...] especificações:**
-- Descrever com DETALHE TÉCNICO para API gerar bem
-- Incluir contexto, composição, iluminação, qualidade
-- Não decorativo - apenas essencial
-- Frequência varia conforme necessário (pode ser 0, pode ser 5)
+A document that:
 
-**Sobre distribuição:**
-- Página com pouco conteúdo deixa branco (é normal)
-- Não aumentar fonte para preencher
-- Respeitar respiro visual
-
-**Sobre formato:**
-- Questões numeradas 1, 2, 3, etc.
-- Opções de múltipla escolha em a), b), c), d)
-- Questões abertas terminam com ponto final
-- Nenhuma área para resposta`,
+- Contains 10-15 varied questions
+- 100% in English
+- Mixes multiple formats
+- Specifies [IMAGE: ...] ONLY when essential
+- No space for answers
+- Each page ~180-240mm of content
+- Difficulty progression
+- 100% American context
+- Separate Answer Key
+- Ready to pass to the image generation API
+- Ready for A4 printing at 300 DPI
+- Complements the corresponding LESSON`,
 
 lessonplan: `## Você é um especialista instrucional da CCSS (Common Core State Standards) e precisa criar um prompt completo com o conteúdo de uma Lesson Plan baseada na lesson e practice activities fornecida.
 
