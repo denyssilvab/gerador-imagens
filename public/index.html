@@ -2298,95 +2298,257 @@ const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'
 // ── Specs de conteúdo por tipo ─────────────────────────────────────────────
 
 const CONTENT_SPECS = {
-lesson: `Você é especialista em design instrucional CCSS. Gere um prompt completo para uma LESSON de matemática (Grade 6) em 100% inglês, distribuída em ~10-15, páginas A4, com conteúdo balanceado (150-220mm por página).
+lesson: `# OVERVIEW
 
-## PARÂMETRO DE REFERÊNCIA
+You are an expert in CCSS instructional design (Common Core State Standards) and pedagogical layout. Generate a complete prompt with the full content of a mathematics lesson based on input information.
 
-Cada página: 150-170mm de conteúdo + 15-20mm respiro.
-Máximo absoluto: 240mm por página. Se ultrapassar, DIVIDIR EM 2 PÁGINAS.
+- Introduces mathematical concept clearly and solidly
+- Distributes content respecting A4 margins (25-190mm H, 25-275mm V)
+- EACH PAGE has balanced content (see reference below)
+- Uses boxes strategically (not on everything)
+- Specifies visual elements with professional quality
 
-## IDIOMA: 100% ENGLISH
+---
 
-## DISTRIBUIÇÃO (APROXIMADA)
+## REFERENCE PARAMETER
 
-PAGE 1: Motivation + Problem disparador (150-160mm)
-PAGE 2-3: Understanding the pattern (210mm cada)
-PAGE 4-5: Standard method (220mm + 180mm)
-PAGE 6: Key concepts - boxes formais (210mm, máx 3 conceitos)
-PAGE 7-8: Examples (220mm cada)
-PAGE 9: Special cases (150mm, opcional)
-PAGE 10-11: Synthesis + applications (200mm cada)
+Distribution model. Analyze:
 
-## BOXES: APENAS 4 CASOS
+**Content Example:**
+- 2-3 opening paragraphs (75-85 words)
+- 1 problem disparador (40-50 words)
+- Total visual: ~150-170mm height
 
-1. Formal definitions (sempre)
-2. Key expressions/formulas (sempre)
-3. Step-by-step com 4+ passos (apenas se 4+ passos)
-4. Concept checks/key insights (máximo 1 por página, opcional)
+**This is the maximum comfortable size per page.**
 
-Tudo mais: apenas HEADING (bold) + texto.
+Each subsequent page should have APPROXIMATELY the same amount of content. If a section exceeds this volume, DIVIDE INTO MULTIPLE PAGES.
 
-## ESTRUTURA DAS SEÇÕES
+---
 
-**Título da Aula**
+## LANGUAGE: 100% ENGLISH
 
-**Motivation and context** (PAGE 1)
-- 2-3 parágrafos (75-85 palavras)
-- Imagem opcional 80-100mm
+**MANDATORY:**
+- All titles in English
+- All subtitles in English
+- All content in English
+- All explanations in English
 
-**The challenge** (PAGE 1 continuação)
-- 40-50 palavras, sem box
+**PROHIBITED:**
+- No words in any language other than English
+- No stage markers like "Opening", "Initial Approach", "Synthesis" in titles
 
-**Understanding the pattern** (PAGE 2-3)
-- Descoberta passo-a-passo
-- Box opcional para conceito-chave
-- Imagem pedagógica opcional 80-100mm
+---
 
-**The standard method** (PAGE 4-5)
-- 3-5 passos: 1 página; 6+ passos: 2 páginas
-- Box obrigatório se 4+ passos com círculos ① ② ③ ④
-- Exemplo rápido
+## RIGOROUS CALCULATION OF CONTENT PER PAGE
 
-**Key concepts** (PAGE 6)
-- 2-3 conceitos = 1 página (cada em box separado)
-- 4+ conceitos = 2 páginas (máx 3 por página)
-- Cada concept box: 60-80mm
+### Available Space
+- **Height:** 25mm to 275mm = 250mm vertical
+- **Width:** 25mm to 190mm = 165mm horizontal
+- **Maximum spacing:** 4-6mm between sections
+- **Mandatory visual breathing room:** 15-20mm per page
 
-**Examples applied** (PAGE 7-8)
-- 70-90mm por exemplo
-- 2 exemplos = 1 página; 3 exemplos = 2 páginas
-- Enunciado + solução + resultado
-- Imagem pedagógica opcional por exemplo
+**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
 
-**Special cases** (PAGE 9, opcional)
-- Se houver: 1-3 casos (parágrafos + exemplos)
-- 100-150mm total
+---
 
-**Synthesis and application** (PAGE 10-11, pode ocupar 2 páginas)
-- Resumo breve (50mm)
-- Aplicações práticas 3-4 (60mm)
-- Tips 2-3 (50mm)
-- Key takeaway (30mm)
-- Se > 220mm: dividir em 2 páginas
+### Height Estimate per Element
 
-## IMAGENS
+- Title (20pt bold): 7-8mm
+- Subtitle (18pt regular): 6-7mm
+- Body text (18pt, 1.5 spacing): 9.5mm per line
+- Paragraph (60 words, 1.5 spacing): ~50-55mm
+- Definition box: 60-80mm
+- Formula box: 25-35mm
+- Complete example: 70-90mm
+- Detailed image: 80-100mm
+- Space between sections: 5-6mm
 
-Especifique com [IMAGE: descrição técnica detalhada] quando essencial (80-100mm altura):
-- Contextual: realistic photograph, medium shot, natural lighting
-- Process: detailed illustration or technical diagram, clear detail, high quality
-- Example: real-world object photography, professional, visible context
+---
 
-Não use ícones ou miniaturas.
+### Distribution per Page (Reference)
 
-## RESULTADO
+**"Light" page (150-180mm content):**
+- 1 title + 2 paragraphs
+- OR 1 title + small example
+- OR 1 title + definition box
 
-- 10-15 páginas com --PAGE X--
-- 100% inglês
-- Conteúdo 150-220mm por página (respiro visual obrigatório)
-- Boxes apenas nos 4 casos
-- Sem ícones em títulos
-- Pronta para impressão A4, 300 DPI
-- Base para Practice Activities e Lesson Plan`,
+**"Normal" page (180-220mm content):**
+- 1 title + 3-4 paragraphs
+- OR 1 title + 2 examples
+- OR 1 title + 1 box + 2 paragraphs
+
+**"Dense" page (220-240mm content - maximum):**
+- 1 title + 4-5 paragraphs + small box
+- OR 1 title + 2-3 examples
+- OR structured steps (4-5 steps)
+
+**Never exceed 250mm.** If content > 240mm, divide into 2 pages.
+
+---
+
+### Checklist per Page (BEFORE GENERATING)
+
+For each page, verify:
+- Total content is between 150-240mm?
+- Is everything in English?
+- If there is an image, is it detailed (80-100mm), not an icon?
+
+If any item fails, DIVIDE THE PAGE.
+
+---
+
+## FUNDAMENTAL STRUCTURE
+
+### [1] Lesson Title: Add the lesson topic here.
+### Motivation and Context
+
+**Location:** PAGE 1
+
+**Distribution:** 140-160mm
+- Title: "Motivation and Context" (only this)
+- 2-3 paragraphs (max. 75-85 words total)
+- No mandatory image
+
+---
+
+### [2] Problem Disparador
+
+**Location:** PAGE 1 (continuation)
+
+**Distribution:** 40-60mm
+- Title: "The Challenge:" OR "Problem:"
+- 1-2 paragraphs (max. 50 words)
+- No mandatory box
+- Optional visual element
+
+---
+
+### [3] Intuitive Understanding
+
+**Location:** PAGE 2-3 (can occupy 1-2 pages)
+
+**Distribution:** 180-220mm per page
+- Title: "Understanding the Pattern" OR "Discovering the Rule"
+- Step-by-step discovery (8-12 lines)
+- Optional box for final key concept
+- Optional pedagogical image (80-100mm)
+
+**If content > 220mm: DIVIDE INTO 2 PAGES**
+
+---
+
+### [4] Formal Method
+
+**Location:** PAGE 3-4 (can occupy 1-2 pages)
+
+**Distribution:** 200-230mm per page
+- Title: "The Standard Method" OR "Writing Expressions Step by Step"
+- Structured steps (3-5 steps = 1 page; 6+ = 2 pages)
+- Mandatory BOX for 4+ steps
+- Quick application example
+
+---
+
+### [5] Key Concepts
+
+**Location:** PAGE 5-6 (can occupy 1-2 pages)
+
+**Distribution:** 60-90mm per concept
+- Title: "Key Concepts" OR "Essential Definitions"
+- Each concept in SEPARATE BOX (mandatory for formal definitions)
+- 2-3 concepts per page (maximum 3 = ~210mm)
+- 4+ concepts = 2 pages (maximum 3 concepts per page)
+
+**Calculation:**
+- 2 concepts: 2 × 75mm + 1 × 6mm = ~156mm (1 page)
+- 3 concepts: 3 × 70mm + 2 × 6mm = ~222mm (1 tight page)
+- 4 concepts: MANDATORY 2 pages (2 per page)
+
+---
+
+### [6] Examples Applied
+
+**Location:** PAGE 6-8 (depends on quantity)
+
+**Distribution:** 70-90mm per example
+- Title: "Examples Applied" (once at the beginning)
+- Each example: statement + solution + result
+- No box; only HEADING + structured text
+- Optional detailed image per example (80-100mm)
+
+**Calculation:**
+- 2 examples: 2 × 85mm + 1 × 6mm = ~176mm (1 page)
+- 3 examples: 3 × 80mm + 2 × 6mm = ~252mm → DIVIDE (2 pages: 1-2 ex, 3 ex)
+- 4 examples: MANDATORY 2 pages (2 per page)
+
+---
+
+### [7] Special Cases
+
+**Location:** PAGE 8-9 (after examples)
+
+**Distribution:** 100-150mm
+- Title: "Special Cases" OR "Important Considerations"
+- Optional: not every concept has special cases
+- If there are: 1-3 cases (each one is paragraph + example)
+- No mandatory box
+
+---
+
+### [8] Synthesis and Application
+
+**Location:** PAGE 9-10
+
+**Distribution:** 180-220mm (can occupy 1-2 pages)
+- Title: "Synthesis and Application"
+- Brief summary (1 paragraph, ~50mm)
+- Practical applications (3-4 bullet points, ~60mm)
+- Helpful tips (2-3 points, ~50mm)
+- Final key takeaway (1 paragraph, ~30mm)
+
+**If > 220mm: DIVIDE INTO 2 PAGES**
+
+---
+
+## IMAGES: WHEN AND HOW
+
+### Contextual/Opening Images
+- **Type:** Realistic photograph
+- **Height:** 80-100mm
+- **Composition:** Medium shot, rule of thirds, clear context
+- **Lighting:** Natural daylight, warm, professional
+- **Technical description:** Candid photography, real setting, not icon-like
+
+### Pedagogical Process Images
+- **Type:** Detailed illustration OR technical diagram
+- **Height:** 80-100mm
+- **Composition:** Centered, clear focal point, visual depth
+- **Detail:** Shading, color coding, professional quality
+- **Technical description:** Educational illustration, clean lines, vibrant colors, high detail
+
+### Example Context Images
+- **Type:** Realistic photograph
+- **Height:** 80-100mm
+- **Composition:** Close-up OR medium shot, recognizable situation
+- **Lighting:** Professional, clear shadows
+- **Technical description:** Real-world object photography, professional quality, visible detail
+
+---
+
+## EXPECTED RESULT
+
+A LESSON that:
+- Divided into pages with --PAGE X--
+- 100% IN ENGLISH
+- Balanced content (150-220mm per page, maximum 240mm)
+- Each page with 15-20mm visual breathing room
+- Boxes only in 4 specific cases
+- Detailed images when used (80-100mm, not thumbnails)
+- Ready for 18pt body typography, 20pt titles
+- An American teacher understands in 15 minutes
+- Script for 45-50 minute lesson
+- Base for Practice Activities, Slides, Lesson Plan
+- Ready for A4 printing at 300 DPI`,
 
 practice: `# OVERVIEW
 
