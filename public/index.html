@@ -6236,16 +6236,42 @@ async function downloadAll() {
     ? [...selectedKeys].filter(k => results[k]?.url)
     : Object.keys(results).filter(k => results[k]?.url);
   if (!keys.length) { toast('Nenhuma imagem para baixar.', 'warn'); return; }
-  const imgs = keys.map(k => results[k]);
-  toast(`Preparando ZIP com ${imgs.length} imagem${imgs.length > 1 ? 'ns' : ''}…`, '');
+
+  const lessonNum = document.getElementById('lesson')?.value?.trim() || '';
+
+  // Build unique ZIP filenames per image using type + page notation
+  const usedNames = new Map();
+  const entries = keys.map(key => {
+    const r = results[key];
+    const dt  = r.docType || '';
+    const ext = (r.filename || 'page.png').split('.').pop() || 'png';
+    let base;
+    if (dt === 'lesson') {
+      base = `[Lesson${lessonNum ? ' ' + lessonNum : ''}] - Page ${r.pageNum || '?'}`;
+    } else if (dt === 'practice') {
+      base = `[Activities${lessonNum ? ' ' + lessonNum : ''}] - Page ${r.pageNum || '?'}`;
+    } else if (dt === 'lessonplan') {
+      base = `[Lesson Plan${lessonNum ? ' ' + lessonNum : ''}] - Page ${r.pageNum || '?'}`;
+    } else {
+      base = (r.filename || key).replace(/\.[^.]+$/, '');
+    }
+    // Deduplicate: append counter if name already used
+    const candidate = `${base}.${ext}`;
+    const count = usedNames.get(candidate) || 0;
+    usedNames.set(candidate, count + 1);
+    const zipName = count > 0 ? `${base} (${count}).${ext}` : candidate;
+    return { r, zipName };
+  });
+
+  toast(`Preparando ZIP com ${entries.length} imagem${entries.length > 1 ? 'ns' : ''}…`, '');
   try {
     const zip = new JSZip();
-    for (const img of imgs) {
-      if (img.url.startsWith('data:')) {
-        zip.file(img.filename, img.url.split(',')[1], { base64: true });
+    for (const { r, zipName } of entries) {
+      if (r.url.startsWith('data:')) {
+        zip.file(zipName, r.url.split(',')[1], { base64: true });
       } else {
-        const res = await fetch(img.url);
-        zip.file(img.filename, await res.blob());
+        const res = await fetch(r.url);
+        zip.file(zipName, await res.blob());
       }
     }
     const blob = await zip.generateAsync({ type: 'blob' });
@@ -6256,7 +6282,7 @@ async function downloadAll() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(a.href);
-    toast(`ZIP com ${imgs.length} imagem${imgs.length > 1 ? 'ns' : ''} pronto!`, 'ok');
+    toast(`ZIP com ${entries.length} imagem${entries.length > 1 ? 'ns' : ''} pronto!`, 'ok');
   } catch (e) {
     toast(`Erro ao criar ZIP: ${e.message}`, 'err');
   }
