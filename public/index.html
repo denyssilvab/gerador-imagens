@@ -3502,6 +3502,7 @@ function setPage(name, el) {
   if (name === 'dashboard')  refreshDashboard();
   if (name === 'upscale')    refreshUpscalePage();
   if (name === 'combinar')   refreshCombinarPage();
+  try { localStorage.setItem('active_page', name); } catch (_) {}
 }
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -5301,6 +5302,10 @@ function _onAuthChange(event, session) {
     const nameEl   = document.getElementById('dash-user-name');
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl) nameEl.textContent = name;
+    // Restore last active page (default: gerar)
+    const _savedPage = localStorage.getItem('active_page') || 'gerar';
+    const _pageBtn = document.querySelector(`.nav-item[onclick*="'${_savedPage}'"]`);
+    setPage(_savedPage, _pageBtn);
     loadApiKeys();
     loadFolders();
     loadPersistedImages();
