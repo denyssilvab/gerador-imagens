@@ -1096,6 +1096,20 @@
       padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
       display: flex; align-items: center; justify-content: space-between;
     }
+    /* ── upscale process log ── */
+    #upscale-process-log { margin-top: 14px; }
+    .ulog-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .ulog-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .ulog-meta  { font-size: 11px; color: var(--muted); }
+    .ulog-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 7px 10px; border-radius: 6px; background: var(--surface2);
+      font-size: 12px; margin-bottom: 3px; transition: background .2s;
+    }
+    .ulog-idx   { color: var(--muted); min-width: 20px; text-align: right; font-variant-numeric: tabular-nums; }
+    .ulog-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+    .ulog-status{ min-width: 0; flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+    .ulog-time  { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
     /* ── old upscale rows kept for compat ── */
     .upscale-img-row {
       display: flex; align-items: center; gap: 12px;
@@ -2113,6 +2127,15 @@
         <button class="btn btn-sm" id="btn-stop-upscale" onclick="stopUpscale()" style="display:none;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">
           ⏹ Parar
         </button>
+      </div>
+
+      <!-- Processing log -->
+      <div id="upscale-process-log" style="display:none;">
+        <div class="ulog-header">
+          <span class="ulog-title">Log do Processamento</span>
+          <span class="ulog-meta" id="upscale-log-meta"></span>
+        </div>
+        <div id="upscale-log-rows"></div>
       </div>
 
       <div id="upscale-img-list" style="display:none;"></div>
@@ -6268,6 +6291,79 @@ function stopUpscale() {
   toast('Upscale interrompido.', 'warn');
 }
 
+// ── Upscale process log helpers ────────────────────────────────────────────
+let _upscaleLogMap = new Map(); // key → { statusEl, timeEl, rowEl, startTs }
+
+function _ulogFmtTime(s) {
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`;
+}
+
+function _ulogInit(queue, model, scale) {
+  const logEl  = document.getElementById('upscale-process-log');
+  const metaEl = document.getElementById('upscale-log-meta');
+  const rowsEl = document.getElementById('upscale-log-rows');
+  if (!logEl || !rowsEl) return;
+  _upscaleLogMap.clear();
+  const modelLabel = model
+    .replace(/^topaz:/, 'Topaz ')
+    .replace('nightmareai/', '').replace('recraft-ai/', 'Recraft ')
+    .replace('philz1337x/', '').replace('afiaka87/', '').replace('prunaai/', 'PrunaAI ')
+    .replace('google/', 'Google ').trim();
+  if (metaEl) metaEl.textContent = `${modelLabel} · ${scale}× · ${queue.length} imagem${queue.length !== 1 ? 'ns' : ''}`;
+  rowsEl.innerHTML = '';
+  queue.forEach((item, i) => {
+    const row = document.createElement('div');
+    row.className = 'ulog-row';
+    row.innerHTML = `
+      <span class="ulog-idx">${i + 1}</span>
+      <span class="ulog-name" title="${esc(item.filename)}">${esc(item.filename)}</span>
+      <span class="ulog-status">⏳ Na fila…</span>
+      <span class="ulog-time">—</span>`;
+    rowsEl.appendChild(row);
+    _upscaleLogMap.set(item.key, {
+      rowEl:    row,
+      statusEl: row.querySelectorAll('span')[2],
+      timeEl:   row.querySelectorAll('span')[3],
+      startTs:  null,
+    });
+  });
+  logEl.style.display = '';
+}
+
+function _ulogStart(key) {
+  const e = _upscaleLogMap.get(key); if (!e) return;
+  e.startTs = Date.now();
+  e.statusEl.style.color = 'var(--primary)';
+  e.statusEl.textContent = '🔄 Iniciando…';
+}
+
+function _ulogProgress(key, text) {
+  const e = _upscaleLogMap.get(key); if (!e) return;
+  e.statusEl.textContent = `🔄 ${text}`;
+  if (e.startTs) e.timeEl.textContent = _ulogFmtTime(Math.round((Date.now() - e.startTs) / 1000));
+}
+
+function _ulogDone(key, folderName) {
+  const e = _upscaleLogMap.get(key); if (!e) return;
+  const elapsed = e.startTs ? Math.round((Date.now() - e.startTs) / 1000) : 0;
+  e.statusEl.style.color = 'var(--green)';
+  e.statusEl.textContent = '✓ Concluído' + (folderName ? ` — salvo em "${folderName}"` : ' — salvo no Dashboard');
+  e.timeEl.style.color = 'var(--green)';
+  e.timeEl.textContent = _ulogFmtTime(elapsed);
+  e.rowEl.style.background = 'rgba(137,193,59,.08)';
+}
+
+function _ulogError(key, msg) {
+  const e = _upscaleLogMap.get(key); if (!e) return;
+  const elapsed = e.startTs ? Math.round((Date.now() - e.startTs) / 1000) : 0;
+  e.statusEl.style.color = 'var(--red)';
+  e.statusEl.textContent = `✗ Erro: ${msg}`;
+  e.timeEl.style.color = 'var(--red)';
+  e.timeEl.textContent = _ulogFmtTime(elapsed);
+  e.rowEl.style.background = 'rgba(239,68,68,.08)';
+}
+
 async function upscaleSelected(scale) {
   const keys = [...selectedKeys].filter(k => results[k]?.url);
   if (!keys.length) { toast('Selecione ao menos uma imagem.', 'warn'); return; }
@@ -6277,6 +6373,12 @@ async function upscaleSelected(scale) {
     toast('Upscale AI requer o Replicate API Token — insira na aba Replicate.', 'err');
     return;
   }
+
+  const upscaleModel = document.getElementById('upscale-model-pg')?.value ?? 'nightmareai/real-esrgan';
+
+  // Init processing log
+  const logQueue = keys.map(k => ({ key: k, filename: results[k]?.filename || k }));
+  _ulogInit(logQueue, upscaleModel, scale);
 
   _upscaleAbortCtrl = new AbortController();
   const signal = _upscaleAbortCtrl.signal;
@@ -6291,32 +6393,37 @@ async function upscaleSelected(scale) {
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     const pv = card?.querySelector('.icard-preview');
-    if (!pv) return;
 
-    const prev = pv.innerHTML;
-    pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
+    _ulogStart(key);
+
+    const prev = pv ? pv.innerHTML : '';
+    if (pv) pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Upscale ${scale}×…</span></div>`;
+
+    const _updateStatus = (txt) => {
+      _ulogProgress(key, txt);
+      const s = pv?.querySelector('span'); if (s) s.textContent = txt;
+    };
 
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        if (signal.aborted) { pv.innerHTML = prev; return; }
+        if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
         if (attempt > 0) {
           const wait = attempt * 15;
-          pv.querySelector('span').textContent = `Aguardando ${wait}s (retry ${attempt})…`;
-          await new Promise(r => setTimeout(r, wait * 1000));
-          if (signal.aborted) { pv.innerHTML = prev; return; }
-          pv.querySelector('span').textContent = `Upscale ${scale}× (retry ${attempt})…`;
+          _updateStatus(`Aguardando ${wait}s (retry ${attempt})…`);
+          await new Promise(res => setTimeout(res, wait * 1000));
+          if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
+          _updateStatus(`Upscale ${scale}× (retry ${attempt})…`);
         }
 
-        const upscaleModel = document.getElementById('upscale-model-pg')?.value ?? 'nightmareai/real-esrgan';
         const sourceUrl = r.originalUrl || r.url;
 
         // Comprime para JPEG antes de enviar (PNG ~4MB → JPEG ~300KB, evita timeout)
-        pv.querySelector('span').textContent = `Comprimindo imagem…`;
+        _updateStatus('Comprimindo imagem…');
         const compressedUrl = await compressForUpscale(sourceUrl);
-        if (signal.aborted) { pv.innerHTML = prev; return; }
+        if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
 
         // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
-        pv.querySelector('span').textContent = `Upscale ${scale}× — iniciando…`;
+        _updateStatus(`Upscale ${scale}× — iniciando…`);
         const res = await fetch('/api/upscale', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -6338,10 +6445,10 @@ async function upscaleSelected(scale) {
         }
 
         // Polling direto no Replicate até terminar (GET, sem CORS issue, sem timeout)
-        pv.querySelector('span').textContent = `Upscale ${scale}× — processando…`;
+        _updateStatus(`Upscale ${scale}× — processando…`);
         const data = await pollReplicateClient(
           pred.predictionId || pred.id, token,
-          txt => { const s = pv.querySelector('span'); if (s) s.textContent = txt; },
+          txt => _updateStatus(txt),
           signal
         );
 
@@ -6352,21 +6459,51 @@ async function upscaleSelected(scale) {
         const upscales = { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } };
         results[key] = {
           ...r,
-          originalUrl: r.originalUrl || r.url,  // preserva original para próximos upscales
-          upscaledUrl,                            // mais recente (para PDF e visualização)
+          originalUrl: r.originalUrl || r.url,
+          upscaledUrl,
           upscaleFilename: filename,
           upscaleApplied: scale,
           upscales,
         };
-        pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
-        await dbSave({ dataUrl: upscaledUrl, url: upscaledUrl, filename, pageNum: r.pageNum, title: r.title }).catch(() => {});
+        if (pv) pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
+
+        // Save upscaled image as new entry in Dashboard (labeled "Editada" by filename pattern)
+        _updateStatus('Salvando no Dashboard…');
+        const newLocalId = await dbSave({
+          dataUrl: upscaledUrl,
+          url: upscaledUrl,
+          filename,
+          pageNum: r.pageNum,
+          title: r.customTitle || r.title || '',
+          docType: r.docType || '',
+          folderId: r.folderId || null,
+        }).catch(() => null);
+
+        if (newLocalId) {
+          const newKey = `db_${newLocalId}`;
+          results[newKey] = {
+            url: upscaledUrl, originalUrl: upscaledUrl,
+            filename, pageNum: r.pageNum,
+            title: r.customTitle || r.title || '', customTitle: null,
+            docType: r.docType || '', folderId: r.folderId || null,
+            ts: Date.now(), localId: newLocalId,
+          };
+          refreshDashboard();
+        }
+
+        const folderName = r.folderId
+          ? (dashFolders.find(f => Number(f.id) === Number(r.folderId))?.name || null)
+          : null;
+        _ulogDone(key, folderName);
         toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
 
       } catch (e) {
         if (e.retry) continue;
-        if (!signal.aborted) { pv.innerHTML = prev; toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err'); }
-        else pv.innerHTML = prev;
+        const errMsg = signal.aborted ? 'cancelado' : e.message;
+        _ulogError(key, errMsg);
+        if (!signal.aborted) { if (pv) pv.innerHTML = prev; toast(`Pág. ${r.pageNum} — erro: ${e.message}`, 'err'); }
+        else if (pv) pv.innerHTML = prev;
         return;
       }
     }
