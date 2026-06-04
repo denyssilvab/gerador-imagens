@@ -4265,21 +4265,22 @@ function _getOrCreateTypeGroups(grid, saved) {
 
 function _applyLoadedImages(saved, overwrite = false) {
   const grid  = document.getElementById('img-grid');
-  const empty = grid?.querySelector('.empty');
-  if (empty) empty.remove();
-  if (grid && saved.length) document.getElementById('results-card').style.display = '';
-  // Resolve type groups once for this batch
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
+  let visibleAdded = 0;
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
-    // Add card to Gerar Imagens grid if visible and not already there
-    if (grid && !document.getElementById(`card_db_${r.id}`)) {
+    // Hidden if: timestamp-cleared (Limpar button), OR key-hidden (individual delete)
+    const _isHidden = (_historyClearedBeforeTs > 0 && r.ts && r.ts <= _historyClearedBeforeTs)
+      || _hiddenFromHistory.has(domKey)
+      || (r.key && _hiddenFromHistory.has(r.key));
+    if (grid && !document.getElementById(`card_db_${r.id}`) && !_isHidden) {
       const card = makePersistedCard(r); // also sets results[domKey]
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
+      visibleAdded++;
     } else {
-      // Update results entry (Supabase overwrite phase, or no grid)
+      // Still populate results for dashboard; just don't add card to history grid
       results[domKey] = {
         url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
         filename: r.filename, pageNum: r.pageNum,
@@ -4289,6 +4290,10 @@ function _applyLoadedImages(saved, overwrite = false) {
       };
     }
   });
+  if (grid && visibleAdded > 0) {
+    grid.querySelector('.empty')?.remove();
+    document.getElementById('results-card').style.display = '';
+  }
 }
 
 async function loadPersistedImages() {
@@ -5571,7 +5576,7 @@ async function handleEvent(ev) {
         folderId: dashFolderFilter || null, // auto-assign to active folder
       };
       results[domKey] = result;
-      dbSave({ ...result, dataUrl: displayUrl }).catch(() => {});
+      dbSave({ ...result, dataUrl: displayUrl }).then(id => { if (id && results[domKey]) results[domKey].localId = id; }).catch(() => {});
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
       break;
@@ -5806,17 +5811,30 @@ function icardMenuRefazer() {
   if (_icardMenuKey) openRefazer(_icardMenuKey, _icardMenuPageNum);
 }
 
-async function icardMenuDelete() {
+// Keys hidden from Gerar Imagens history (but kept in Dashboard / Supabase)
+const _HISTORY_HIDDEN_KEY = 'gerar_history_hidden_v1';
+const _HISTORY_CLEAR_TS_KEY = 'gerar_history_clear_ts';
+function _loadHiddenHistory() {
+  try { return new Set(JSON.parse(localStorage.getItem(_HISTORY_HIDDEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function _saveHiddenHistory(set) {
+  try { localStorage.setItem(_HISTORY_HIDDEN_KEY, JSON.stringify([...set])); } catch {}
+}
+let _hiddenFromHistory = _loadHiddenHistory();
+// Timestamp set by "Limpar": images with ts <= this value are hidden from history
+let _historyClearedBeforeTs = parseInt(localStorage.getItem(_HISTORY_CLEAR_TS_KEY) || '0');
+
+function icardMenuDelete() {
   const key = _icardMenuKey;
   if (!key) return;
-  if (!confirm('Excluir esta imagem?')) return;
-  await authFetch('/api/db?action=delete-image', {
-    method: 'POST', body: JSON.stringify(_deletePayload(key)),
-  }).catch(() => {});
-  delete results[key];
+  if (!confirm('Remover esta imagem do histórico?\n\nEla continuará disponível no Dashboard.')) return;
+  // Hide from history without deleting from DB/Dashboard
+  _hiddenFromHistory.add(key);
+  const _r = results[key]; if (_r?.sbKey) _hiddenFromHistory.add(_r.sbKey);
+  _saveHiddenHistory(_hiddenFromHistory);
   document.getElementById(`card_${key}`)?.remove();
-  refreshDashboard();
-  toast('Imagem excluída.', 'ok');
+  toast('Imagem removida do histórico.', 'ok');
 }
 
 // Click on icard image → open preview modal (same as dashboard)
@@ -5928,8 +5946,12 @@ async function downloadAll() {
 }
 
 function clearResults() {
-  // Only clears the session UI — does NOT delete from DB or dashboard gallery.
-  // To permanently delete, use the dashboard context menu.
+  // Record the current moment; any image with ts <= this value is hidden from history on reload
+  _historyClearedBeforeTs = Date.now();
+  try {
+    localStorage.setItem(_HISTORY_CLEAR_TS_KEY, String(_historyClearedBeforeTs));
+  } catch(e) { console.warn('[clearResults ts]', e); }
+
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
   document.getElementById('results-card').style.display = 'none';
@@ -5993,7 +6015,13 @@ async function deleteSelected() {
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     if (card) card.remove();
 
-    // Remove do IndexedDB se for card persistido (db_N)
+    // Hide from history (persists across reloads; image stays in Dashboard/Supabase)
+    _hiddenFromHistory.add(key);
+    const _rd = results[key];
+    if (_rd?.sbKey) _hiddenFromHistory.add(_rd.sbKey);
+    if (_rd?.localId) _hiddenFromHistory.add(`db_${_rd.localId}`);
+
+    // Remove from IndexedDB cache for db_ keys (Supabase remains for dashboard)
     if (key.startsWith('db_')) {
       const id = parseInt(key.slice(3));
       try {
@@ -6003,18 +6031,16 @@ async function deleteSelected() {
           r.onsuccess = () => res(); r.onerror = () => rej(r.error);
         });
       } catch (_) {}
+      // Keep results[key] so dashboard still references this image
+    } else {
+      // In-session (ck) keys: remove from results; will reload from Supabase on next visit
+      delete results[key];
     }
-    // Remove do Supabase
-    authFetch('/api/db?action=delete-image', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key }),
-    }).catch(() => {});
 
-    delete results[key];
     selectedKeys.delete(key);
   }
 
+  _saveHiddenHistory(_hiddenFromHistory);
   updateSelectionUI();
 
   // Mostra empty state se não sobrou nada
@@ -6024,7 +6050,7 @@ async function deleteSelected() {
     document.getElementById('results-card').style.display = 'none';
   }
 
-  toast(`${keys.length} imagem${keys.length > 1 ? 'ns excluídas' : ' excluída'}.`, 'ok');
+  toast(`${keys.length} imagem${keys.length > 1 ? 'ns removida' : ' removida'}${keys.length > 1 ? 's' : ''} do histórico.`, 'ok');
 }
 
 // ── Refazer ────────────────────────────────────────────────────────────────
