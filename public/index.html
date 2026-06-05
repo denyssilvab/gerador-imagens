@@ -5133,20 +5133,21 @@ async function _savePdfToLibrary(items, filename, folderId, progElId) {
     reader.readAsDataURL(blob);
   });
   const title = filename.replace(/\.pdf$/i, '');
-  const newLocalId = await dbSave({
+  const { localId: newLocalId, sbId: newSbId } = await dbSave({
     dataUrl, url: dataUrl, filename,
     pageNum: null, title, docType: 'pdf', folderId,
-  }).catch(() => null);
-  if (newLocalId) {
-    const newKey = `db_${newLocalId}`;
+  }).catch(() => ({}));
+  if (newLocalId || newSbId) {
+    const newKey = newSbId ? `db_${newSbId}` : `db_${newLocalId}`;
     results[newKey] = {
       url: dataUrl, originalUrl: dataUrl,
       filename, pageNum: null, title, customTitle: null,
       docType: 'pdf', folderId: folderId || null,
-      ts: Date.now(), localId: newLocalId,
+      ts: Date.now(), localId: newLocalId, sbId: newSbId,
+      sbKey: `pdf_${newSbId || newLocalId}`,
     };
   }
-  return newLocalId;
+  return newLocalId || newSbId;
 }
 
 async function combinarSaveToLibrary() {
@@ -5937,13 +5938,13 @@ async function _idbClear() {
 }
 
 // ── Unified persistence (Supabase primary, IndexedDB fallback) ─────────────
+// Returns { localId, sbId } — localId is IndexedDB id, sbId is Supabase integer id.
 async function dbSave(rec, { silent = false } = {}) {
   // Persist locally first (fast, offline-safe)
   const localId = await _idbSave(rec).catch(() => null);
 
-  // Use a timestamp+random key so IDB counter resets (after cache clear) never
-  // collide with existing Supabase rows that might be hidden_from_history=true.
   const key = rec.key || `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  let sbId = null;
   try {
     const res  = await authFetch('/api/db?action=save-image', {
       method: 'POST',
@@ -5962,12 +5963,13 @@ async function dbSave(rec, { silent = false } = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (!data.ok) throw new Error(data.error || 'Erro ao salvar');
+    sbId = data.id || null;
   } catch (e) {
     console.warn('[supabase sync]', e);
     if (!silent) toast('⚠ Falha ao salvar imagem no servidor. Verifique sua conexão.', 'err');
   }
 
-  return localId;
+  return { localId, sbId };
 }
 
 async function dbLoadAll() {
@@ -6363,8 +6365,9 @@ async function handleEvent(ev) {
       const storageUrl = await _clientUploadToStorage(displayUrl, filename).catch(() => null);
       const saveUrl = storageUrl || displayUrl;
       if (storageUrl) results[domKey].url = storageUrl;
-      const _savedId = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl });
+      const { localId: _savedId, sbId: _sbId } = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl }) || {};
       if (_savedId && results[domKey]) results[domKey].localId = _savedId;
+      if (_sbId    && results[domKey]) results[domKey].sbId = _sbId;
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
       break;
@@ -6533,7 +6536,10 @@ function cardDone(gen, idx, url, domKey, result) {
   pv.onclick = () => openIcardPreview(domKey);
   // Add data-key for preview navigation
   const card = document.getElementById(`card_${key}`);
-  if (card) card.dataset.key = domKey;
+  if (card) {
+    card.dataset.key = domKey;
+    if (result?.sbKey) card.dataset.sbKey = result.sbKey;
+  }
   const chk = document.getElementById(`chk_${key}`);
   if (chk) chk.disabled = false;
   ft.style.display = 'flex';
@@ -6612,19 +6618,24 @@ let _hiddenFromHistory = _loadHiddenHistory();
 // Remove stale timestamp key that was hiding too many images
 try { localStorage.removeItem('gerar_history_clear_ts'); } catch {}
 
-// Add all possible identifiers for a card to _hiddenFromHistory.
-// Returns the set of stable DB keys (db_N format) so the caller can sync
-// them to the server — this makes the hidden state survive cache clears.
+// Collect all identifiers for a card and mark it hidden locally.
+// Returns stable keys for server-side sync so the hidden state survives cache clears.
+// Two formats are accepted by the API:
+//   • plain string  → matched against images.key column  (e.g. "img_0_p1_1234567")
+//   • "id:N"        → matched against images.id  column  (e.g. "id:42")
 function _addToHidden(key) {
   _hiddenFromHistory.add(key);
   const r = results[key];
-  const stable = new Set(); // keys to persist server-side
-  const add = (k) => { if (k) { _hiddenFromHistory.add(k); if (/^db_\d+$/.test(k)) stable.add(k); } };
-  add(r?.sbKey);
-  if (r?.localId) add(`db_${r.localId}`);
-  if (r?.sbId)    add(`db_${r.sbId}`);
-  const cardEl = document.getElementById(`card_${key}`);
-  add(cardEl?.dataset?.sbKey);
+  const stable = new Set();
+
+  // sbKey is the actual value stored in images.key — use it directly
+  const sbKey = r?.sbKey || document.getElementById(`card_${key}`)?.dataset?.sbKey;
+  if (sbKey) { _hiddenFromHistory.add(sbKey); stable.add(sbKey); }
+
+  // sbId is the Supabase integer id — prefix with "id:" so the API knows to match by id
+  const sbId = r?.sbId || (key.match(/^db_(\d+)$/)?.[1]);
+  if (sbId) { stable.add(`id:${sbId}`); }
+
   return stable;
 }
 
@@ -7416,7 +7427,7 @@ async function upscaleSelected(scale) {
         const saveUrl = storagePublicUrl || upscaledUrl;
 
         _updateStatus('Salvando no Dashboard…');
-        const newLocalId = await dbSave({
+        const { localId: newLocalId, sbId: newSbId } = await dbSave({
           dataUrl: saveUrl,
           url: saveUrl,
           filename,
@@ -7424,9 +7435,9 @@ async function upscaleSelected(scale) {
           title: r.customTitle || r.title || '',
           docType: r.docType || '',
           folderId: r.folderId || null,
-        }, { silent: !storagePublicUrl }).catch(() => null); // silent if storage upload failed (toast shown above)
+        }, { silent: !storagePublicUrl }).catch(() => ({})); // silent if storage upload failed (toast shown above)
 
-        if (newLocalId) {
+        if (newLocalId || newSbId) {
           const newKey = `db_${newLocalId}`;
           results[newKey] = {
             url: saveUrl, originalUrl: saveUrl,

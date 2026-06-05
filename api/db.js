@@ -121,13 +121,32 @@ module.exports = async function handler(req, res) {
     if (action === 'hide-from-history') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-      const { keys } = req.body; // array of stable key-column values (e.g. ['db_3', 'db_7'])
+      const { keys } = req.body;
       if (!Array.isArray(keys) || !keys.length) return res.json({ ok: true });
-      const { error } = await sb.from('images')
-        .update({ hidden_from_history: true })
-        .eq('user_id', userId)
-        .in('key', keys);
-      if (error) throw error;
+
+      // Keys arrive in two formats:
+      //   • plain string  → match images.key  column  (e.g. "img_0_p1_1234567")
+      //   • "id:N"        → match images.id   column  (e.g. "id:42")
+      const strKeys = keys.filter(k => !String(k).startsWith('id:'));
+      const numIds  = keys
+        .filter(k => String(k).startsWith('id:'))
+        .map(k => parseInt(k.slice(3)))
+        .filter(n => Number.isFinite(n) && n > 0);
+
+      if (strKeys.length) {
+        const { error } = await sb.from('images')
+          .update({ hidden_from_history: true })
+          .eq('user_id', userId)
+          .in('key', strKeys);
+        if (error) throw error;
+      }
+      if (numIds.length) {
+        const { error } = await sb.from('images')
+          .update({ hidden_from_history: true })
+          .eq('user_id', userId)
+          .in('id', numIds);
+        if (error) throw error;
+      }
       return res.json({ ok: true });
     }
 
