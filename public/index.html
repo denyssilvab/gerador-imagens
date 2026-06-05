@@ -4523,10 +4523,11 @@ function _applyLoadedImages(saved, overwrite = false) {
   saved.slice().reverse().forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
-    // PDFs belong only in the dashboard, not in the generation history grid
+    // PDFs and TXTs belong only in the dashboard, not in the generation history grid
     const _isPdf = r.docType === 'pdf' || (r.filename || '').toLowerCase().endsWith('.pdf');
+    const _isTxt = (r.url || '').startsWith('data:text/') || (r.filename || '').toLowerCase().endsWith('.txt');
     // Hidden by explicit per-key delete (both Supabase ID key and stable IDB-derived key)
-    const _isHidden = _isPdf
+    const _isHidden = _isPdf || _isTxt
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
     if (grid && !document.getElementById(`card_db_${r.id}`) && !_isHidden) {
