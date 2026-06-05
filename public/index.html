@@ -4528,11 +4528,22 @@ function _getOrCreateTypeGroups(grid, saved) {
   return groupGrids;
 }
 
-function _applyLoadedImages(saved, overwrite = false) {
-  const grid  = document.getElementById('img-grid');
+function _applyLoadedImages(saved, overwrite = false, clearExisting = false) {
+  const grid = document.getElementById('img-grid');
+
+  if (clearExisting && grid) {
+    // Remove all IDB-sourced cards (may have different IDs than Supabase) to prevent duplicates
+    grid.querySelectorAll('.icard[id^="card_db_"]').forEach(c => c.remove());
+    grid.querySelector('.type-groups-container')?.remove();
+  }
+
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
-  saved.slice().reverse().forEach(r => {
+
+  // Sort by pageNum so pages always render in page order regardless of API sort
+  const ordered = [...saved].sort((a, b) => (a.pageNum ?? 9999) - (b.pageNum ?? 9999));
+
+  ordered.forEach(r => {
     const domKey = `db_${r.id}`;
     if (!overwrite && results[domKey]) return;
     // PDFs and TXTs belong only in the dashboard, not in the generation history grid
@@ -4542,8 +4553,12 @@ function _applyLoadedImages(saved, overwrite = false) {
     const _isHidden = _isPdf || _isTxt
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
-    if (grid && !document.getElementById(`card_db_${r.id}`) && !_isHidden) {
+    // Deduplicate: skip if a card for this Supabase ID or this stable key already exists in the DOM
+    const alreadyInDom = !!document.getElementById(`card_${domKey}`)
+      || (r.key && !!document.querySelector(`[data-sb-key="${CSS.escape(r.key)}"]`));
+    if (grid && !alreadyInDom && !_isHidden) {
       const card = makePersistedCard(r); // also sets results[domKey]
+      card.dataset.sbKey = r.key || '';  // stable key for dedup on next load
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
       visibleAdded++;
@@ -4598,7 +4613,8 @@ async function loadPersistedImages() {
     const res  = await authFetch(`/api/db?action=load-images&page=0&limit=${_DASH_PAGE_LIMIT}`);
     const data = await res.json();
     if (data.ok && data.images?.length) {
-      _applyLoadedImages(data.images.map(_mapSbImage), true);
+      // clearExisting=true: wipes IDB cards from DOM before rebuilding from authoritative Supabase data
+      _applyLoadedImages(data.images.map(_mapSbImage), true, true);
       refreshDashboard();
     }
     _dashHasMore = data.hasMore || false;
@@ -4613,7 +4629,8 @@ async function _loadMoreDashImages() {
     const res  = await authFetch(`/api/db?action=load-images&page=${_dashPage}&limit=${_DASH_PAGE_LIMIT}`);
     const data = await res.json();
     if (data.ok && data.images?.length) {
-      _applyLoadedImages(data.images.map(_mapSbImage), true);
+      // clearExisting=false: pagination appends, does not clear existing cards
+      _applyLoadedImages(data.images.map(_mapSbImage), true, false);
       refreshDashboard();
     }
     _dashHasMore = data.hasMore || false;
