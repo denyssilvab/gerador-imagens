@@ -7526,16 +7526,24 @@ async function upscaleSelected(scale) {
           _updateStatus(`Upscale ${scale}× (retry ${attempt})…`);
         }
 
-        const sourceUrl = r.originalUrl || r.url;
+        let sourceUrl = r.originalUrl || r.url;
 
-        // Compress to JPEG only for data: URLs (large PNGs) to stay under Vercel body limit.
-        // Remote HTTPS URLs are passed directly — no canvas/CORS issues, no needless re-encode.
-        let compressedUrl = sourceUrl;
+        // Replicate requires a valid HTTPS URI — data: URLs are rejected.
+        // Upload to Supabase Storage first to get a public URL.
         if (sourceUrl?.startsWith('data:')) {
-          _updateStatus('Comprimindo imagem…');
-          compressedUrl = await compressForUpscale(sourceUrl);
+          _updateStatus('Enviando imagem para o Storage…');
+          const uploadedUrl = await _clientUploadToStorage(sourceUrl, r.filename || 'upload.png').catch(() => null);
+          if (uploadedUrl) {
+            sourceUrl = uploadedUrl;
+          } else {
+            // Storage upload failed — compress to JPEG as last-resort fallback
+            _updateStatus('Comprimindo imagem…');
+            sourceUrl = await compressForUpscale(sourceUrl);
+          }
           if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
         }
+
+        const compressedUrl = sourceUrl;
 
         // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
         _updateStatus(`Upscale ${scale}× — iniciando…`);
