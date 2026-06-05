@@ -5892,7 +5892,9 @@ async function dbSave(rec, { silent = false } = {}) {
   // Persist locally first (fast, offline-safe)
   const localId = await _idbSave(rec).catch(() => null);
 
-  const key = rec.key || (localId ? `db_${localId}` : `ts_${Date.now()}`);
+  // Use a timestamp+random key so IDB counter resets (after cache clear) never
+  // collide with existing Supabase rows that might be hidden_from_history=true.
+  const key = rec.key || `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
     const res  = await authFetch('/api/db?action=save-image', {
       method: 'POST',

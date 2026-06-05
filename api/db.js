@@ -67,15 +67,16 @@ module.exports = async function handler(req, res) {
         .from('images')
         .upsert({
           key,
-          user_id:      userId,
-          storage_path: storagePath,
-          url:          publicUrl,
+          user_id:              userId,
+          storage_path:         storagePath,
+          url:                  publicUrl,
           filename,
-          page_num:     pageNum,
+          page_num:             pageNum,
           title,
-          doc_type:     docType,
-          original_url: originalUrl || null,
-          folder_id:    folderId    || null,
+          doc_type:             docType,
+          original_url:         originalUrl || null,
+          folder_id:            folderId    || null,
+          hidden_from_history:  false, // always reset — a re-save means the image is new/visible
         }, { onConflict: 'key' })
         .select()
         .single();
