@@ -1481,6 +1481,7 @@
           <span id="dash-bulk-count" style="font-size:13px;font-weight:600;"></span>
           <span style="flex:1;"></span>
           <button class="btn btn-ghost btn-sm" onclick="dashBulkSelectAll()">Selecionar tudo</button>
+          <button class="btn btn-ghost btn-sm" onclick="dashBulkZip()">⬇ ZIP</button>
           <button class="btn btn-ghost btn-sm" onclick="dashBulkMove()">📁 Mover</button>
           <button class="btn btn-sm" onclick="dashBulkDelete()" style="background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">🗑 Excluir</button>
           <button class="btn btn-ghost btn-sm" onclick="dashClearSelection()">✕ Cancelar</button>
@@ -3755,6 +3756,58 @@ async function dashBulkDelete() {
   dashSelected.clear();
   _updateDashBulkBar();
   toast(`${keys.length} arquivo${keys.length !== 1 ? 's' : ''} excluído${keys.length !== 1 ? 's' : ''}.`, 'ok');
+}
+
+async function dashBulkZip() {
+  const keys = [...dashSelected].filter(k => results[k]?.url);
+  if (!keys.length) { toast('Nenhum arquivo selecionado.', 'warn'); return; }
+
+  const usedNames = new Map();
+  const entries = keys.map(key => {
+    const r = results[key];
+    const base = (r.filename || r.customTitle || r.title || key).replace(/\.[^.]+$/, '');
+    const ext  = (r.filename || 'arquivo.png').split('.').pop() || 'png';
+    const candidate = `${base}.${ext}`;
+    const count = usedNames.get(candidate) || 0;
+    usedNames.set(candidate, count + 1);
+    return { r, zipName: count > 0 ? `${base} (${count}).${ext}` : candidate };
+  });
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay';
+  overlay.innerHTML = `<div class="spinner"></div><p id="dash-zip-prog">Preparando ZIP… 0 / ${entries.length}</p>`;
+  document.body.appendChild(overlay);
+  try {
+    const zip = new JSZip();
+    for (let i = 0; i < entries.length; i++) {
+      const { r, zipName } = entries[i];
+      const prog = document.getElementById('dash-zip-prog');
+      if (prog) prog.textContent = `Adicionando ${i + 1} de ${entries.length}…`;
+      await new Promise(res => setTimeout(res, 0));
+      if (r.url.startsWith('data:')) {
+        zip.file(zipName, r.url.split(',')[1], { base64: true });
+      } else {
+        const res = await fetch(r.url);
+        zip.file(zipName, await res.blob());
+      }
+    }
+    const prog = document.getElementById('dash-zip-prog');
+    if (prog) prog.textContent = 'Gerando ZIP…';
+    const blob = await zip.generateAsync({ type: 'blob' }, ({ percent }) => {
+      const p = document.getElementById('dash-zip-prog');
+      if (p) p.textContent = `Comprimindo… ${Math.round(percent)}%`;
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `dashboard_${Date.now()}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+    toast(`ZIP com ${entries.length} arquivo${entries.length !== 1 ? 's' : ''} pronto!`, 'ok');
+  } catch (e) {
+    toast(`Erro ao criar ZIP: ${e.message}`, 'err');
+  } finally {
+    overlay.remove();
+  }
 }
 
 function dashBulkMove() {
