@@ -15,31 +15,44 @@ const MODELS = {
   'prunaai/image-upscale':               { slug: 'prunaai/image-upscale',               scaleParam: 'scale' },
 };
 
-// Upload a base64 data: URL to Replicate's Files API and return the HTTPS URL.
-// Replicate models require a valid URI — they reject data: URLs with "format 'uri'" error.
-async function uploadToReplicateFiles(dataUrl, token) {
+// Upload a data: URL to Supabase Storage on behalf of the authenticated user.
+// Uses the user's JWT (passed in Authorization header) so RLS policies are respected.
+// Returns the public URL, or throws on failure.
+async function uploadToSupabase(dataUrl, sbJwt) {
+  const SB_URL = process.env.SUPABASE_URL || 'https://ztbvmkmfaqpfzuohvsbe.supabase.co';
+
+  // Decode JWT payload to get user ID (no verification needed — Supabase validates it)
+  const payload = JSON.parse(atob(sbJwt.split('.')[1]));
+  const userId  = payload.sub;
+  if (!userId) throw new Error('JWT inválido: sem user ID');
+
   const commaIdx = dataUrl.indexOf(',');
-  if (commaIdx === -1) throw new Error('Invalid data URL format');
-  const mimeType = (dataUrl.slice(0, commaIdx).match(/:(.*?);/) || [])[1] || 'image/png';
+  if (commaIdx === -1) throw new Error('data URL inválida');
+  const mimeType = (dataUrl.slice(0, commaIdx).match(/:(.*?);/) || [])[1] || 'image/jpeg';
+  const ext      = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/png' ? 'png' : 'jpg';
+
   const binaryStr = atob(dataUrl.slice(commaIdx + 1));
-  const bytes = new Uint8Array(binaryStr.length);
+  const bytes     = new Uint8Array(binaryStr.length);
   for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
 
-  const res = await fetch('https://api.replicate.com/v1/files', {
+  const path = `${userId}/upscale_input_${Date.now()}.${ext}`;
+
+  const res = await fetch(`${SB_URL}/storage/v1/object/images/${path}`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${sbJwt}`,
       'Content-Type': mimeType,
-      'Content-Disposition': 'attachment; filename="image.png"',
+      'x-upsert': 'true',
     },
     body: bytes.buffer,
   });
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Replicate file upload failed: HTTP ${res.status}`);
+    throw new Error(err.message || err.error || `Supabase upload HTTP ${res.status}`);
   }
-  const data = await res.json();
-  return data.urls?.get || null;
+
+  return `${SB_URL}/storage/v1/object/public/images/${path}`;
 }
 
 export default async function handler(req) {
@@ -56,16 +69,25 @@ export default async function handler(req) {
     return new Response(JSON.stringify({ error: 'Parâmetros incompletos' }), { status: 400 });
   }
 
-  // Convert data: URL to a Replicate-hosted HTTPS URL before building the prediction input
+  // Local images (data: URLs) must be uploaded to Supabase Storage first to get a
+  // public HTTPS URL that Replicate can fetch. Uses the user's Supabase JWT from
+  // the Authorization header.
   if (dataUrl.startsWith('data:')) {
+    const authHeader = req.headers.get('Authorization') || '';
+    const sbJwt      = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+    if (!sbJwt) {
+      return new Response(
+        JSON.stringify({ error: 'Faça login para fazer upscale de imagens locais.' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     try {
-      const fileUrl = await uploadToReplicateFiles(dataUrl, token);
-      if (fileUrl) dataUrl = fileUrl;
-      else throw new Error('Replicate Files API returned no URL');
+      dataUrl = await uploadToSupabase(dataUrl, sbJwt);
     } catch (e) {
-      return new Response(JSON.stringify({ error: `Falha ao enviar imagem: ${e.message}` }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
-      });
+      return new Response(
+        JSON.stringify({ error: `Falha ao preparar imagem: ${e.message}` }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
     }
   }
 
@@ -84,8 +106,6 @@ export default async function handler(req) {
   }
 
   try {
-    // Cria prediction SEM wait — retorna predictionId imediatamente.
-    // O cliente faz polling GET direto no Replicate (sem CORS issue, sem timeout).
     const res = await fetch(`https://api.replicate.com/v1/models/${cfg.slug}/predictions`, {
       method: 'POST',
       signal: req.signal,
@@ -105,7 +125,6 @@ export default async function handler(req) {
     }
 
     const prediction = await res.json();
-    // Retorna predictionId para o cliente fazer polling diretamente no Replicate
     return new Response(
       JSON.stringify({ predictionId: prediction.id, status: prediction.status }),
       { headers: { 'Content-Type': 'application/json' } }

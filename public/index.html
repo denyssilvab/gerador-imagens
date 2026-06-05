@@ -7536,11 +7536,9 @@ async function upscaleSelected(scale) {
 
         let sourceUrl = r.originalUrl || r.url;
 
-        // For data: URLs (images uploaded from computer): compress to JPEG and send
-        // directly to the server. The server uploads to Replicate Files API to obtain
-        // a valid HTTPS URI — bypasses Supabase entirely so Replicate never rejects it.
-        // HTTPS URLs (generated images already in Supabase) pass through unchanged.
-        if (sourceUrl?.startsWith('data:')) {
+        // blob: and data: URLs are local — convert to data:JPEG so the server can
+        // upload to Supabase Storage and obtain a public HTTPS URL for Replicate.
+        if (sourceUrl?.startsWith('data:') || sourceUrl?.startsWith('blob:')) {
           _updateStatus('Preparando imagem…');
           sourceUrl = await compressForUpscale(sourceUrl);
           if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
@@ -7548,11 +7546,14 @@ async function upscaleSelected(scale) {
 
         const compressedUrl = sourceUrl;
 
-        // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
+        // Include Supabase JWT so the server can upload local images to Storage.
         _updateStatus(`Upscale ${scale}× — iniciando…`);
+        const sbToken = _getToken();
+        const upscaleHeaders = { 'Content-Type': 'application/json' };
+        if (sbToken) upscaleHeaders['Authorization'] = `Bearer ${sbToken}`;
         const res = await fetch('/api/upscale', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: upscaleHeaders,
           body: JSON.stringify({ dataUrl: compressedUrl, scale, token, upscaleModel }),
           signal,
         });
