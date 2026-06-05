@@ -5480,30 +5480,41 @@ let _authSession = null; // current Supabase session
 
 function _getToken() { return _authSession?.access_token || null; }
 
-// Upload a data URL directly to Supabase Storage using a server-issued signed URL.
-// Flow: server generates a signed upload URL (has auth) → client uploads the blob
-// directly to Supabase Storage (bypasses Vercel's 4.5 MB body limit entirely).
+// Upload a data URL directly to Supabase Storage REST API.
+// Uses the same credentials as the server (anon key + user JWT),
+// completely bypasses Vercel so there is no 4.5 MB body limit.
 // Returns the public URL on success, or null on failure.
 async function _clientUploadToStorage(dataUrl, filename) {
   if (!dataUrl?.startsWith('data:')) return null;
+  const token  = _getToken();
+  const userId = _authSession?.user?.id;
+  if (!token || !userId) return null;
   try {
-    // Step 1: ask server for a signed upload URL
-    const r = await authFetch(`/api/db?action=create-upload-url&filename=${encodeURIComponent(filename)}`);
-    const meta = await r.json();
-    if (!meta.ok) throw new Error(meta.error || 'Falha ao obter URL de upload');
+    const blob = await fetch(dataUrl).then(r => r.blob());
+    const ext  = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'application/pdf' ? 'pdf' : 'png';
+    const path = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
 
-    // Step 2: convert data URL → Blob (reliable even for 50 MB images)
-    const blob = await fetch(dataUrl).then(res => res.blob());
+    const res = await fetch(`${_SB_URL}/storage/v1/object/images/${path}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': _SB_KEY,
+        'Content-Type': blob.type,
+        'x-upsert': 'true',
+      },
+      body: blob,
+    });
 
-    // Step 3: upload blob directly to Supabase Storage via signed URL
-    const { error: upErr } = await _sb.storage
-      .from('images')
-      .uploadToSignedUrl(meta.path, meta.token, blob, { contentType: blob.type });
-    if (upErr) throw upErr;
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || errData.message || `HTTP ${res.status}`);
+    }
 
-    return meta.publicUrl;
+    const { data: urlData } = _sb.storage.from('images').getPublicUrl(path);
+    return urlData.publicUrl;
   } catch (e) {
     console.error('[clientUpload]', e);
+    toast(`Detalhe do erro de upload: ${e.message}`, 'err');
     return null;
   }
 }
