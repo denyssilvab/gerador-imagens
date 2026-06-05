@@ -4604,7 +4604,11 @@ function _mapSbImage(r) {
   };
 }
 
+let _imagesLoading = false; // mutex: prevents concurrent loadPersistedImages calls
+
 async function loadPersistedImages() {
+  if (_imagesLoading) return;
+  _imagesLoading = true;
   _dashPage = 0;
   _dashHasMore = false;
 
@@ -4630,6 +4634,7 @@ async function loadPersistedImages() {
     _dashHasMore = data.hasMore || false;
     _dashPage = 1;
   } catch (e) { console.warn('[loadPersistedImages supabase]', e); }
+  finally { _imagesLoading = false; }
 }
 
 async function _loadMoreDashImages() {
@@ -5849,6 +5854,8 @@ async function authLogout() {
   await _sb.auth.signOut();
 }
 
+let _authDataLoaded = false; // prevents double-load on startup (onAuthStateChange + manual call)
+
 function _onAuthChange(event, session) {
   _authSession = session;
   if (session) {
@@ -5863,6 +5870,16 @@ function _onAuthChange(event, session) {
     const nameEl   = document.getElementById('dash-user-name');
     if (avatarEl) avatarEl.textContent = initials;
     if (nameEl) nameEl.textContent = name;
+
+    // TOKEN_REFRESHED and USER_UPDATED only update the session token — never reload data.
+    // This prevents loadPersistedImages from running mid-generation and creating duplicate cards.
+    if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') return;
+
+    // Guard against the startup double-trigger: onAuthStateChange fires INITIAL_SESSION
+    // AND the manual getSession() call below also calls _onAuthChange('INITIAL_SESSION').
+    if (_authDataLoaded) return;
+    _authDataLoaded = true;
+
     // Restore last active page (default: gerar)
     const _savedPage = localStorage.getItem('active_page') || 'gerar';
     const _pageBtn = document.querySelector(`.nav-item[onclick*="'${_savedPage}'"]`);
@@ -5874,6 +5891,7 @@ function _onAuthChange(event, session) {
       refreshDashboard();
     });
   } else {
+    _authDataLoaded = false; // reset on logout so next login loads fresh
     _showAuthScreen();
     const chip = document.getElementById('user-chip');
     if (chip) chip.style.display = 'none';
