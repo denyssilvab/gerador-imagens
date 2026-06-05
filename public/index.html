@@ -3509,8 +3509,9 @@ function _autoFillGerarFields() {
   ];
   map.forEach(([src, dst]) => {
     const val = document.getElementById(src)?.value;
-    if (val) { const el = document.getElementById(dst); if (el) el.value = val; }
+    if (val != null && val !== '') { const el = document.getElementById(dst); if (el) el.value = val; }
   });
+  saveSettings(); // persist synced values immediately so they survive reload
 }
 
 function sendToGerarSingle(type) {
@@ -7598,6 +7599,9 @@ function saveSettings() {
       lesson:              document.getElementById('lesson')?.value ?? '',
       ccss:                document.getElementById('ccss')?.value ?? '',
       lessonName:          document.getElementById('lesson-name')?.value ?? '',
+      contentUnit:         document.getElementById('content-unit')?.value ?? '',
+      contentLesson:       document.getElementById('content-lesson')?.value ?? '',
+      contentCcss:         document.getElementById('content-ccss')?.value ?? '',
       contentLessonName:   document.getElementById('content-lesson-name')?.value ?? '',
       provider, docType,
       modelOpenai:         document.getElementById('model-openai')?.value,
@@ -7620,11 +7624,14 @@ function loadSettings() {
     const s = JSON.parse(raw);
     const set = (id, v) => { if (v != null && v !== '') { const el = document.getElementById(id); if (el) el.value = v; } };
 
-    set('unit', s.unit);
-    set('lesson', s.lesson);
-    set('ccss', s.ccss);
-    set('lesson-name', s.lessonName);
-    set('content-lesson-name', s.contentLessonName);
+    set('unit',               s.unit);
+    set('lesson',             s.lesson);
+    set('ccss',               s.ccss);
+    set('lesson-name',        s.lessonName);
+    set('content-unit',       s.contentUnit   ?? s.unit);
+    set('content-lesson',     s.contentLesson ?? s.lesson);
+    set('content-ccss',       s.contentCcss   ?? s.ccss);
+    set('content-lesson-name', s.contentLessonName ?? s.lessonName);
     set('quality', s.quality);
     set('model-openai', s.modelOpenai);
     set('resolution-openai', s.resolutionOpenai);
