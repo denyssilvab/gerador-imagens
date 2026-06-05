@@ -6553,18 +6553,32 @@ let _hiddenFromHistory = _loadHiddenHistory();
 // Remove stale timestamp key that was hiding too many images
 try { localStorage.removeItem('gerar_history_clear_ts'); } catch {}
 
-// Add all possible identifiers for a card to _hiddenFromHistory so it stays
-// hidden across logout/login regardless of whether the key is a session key
-// (gen0_0), an IDB key (db_3) or a Supabase row key (db_101).
+// Add all possible identifiers for a card to _hiddenFromHistory.
+// Returns the set of stable DB keys (db_N format) so the caller can sync
+// them to the server — this makes the hidden state survive cache clears.
 function _addToHidden(key) {
   _hiddenFromHistory.add(key);
   const r = results[key];
-  if (r?.sbKey)   _hiddenFromHistory.add(r.sbKey);           // stable Supabase key column
-  if (r?.localId) _hiddenFromHistory.add(`db_${r.localId}`); // IDB id = Supabase key column for session cards
-  if (r?.sbId)    _hiddenFromHistory.add(`db_${r.sbId}`);    // Supabase row id
-  // Also grab sbKey from the card DOM element (set by _applyLoadedImages)
+  const stable = new Set(); // keys to persist server-side
+  const add = (k) => { if (k) { _hiddenFromHistory.add(k); if (/^db_\d+$/.test(k)) stable.add(k); } };
+  add(r?.sbKey);
+  if (r?.localId) add(`db_${r.localId}`);
+  if (r?.sbId)    add(`db_${r.sbId}`);
   const cardEl = document.getElementById(`card_${key}`);
-  if (cardEl?.dataset?.sbKey) _hiddenFromHistory.add(cardEl.dataset.sbKey);
+  add(cardEl?.dataset?.sbKey);
+  return stable;
+}
+
+// Fire-and-forget: marks images as hidden_from_history=true in Supabase so
+// they are excluded from load-images even after a full cache clear.
+function _syncHiddenToServer(stableKeys) {
+  const keys = [...stableKeys].filter(Boolean);
+  if (!keys.length) return;
+  authFetch('/api/db?action=hide-from-history', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ keys }),
+  }).catch(e => console.warn('[hide-from-history]', e));
 }
 
 function icardMenuDelete() {
@@ -6572,8 +6586,9 @@ function icardMenuDelete() {
   if (!key) return;
   if (!confirm('Remover esta imagem do histórico?\n\nEla continuará disponível no Dashboard.')) return;
   // Hide from history without deleting from DB/Dashboard
-  _addToHidden(key);
+  const _stable = _addToHidden(key);
   _saveHiddenHistory(_hiddenFromHistory);
+  _syncHiddenToServer(_stable);
   document.getElementById(`card_${key}`)?.remove();
   toast('Imagem removida do histórico.', 'ok');
 }
@@ -6714,12 +6729,14 @@ async function downloadAll() {
 
 function clearResults() {
   // Explicitly hide each currently visible card by its stable key (persists across reloads)
+  const _allStable = new Set();
   document.querySelectorAll('#img-grid .icard[data-key]').forEach(card => {
     const key = card.dataset.key;
     if (!key) return;
-    _addToHidden(key);
+    _addToHidden(key).forEach(k => _allStable.add(k));
   });
   _saveHiddenHistory(_hiddenFromHistory);
+  _syncHiddenToServer(_allStable);
 
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
@@ -6798,14 +6815,15 @@ async function deleteSelected() {
   const keys = [...selectedKeys];
   if (!keys.length) return;
 
+  const _delStable = new Set();
   for (const key of keys) {
     // Remove card do DOM
     const card = document.getElementById(`card_${key}`) ||
       [...document.querySelectorAll('.icard')].find(c => c.querySelector(`[onchange*="'${key}'"]`));
     if (card) card.remove();
 
-    // Hide from history (persists across reloads; image stays in Dashboard/Supabase)
-    _addToHidden(key);
+    // Hide from history — collect stable keys for server sync
+    _addToHidden(key).forEach(k => _delStable.add(k));
 
     // Remove from IndexedDB cache for db_ keys (Supabase remains for dashboard)
     if (key.startsWith('db_')) {
@@ -6827,6 +6845,7 @@ async function deleteSelected() {
   }
 
   _saveHiddenHistory(_hiddenFromHistory);
+  _syncHiddenToServer(_delStable);
   updateSelectionUI();
 
   // Mostra empty state se não sobrou nada

@@ -107,6 +107,7 @@ module.exports = async function handler(req, res) {
         .from('images')
         .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
         .eq('user_id', userId)
+        .eq('hidden_from_history', false)  // never return images hidden by the user
         .order('created_at', { ascending: false }); // newest first — first page always has the latest images
 
       if (limit > 0) query = query.range(page * limit, page * limit + limit - 1);
@@ -114,6 +115,19 @@ module.exports = async function handler(req, res) {
       const { data, error } = await query;
       if (error) throw error;
       return res.json({ ok: true, images: data, hasMore: limit > 0 && data.length === limit });
+    }
+
+    if (action === 'hide-from-history') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { keys } = req.body; // array of stable key-column values (e.g. ['db_3', 'db_7'])
+      if (!Array.isArray(keys) || !keys.length) return res.json({ ok: true });
+      const { error } = await sb.from('images')
+        .update({ hidden_from_history: true })
+        .eq('user_id', userId)
+        .in('key', keys);
+      if (error) throw error;
+      return res.json({ ok: true });
     }
 
     if (action === 'delete-image') {
