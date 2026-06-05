@@ -3141,11 +3141,11 @@ function _buildContentFilename(type) {
   const ccss   = document.getElementById('content-ccss')?.value   || '';
   const name   = document.getElementById('content-lesson-name')?.value || '';
   const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  const label = dtLabel[type] || type;
   const parts = [];
-  if (lesson) parts.push(`Lesson ${lesson}`);
-  parts.push(`(${dtLabel[type] || type})`);
-  if (name)   parts.push(`- ${name}`);
-  if (ccss)   parts.push(`(${ccss})`);
+  parts.push(lesson ? `${label} ${lesson}` : label);
+  if (name) parts.push(`- ${name}`);
+  if (ccss) parts.push(`(${ccss})`);
   return (parts.join(' ') || type) + '.txt';
 }
 
@@ -7647,10 +7647,10 @@ function buildFilename(docTypeOverride, ext) {
                : dt === 'lessonplan'  ? 'Lesson Plan'
                : '';
   const parts = [];
-  if (lesson)  parts.push(`Lesson ${lesson}`);
-  if (dtLabel) parts.push(`(${dtLabel})`);
-  if (name)    parts.push(`- ${name}`);
-  if (ccss)    parts.push(`(${ccss})`);
+  if (dtLabel) parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
+  else if (lesson) parts.push(`Lesson ${lesson}`);
+  if (name) parts.push(`- ${name}`);
+  if (ccss) parts.push(`(${ccss})`);
   const base = parts.length ? parts.join(' ') : 'arquivo';
   return `${base}.${ext}`;
 }
@@ -7674,10 +7674,9 @@ function savePromptAsTxt(type) {
   const dt       = dtMap[type];
   const dtLabel  = dt === 'lesson' ? 'Lesson' : dt === 'practice' ? 'Practice Activities' : 'Lesson Plan';
   const parts    = [];
-  if (lesson) parts.push(`Lesson ${lesson}`);
-  parts.push(`(${dtLabel})`);
-  if (name)   parts.push(`- ${name}`);
-  if (ccss)   parts.push(`(${ccss})`);
+  parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
+  if (name) parts.push(`- ${name}`);
+  if (ccss) parts.push(`(${ccss})`);
   const filename = (parts.join(' ') || 'arquivo') + '.txt';
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement('a');
