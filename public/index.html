@@ -4659,13 +4659,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Sort: newest generation session first, then pageNum ascending within each session.
-  // Use 5-minute buckets as a session proxy (most generations finish well within 5 min).
+  // Sort: pageNum ascending (correct position in the sequence) then ts descending
+  // (if the same pageNum was regenerated, the newest version appears first).
+  // Session-bucket sort was a workaround for broken hide-from-history — no longer needed.
   const ordered = [...saved].sort((a, b) => {
-    const bucketA = Math.floor((a.ts || 0) / 300000);
-    const bucketB = Math.floor((b.ts || 0) / 300000);
-    if (bucketA !== bucketB) return bucketB - bucketA;          // newer session first
-    return (a.pageNum ?? 9999) - (b.pageNum ?? 9999);           // within session: page order
+    const pa = a.pageNum ?? 9999, pb = b.pageNum ?? 9999;
+    if (pa !== pb) return pa - pb;
+    return (b.ts || 0) - (a.ts || 0); // same page → newest first
   });
 
   ordered.forEach(r => {
@@ -7166,7 +7166,7 @@ async function confirmRefazer() {
             results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType };
             if (existingKey) results[domKey].sbKey = existingKey;
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
-            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: '', ts: Date.now() }).catch(() => {});
+            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, ts: Date.now() }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
@@ -7233,11 +7233,12 @@ async function retryPage(domKey) {
               dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
-            const existingKey = results[domKey]?.sbKey;
+            // Reuse existing sbKey or generate a new one for error cards (never had a save)
+            const sbKey = results[domKey]?.sbKey || `img_retry_p${pd.num}_${Date.now()}`;
+            const pageDocType = ev.docType || pd.docType || (docType !== 'all' ? docType : '');
             const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
-            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title };
-            if (existingKey) results[domKey].sbKey = existingKey;
+            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey };
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
             if (stEl) { stEl.className = 'icard-status s-done'; stEl.textContent = '✓ Pronta'; }
             if (ft) {
@@ -7247,7 +7248,10 @@ async function retryPage(domKey) {
                 <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
                 <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pd.num})">🔄 Refazer</button>`;
             }
-            dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title }).catch(() => {});
+            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType })
+              .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
+            if (_rLid)   results[domKey].localId = _rLid;
+            if (_rSbId)  results[domKey].sbId    = _rSbId;
             toast(`Pág. ${pd.num} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (stEl) { stEl.className = 'icard-status s-err'; stEl.textContent = '✗ Erro'; }
