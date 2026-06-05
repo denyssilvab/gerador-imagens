@@ -5470,16 +5470,17 @@ async function _clientUploadToStorage(dataUrl, filename) {
   const userId = _authSession?.user?.id;
   if (!userId || !dataUrl?.startsWith('data:')) return null;
   try {
-    const mime  = dataUrl.split(';')[0].split(':')[1];
-    const ext   = mime === 'image/jpeg' ? 'jpg' : mime === 'application/pdf' ? 'pdf' : 'png';
-    const path  = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
-    const bytes = Uint8Array.from(atob(dataUrl.split(',')[1]), c => c.charCodeAt(0));
-    const { data, error } = await _sb.storage.from('images').upload(path, bytes, { contentType: mime, upsert: true });
+    // Use fetch() to convert data URL → Blob (reliable for 10-50 MB images;
+    // avoids atob + Uint8Array memory spikes on large strings)
+    const blob = await fetch(dataUrl).then(r => r.blob());
+    const ext  = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'application/pdf' ? 'pdf' : 'png';
+    const path = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
+    const { data, error } = await _sb.storage.from('images').upload(path, blob, { contentType: blob.type, upsert: true });
     if (error) throw error;
     const { data: urlData } = _sb.storage.from('images').getPublicUrl(data.path);
     return urlData.publicUrl;
   } catch (e) {
-    console.warn('[clientUpload]', e);
+    console.error('[clientUpload]', e);
     return null;
   }
 }
@@ -7071,10 +7072,16 @@ async function upscaleSelected(scale) {
         if (pv) pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
 
         // Save upscaled image as new entry in Dashboard (labeled "Editada" by filename pattern)
-        _updateStatus('Salvando no Dashboard…');
-        // Upload directly to Supabase Storage to avoid Vercel 4.5 MB body limit
+        _updateStatus('Enviando para o servidor…');
+        // Upload directly to Supabase Storage from the client to bypass Vercel's 4.5 MB body limit
         const publicUrl = await _clientUploadToStorage(upscaledUrl, filename);
-        const saveUrl   = publicUrl || upscaledUrl; // fall back to data URL if upload failed
+        if (!publicUrl) {
+          toast(`⚠ Pág. ${r.pageNum} — falha ao salvar no servidor (erro de upload). A imagem existe apenas nesta sessão.`, 'err');
+        }
+        const saveUrl = publicUrl || upscaledUrl;
+
+        // Save metadata to DB (sends only the public URL, not the binary)
+        _updateStatus('Salvando metadados…');
         const newLocalId = await dbSave({
           dataUrl: saveUrl,
           url: saveUrl,

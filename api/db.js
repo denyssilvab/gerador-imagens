@@ -95,7 +95,7 @@ module.exports = async function handler(req, res) {
         .from('images')
         .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
         .eq('user_id', userId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }); // newest first — first page always has the latest images
 
       if (limit > 0) query = query.range(page * limit, page * limit + limit - 1);
 
