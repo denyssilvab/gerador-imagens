@@ -1464,6 +1464,8 @@
             <p>Gere imagens para visualizá-las aqui</p>
           </div>
         </div>
+        <!-- Sentinel for infinite scroll — observed by IntersectionObserver -->
+        <div id="dash-sentinel" style="height:1px;"></div>
 
         <!-- Bulk action bar (appears when items are selected) -->
         <div class="dash-bulk-bar" id="dash-bulk-bar" style="display:none;">
@@ -3556,6 +3558,10 @@ let dashFolders    = [];
 let _dashFolderMenuKey = null;
 let dashSelected   = new Set(); // keys of selected dashboard items (images, txt)
 let _dashLoadingData = false; // true while initial load (folders + images) is in progress
+let _dashPage        = 0;    // next page to fetch from Supabase
+let _dashHasMore     = false; // whether more pages exist
+let _dashLoadingMore = false; // guard against concurrent fetches
+const _DASH_PAGE_LIMIT = 50;
 
 function setDashVersion(v) {
   dashVersion = v;
@@ -4545,7 +4551,26 @@ function _applyLoadedImages(saved, overwrite = false) {
   }
 }
 
+function _mapSbImage(r) {
+  return {
+    id:          r.id,
+    key:         r.key,
+    dataUrl:     r.url,
+    url:         r.url,
+    filename:    r.filename,
+    pageNum:     r.page_num,
+    title:       r.title,
+    customTitle: r.custom_title || null,
+    docType:     r.doc_type,
+    folderId:    r.folder_id || null,
+    ts:          new Date(r.created_at).getTime(),
+  };
+}
+
 async function loadPersistedImages() {
+  _dashPage = 0;
+  _dashHasMore = false;
+
   // Phase 1: IndexedDB — instant, shows results immediately
   try {
     const idbData = await _idbLoadAll();
@@ -4555,29 +4580,33 @@ async function loadPersistedImages() {
     }
   } catch (_) { /* IDB unavailable */ }
 
-  // Phase 2: Supabase — authoritative, updates/adds entries
+  // Phase 2: Supabase page 0 — authoritative first page
   try {
-    const res  = await authFetch('/api/db?action=load-images');
+    const res  = await authFetch(`/api/db?action=load-images&page=0&limit=${_DASH_PAGE_LIMIT}`);
     const data = await res.json();
     if (data.ok && data.images?.length) {
-      // Map Supabase columns → standard shape
-      const sbData = data.images.map(r => ({
-        id:          r.id,
-        key:         r.key,
-        dataUrl:     r.url,
-        url:         r.url,
-        filename:    r.filename,
-        pageNum:     r.page_num,
-        title:       r.title,
-        customTitle: r.custom_title || null,
-        docType:     r.doc_type,
-        folderId:    r.folder_id || null,
-        ts:          new Date(r.created_at).getTime(),
-      }));
-      _applyLoadedImages(sbData, true); // overwrite IDB entries with Supabase truth
+      _applyLoadedImages(data.images.map(_mapSbImage), true);
       refreshDashboard();
     }
+    _dashHasMore = data.hasMore || false;
+    _dashPage = 1;
   } catch (e) { console.warn('[loadPersistedImages supabase]', e); }
+}
+
+async function _loadMoreDashImages() {
+  if (_dashLoadingMore || !_dashHasMore) return;
+  _dashLoadingMore = true;
+  try {
+    const res  = await authFetch(`/api/db?action=load-images&page=${_dashPage}&limit=${_DASH_PAGE_LIMIT}`);
+    const data = await res.json();
+    if (data.ok && data.images?.length) {
+      _applyLoadedImages(data.images.map(_mapSbImage), true);
+      refreshDashboard();
+    }
+    _dashHasMore = data.hasMore || false;
+    _dashPage++;
+  } catch (e) { console.warn('[loadMoreDashImages]', e); }
+  _dashLoadingMore = false;
 }
 
 // ── Upscale page ───────────────────────────────────────────────────────────
@@ -5517,6 +5546,17 @@ function _onAuthChange(event, session) {
 // Listen for auth state changes (login, logout, token refresh)
 _sb.auth.onAuthStateChange(_onAuthChange);
 
+// Infinite scroll: load more dashboard images when sentinel enters viewport
+(function initDashInfiniteScroll() {
+  const sentinel  = document.getElementById('dash-sentinel');
+  const scrollRoot = document.querySelector('.dash-main');
+  if (!sentinel || !scrollRoot) return;
+  const obs = new IntersectionObserver(entries => {
+    if (entries[0].isIntersecting) _loadMoreDashImages();
+  }, { root: scrollRoot, rootMargin: '300px' });
+  obs.observe(sentinel);
+})();
+
 // Restore session on page load
 (async () => {
   const { data } = await _sb.auth.getSession();
@@ -5594,25 +5634,11 @@ async function dbSave(rec) {
 }
 
 async function dbLoadAll() {
-  // Try Supabase first, fall back to IndexedDB
+  // Fetches ALL images (no pagination) — used for ZIP download, combinar, etc.
   try {
     const res  = await authFetch('/api/db?action=load-images');
     const data = await res.json();
-    if (data.ok && data.images?.length) {
-      return data.images.map(r => ({
-        id:          r.id,
-        key:         r.key,
-        dataUrl:     r.url,
-        url:         r.url,
-        filename:    r.filename,
-        pageNum:     r.page_num,
-        title:       r.title,
-        docType:     r.doc_type,
-        folderId:    r.folder_id    || null,
-        customTitle: r.custom_title || null,
-        ts:          new Date(r.created_at).getTime(),
-      }));
-    }
+    if (data.ok && data.images?.length) return data.images.map(_mapSbImage);
   } catch (e) { console.warn('[supabase load]', e); }
   return _idbLoadAll();
 }

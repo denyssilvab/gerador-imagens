@@ -86,16 +86,22 @@ module.exports = async function handler(req, res) {
 
     if (action === 'load-images') {
       const userId = await getUserId();
-      if (!userId) return res.json({ ok: true, images: [] });
+      if (!userId) return res.json({ ok: true, images: [], hasMore: false });
 
-      // Select only needed columns — avoids fetching large storage_path/original_url blobs
-      const { data, error } = await sb
+      const page  = Math.max(0, parseInt(req.query.page  || '0'));
+      const limit = Math.max(0, parseInt(req.query.limit || '0')); // 0 = all
+
+      let query = sb
         .from('images')
         .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: true });
+
+      if (limit > 0) query = query.range(page * limit, page * limit + limit - 1);
+
+      const { data, error } = await query;
       if (error) throw error;
-      return res.json({ ok: true, images: data });
+      return res.json({ ok: true, images: data, hasMore: limit > 0 && data.length === limit });
     }
 
     if (action === 'delete-image') {
