@@ -2228,7 +2228,9 @@
           <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Páginas</span>
           <span style="flex:1;"></span>
           <button class="btn btn-ghost btn-sm" id="combinar-clear-sel-btn" style="display:none;font-size:11px;color:#f87171;" title="Remover selecionadas" onclick="combinarRemoveSelected()">🗑 sel.</button>
-          <button class="btn btn-ghost btn-sm" title="Adicionar imagens" onclick="combinarOpenAddModal()">+ Adicionar</button>
+          <button class="btn btn-ghost btn-sm" title="Adicionar da biblioteca" onclick="combinarOpenAddModal()">+ Adicionar</button>
+          <button class="btn btn-ghost btn-sm" title="Upload do computador" onclick="document.getElementById('combinar-upload-input').click()">⬆ Upload</button>
+          <input type="file" id="combinar-upload-input" accept="image/*" multiple style="display:none" onchange="combinarUploadFiles(this.files)" />
           <button class="btn btn-ghost btn-sm" title="Limpar lista" onclick="combinarClear()">🗑</button>
         </div>
         <div id="combinar-list" class="combinar-right-list">
@@ -4647,6 +4649,7 @@ let upscaleQueue = [];            // [{ key, url, filename, label }]
 let _upscaleScale = 2;
 let _slibFilter   = null;         // null = all, folder id = that folder
 let _slibSelected = new Set();    // keys selected in storage library
+let _slibMode     = 'upscale';    // 'upscale' | 'combinar'
 let _sessionUpscaledKeys     = []; // db_ keys of images upscaled in current session
 let _sessionUpscaledSelected = new Set(); // subset the user wants to send to Combinar
 
@@ -4709,11 +4712,14 @@ function runUpscaleQueue() {
 }
 
 // ── Storage Library ────────────────────────────────────────────────────────
-function openStorageLibrary() {
+function openStorageLibrary(mode) {
+  _slibMode     = mode || 'upscale';
   _slibFilter   = null;
   _slibSelected = new Set();
   _renderStorageLibSidebar();
   _renderStorageLibGrid();
+  const countEl = document.getElementById('slib-count');
+  if (countEl) countEl.textContent = '0 selecionadas';
   document.getElementById('storage-modal').style.display = 'flex';
 }
 
@@ -4747,6 +4753,12 @@ function _renderStorageLibGrid() {
   if (!grid) return;
   let items = Object.entries(results).filter(([, r]) => r && r.url
     && !(r.url.startsWith('data:text/') || (r.filename || '').endsWith('.txt')));
+  if (_slibMode === 'combinar') {
+    items = items.filter(([, r]) =>
+      r.docType !== 'pdf'
+      && !(r.filename || '').toLowerCase().endsWith('.pdf')
+      && !(r.url || '').startsWith('data:application/pdf'));
+  }
   if (_slibFilter !== null) items = items.filter(([, r]) => r.folderId === _slibFilter);
   if (!items.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ico">🖼</span><p>Nenhuma imagem</p></div>';
@@ -4771,14 +4783,30 @@ function toggleSlibItem(key, el) {
 }
 
 function confirmStorageLibrary() {
-  _slibSelected.forEach(key => {
-    if (!upscaleQueue.find(i => i.key === key)) {
+  if (_slibMode === 'combinar') {
+    const existing = new Set(combinarItems.map(i => i.key));
+    let added = 0;
+    _slibSelected.forEach(key => {
+      if (existing.has(key)) return;
       const r = results[key];
-      if (r) upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label: r.customTitle || r.title || key });
-    }
-  });
-  closeStorageLibrary();
-  _renderUpscaleQueue();
+      if (!r) return;
+      combinarItems.push({ key, pageNum: r.pageNum, title: r.title || '', url: r.upscaledUrl || r.url, docType: r.docType || '' });
+      added++;
+    });
+    combinarItems.sort(_combinarSort);
+    closeStorageLibrary();
+    renderCombinarList();
+    if (added) toast(`${added} imagem${added !== 1 ? 'ns' : ''} adicionada${added !== 1 ? 's' : ''}.`, 'ok');
+  } else {
+    _slibSelected.forEach(key => {
+      if (!upscaleQueue.find(i => i.key === key)) {
+        const r = results[key];
+        if (r) upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label: r.customTitle || r.title || key });
+      }
+    });
+    closeStorageLibrary();
+    _renderUpscaleQueue();
+  }
 }
 
 // ── Legacy compat ─────────────────────────────────────────────────────────
@@ -4807,33 +4835,35 @@ function _combinarSort(a, b) {
 }
 
 function combinarOpenAddModal() {
-  const available = Object.entries(results).filter(([k,r]) => r && r.url);
+  const available = Object.entries(results).filter(([,r]) => r && r.url
+    && r.docType !== 'pdf'
+    && !(r.filename || '').toLowerCase().endsWith('.pdf'));
   if (!available.length) { toast('Nenhuma imagem disponível ainda.', 'warn'); return; }
-  _combinarModalSel.clear();
-  const grid = document.getElementById('combinar-modal-grid');
-  const allChk = document.getElementById('combinar-modal-all');
-  if (allChk) allChk.checked = false;
-  _updateCombinarModalCount();
-  grid.innerHTML = '';
-  const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
-  available.sort(([,a],[,b]) => (a.pageNum||0) - (b.pageNum||0)).forEach(([key, r]) => {
-    const typ  = typeLabel[r.docType] || '';
-    const label = [typ, r.pageNum ? `Pág. ${r.pageNum}` : '', r.title].filter(Boolean).join(' · ');
-    const div  = document.createElement('div');
-    div.className = 'combinar-modal-item';
-    div.dataset.key = key;
-    div.innerHTML = `
-      <img src="${r.upscaledUrl || r.url}" loading="lazy" />
-      <input class="combinar-modal-item-check" type="checkbox" onclick="event.stopPropagation();combinarModalToggle('${key}',this.checked)" />
-      <div class="combinar-modal-item-label">${esc(label)}</div>`;
-    div.onclick = () => {
-      const chk = div.querySelector('input');
-      chk.checked = !chk.checked;
-      combinarModalToggle(key, chk.checked);
-    };
-    grid.appendChild(div);
-  });
-  document.getElementById('combinar-add-modal').style.display = '';
+  openStorageLibrary('combinar');
+}
+
+async function combinarUploadFiles(files) {
+  if (!files || !files.length) return;
+  const input = document.getElementById('combinar-upload-input');
+  if (input) input.value = '';
+  let added = 0;
+  for (const file of files) {
+    if (!file.type.startsWith('image/')) continue;
+    const url = await new Promise((res, rej) => {
+      const reader = new FileReader();
+      reader.onload  = () => res(reader.result);
+      reader.onerror = rej;
+      reader.readAsDataURL(file);
+    });
+    const key = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const title = file.name.replace(/\.[^.]+$/, '');
+    combinarItems.push({ key, pageNum: null, title, url, docType: '' });
+    added++;
+  }
+  if (added) {
+    renderCombinarList();
+    toast(`${added} imagem${added !== 1 ? 'ns' : ''} adicionada${added !== 1 ? 's' : ''}.`, 'ok');
+  }
 }
 
 function combinarModalToggle(key, checked) {
@@ -5023,7 +5053,7 @@ async function _buildPdfBytes(items, progElId) {
     }
     await new Promise(r => setTimeout(r, 0));
     const srcUrl = item.url;
-    if (!srcUrl?.startsWith('data:')) continue;
+    if (!srcUrl) continue;
     const imgData = await imgBytesForPdf(srcUrl);
     if (!imgData) continue;
     const pdfImg = imgData.fmt === 'jpeg'
@@ -7454,26 +7484,46 @@ function sendUpscaledToCombinar() {
 }
 
 // Detecta PNG/JPEG pelos magic bytes; converte WebP/outros via canvas → PNG
-function imgBytesForPdf(dataUrl) {
-  const b64 = dataUrl.startsWith('data:') ? dataUrl.split(',')[1] : null;
-  if (!b64) return Promise.resolve(null);
-  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-  // PNG: 89 50 4E 47 | JPEG: FF D8 FF
-  if (bytes[0] === 0x89 && bytes[1] === 0x50) return Promise.resolve({ bytes, fmt: 'png' });
-  if (bytes[0] === 0xFF && bytes[1] === 0xD8) return Promise.resolve({ bytes, fmt: 'jpeg' });
-  // WebP / outro formato: re-renderiza via canvas → PNG lossless
+function imgBytesForPdf(url) {
+  if (url.startsWith('data:')) {
+    const b64 = url.split(',')[1];
+    if (!b64) return Promise.resolve(null);
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    // PNG: 89 50 4E 47 | JPEG: FF D8 FF
+    if (bytes[0] === 0x89 && bytes[1] === 0x50) return Promise.resolve({ bytes, fmt: 'png' });
+    if (bytes[0] === 0xFF && bytes[1] === 0xD8) return Promise.resolve({ bytes, fmt: 'jpeg' });
+    // WebP / outro formato: re-renderiza via canvas → PNG lossless
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const cv = document.createElement('canvas');
+        cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+        cv.getContext('2d').drawImage(img, 0, 0);
+        cv.toBlob(blob => blob.arrayBuffer()
+          .then(buf => resolve({ bytes: new Uint8Array(buf), fmt: 'png' }))
+          .catch(reject), 'image/png');
+      };
+      img.onerror = () => reject(new Error('Não foi possível decodificar a imagem'));
+      img.src = url;
+    });
+  }
+  // URL remota (ex: Supabase Storage): carrega via canvas com crossOrigin
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       const cv = document.createElement('canvas');
       cv.width = img.naturalWidth; cv.height = img.naturalHeight;
       cv.getContext('2d').drawImage(img, 0, 0);
-      cv.toBlob(blob => blob.arrayBuffer()
-        .then(buf => resolve({ bytes: new Uint8Array(buf), fmt: 'png' }))
-        .catch(reject), 'image/png');
+      cv.toBlob(blob => {
+        if (!blob) { reject(new Error('Canvas vazio para: ' + url)); return; }
+        blob.arrayBuffer()
+          .then(buf => resolve({ bytes: new Uint8Array(buf), fmt: 'png' }))
+          .catch(reject);
+      }, 'image/png');
     };
-    img.onerror = () => reject(new Error('Não foi possível decodificar a imagem'));
-    img.src = dataUrl;
+    img.onerror = () => reject(new Error('Não foi possível carregar imagem remota: ' + url));
+    img.src = url;
   });
 }
 
@@ -7735,7 +7785,7 @@ async function _buildPDF(keys, version) {
       const srcUrl = version === 'upscale'
         ? (img.upscaledUrl || img.originalUrl || img.url)
         : (img.originalUrl || img.url);
-      if (!srcUrl?.startsWith('data:')) continue;
+      if (!srcUrl) continue;
 
       document.getElementById('pdf-prog').textContent = `Incorporando página ${i + 1} de ${sorted.length}…`;
       await new Promise(r => setTimeout(r, 0));
