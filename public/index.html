@@ -1121,6 +1121,8 @@
     .ulog-status{ min-width: 0; flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
     .ulog-time  { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
     .ulog-chk   { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+    .ulog-dl    { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; padding: 0 2px; flex-shrink: 0; line-height: 1; }
+    .ulog-dl:hover { color: var(--text); }
     .combinar-type-banner { font-size: 12px; color: #a5b4fc; background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; }
     .combinar-item-type { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
     .combinar-item-type.lesson     { background: rgba(137,193,59,.2);  color: #89c13b; }
@@ -2145,6 +2147,9 @@
         </button>
         <button class="btn btn-sm" id="btn-stop-upscale" onclick="stopUpscale()" style="display:none;background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3);">
           ⏹ Parar
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-zip-upscaled" onclick="zipUpscaledImages()" style="display:none;">
+          ⬇ ZIP
         </button>
         <button class="btn btn-sm" id="btn-send-combinar" onclick="sendUpscaledToCombinar()" style="display:none;background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3);">
           📄 Combinar
@@ -6929,12 +6934,32 @@ function _ulogDone(key, newKey, folderName) {
   e.timeEl.style.color = 'var(--green)';
   e.timeEl.textContent = _ulogFmtTime(elapsed);
   e.rowEl.style.background = 'rgba(137,193,59,.08)';
-  // Add checkbox so user can choose which to send to Combinar
+  // Add download button + checkbox once the image is done
   if (newKey) {
-    _sessionUpscaledSelected.add(newKey); // checked by default
+    const r = results[newKey];
+    // Download button
+    const dl = document.createElement('button');
+    dl.className = 'ulog-dl'; dl.title = 'Baixar imagem'; dl.textContent = '⬇';
+    dl.onclick = () => {
+      const url = r?.url || '';
+      const fname = r?.filename || 'upscaled.png';
+      if (url.startsWith('data:')) {
+        const a = document.createElement('a'); a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } else {
+        fetch(url).then(res => res.blob()).then(blob => {
+          const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        });
+      }
+    };
+    e.rowEl.appendChild(dl);
+    // Checkbox for Combinar/ZIP selection
+    _sessionUpscaledSelected.add(newKey);
     const chk = document.createElement('input');
     chk.type = 'checkbox'; chk.className = 'ulog-chk'; chk.checked = true;
-    chk.title = 'Incluir no Combinar';
+    chk.title = 'Incluir no Combinar / ZIP';
     chk.onchange = () => {
       if (chk.checked) _sessionUpscaledSelected.add(newKey);
       else _sessionUpscaledSelected.delete(newKey);
@@ -6945,11 +6970,11 @@ function _ulogDone(key, newKey, folderName) {
 }
 
 function _updateCombinarBtn() {
-  const btn = document.getElementById('btn-send-combinar');
-  if (!btn) return;
-  const n = _sessionUpscaledSelected.size;
-  btn.style.display = n > 0 ? '' : 'none';
-  btn.textContent = `📄 Combinar (${n})`;
+  const n      = _sessionUpscaledSelected.size;
+  const combBtn = document.getElementById('btn-send-combinar');
+  const zipBtn  = document.getElementById('btn-zip-upscaled');
+  if (combBtn) { combBtn.style.display = n > 0 ? '' : 'none'; combBtn.textContent = `📄 Combinar (${n})`; }
+  if (zipBtn)  zipBtn.style.display = n > 0 ? '' : 'none';
 }
 
 function _ulogError(key, msg) {
@@ -7129,6 +7154,37 @@ async function upscaleSelected(scale) {
     const runBtn = document.getElementById('btn-run-upscale');
     if (runBtn) runBtn.disabled = upscaleQueue.length === 0;
     _updateCombinarBtn();
+  }
+}
+
+async function zipUpscaledImages() {
+  const keys = _sessionUpscaledSelected.size > 0
+    ? [..._sessionUpscaledSelected]
+    : _sessionUpscaledKeys;
+  if (!keys.length) { toast('Nenhuma imagem upscalada para baixar.', 'warn'); return; }
+  toast('Gerando ZIP…', '');
+  try {
+    const zip = new JSZip();
+    for (const key of keys) {
+      const r = results[key];
+      if (!r?.url) continue;
+      const fname = r.filename || `${key}.png`;
+      if (r.url.startsWith('data:')) {
+        zip.file(fname, r.url.split(',')[1], { base64: true });
+      } else {
+        const blob = await fetch(r.url).then(res => res.blob());
+        zip.file(fname, blob);
+      }
+    }
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `upscaled_${Date.now()}.zip`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast(`ZIP com ${keys.length} imagem${keys.length !== 1 ? 'ns' : ''} baixado!`, 'ok');
+  } catch (e) {
+    toast(`Erro ao gerar ZIP: ${e.message}`, 'err');
   }
 }
 
