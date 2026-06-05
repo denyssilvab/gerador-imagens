@@ -6796,18 +6796,30 @@ async function downloadAll() {
     return { r, zipName };
   });
 
-  toast(`Preparando ZIP com ${entries.length} imagem${entries.length > 1 ? 'ns' : ''}…`, '');
+  const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay';
+  overlay.innerHTML = `<div class="spinner"></div><p id="zip-prog">Preparando ZIP… 0 / ${entries.length}</p>`;
+  document.body.appendChild(overlay);
   try {
     const zip = new JSZip();
-    for (const { r, zipName } of entries) {
+    for (let i = 0; i < entries.length; i++) {
+      const { r, zipName } = entries[i];
+      const prog = document.getElementById('zip-prog');
+      if (prog) prog.textContent = `Adicionando imagem ${i + 1} de ${entries.length}…`;
+      await new Promise(res => setTimeout(res, 0)); // yield to repaint
       if (r.url.startsWith('data:')) {
         zip.file(zipName, r.url.split(',')[1], { base64: true });
       } else {
-        const res = await fetch(r.url);
-        zip.file(zipName, await res.blob());
+        const fetchRes = await fetch(r.url);
+        zip.file(zipName, await fetchRes.blob());
       }
     }
-    const blob = await zip.generateAsync({ type: 'blob' });
+    const prog = document.getElementById('zip-prog');
+    if (prog) prog.textContent = 'Gerando arquivo ZIP…';
+    const blob = await zip.generateAsync({ type: 'blob' }, ({ percent }) => {
+      const p = document.getElementById('zip-prog');
+      if (p) p.textContent = `Comprimindo… ${Math.round(percent)}%`;
+    });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = buildFilename(docType, 'zip');
@@ -6818,6 +6830,8 @@ async function downloadAll() {
     toast(`ZIP com ${entries.length} imagem${entries.length > 1 ? 'ns' : ''} pronto!`, 'ok');
   } catch (e) {
     toast(`Erro ao criar ZIP: ${e.message}`, 'err');
+  } finally {
+    overlay.remove();
   }
 }
 
