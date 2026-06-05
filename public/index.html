@@ -2583,6 +2583,45 @@ A LESSON that:
 
 ---
 
+## Title continuity across pages
+
+When a title starts on one page but its content continues to the next page(s), do NOT repeat the title on subsequent pages. Simply continue the content naturally.
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly without repeating "Understanding the pattern"]
+Content paragraph three...
+
+\`\`\`
+
+## First page title format
+
+On the first page, display ONLY the lesson title. Do NOT include unit number, lesson number, or CCSS code below the title.
+
+Incorrect:
+\`\`\`
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+\`\`\`
+
+Correct:
+\`\`\`
+Writing algebraic expressions
+\`\`\`
+
+(Unit, grade, CCSS, and other metadata belong in separate sections, not below the main title)
+---
+
 ## PROHIBITED: REFERENCES TO PAST LESSONS
 
 - Referencing past lessons is prohibited. For example: "In previous lessons", "In the last class", "In the content of the previous class". Every lesson is independent content.`,
@@ -2887,6 +2926,45 @@ drawing, clear measurements]
 
 ---
 
+## Title continuity across pages
+
+When a title starts on one page but its content continues to the next page(s), do NOT repeat the title on subsequent pages. Simply continue the content naturally.
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly without repeating "Understanding the pattern"]
+Content paragraph three...
+
+\`\`\`
+
+## First page title format
+
+On the first page, display ONLY the lesson title. Do NOT include unit number, lesson number, or CCSS code below the title.
+
+Incorrect:
+\`\`\`
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+\`\`\`
+
+Correct:
+\`\`\`
+Writing algebraic expressions
+\`\`\`
+
+(Unit, grade, CCSS, and other metadata belong in separate sections, not below the main title)
+---
+
 ## EXPECTED RESULT
 
 A document that:
@@ -3089,6 +3167,45 @@ Display on the board a simple question: If your friend Maya sells bracelets for 
 Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."
 \`\`\`
 
+---
+
+## Title continuity across pages
+
+When a title starts on one page but its content continues to the next page(s), do NOT repeat the title on subsequent pages. Simply continue the content naturally.
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly without repeating "Understanding the pattern"]
+Content paragraph three...
+
+\`\`\`
+
+## First page title format
+
+On the first page, display ONLY the lesson title. Do NOT include unit number, lesson number, or CCSS code below the title.
+
+Incorrect:
+\`\`\`
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+\`\`\`
+
+Correct:
+\`\`\`
+Writing algebraic expressions
+\`\`\`
+
+(Unit, grade, CCSS, and other metadata belong in separate sections, not below the main title)
 ---
 
 ## MANDATORY PAGE FORMAT
@@ -3868,6 +3985,7 @@ async function loadFolders() {
 function _buildTree(folders, parentId = null) {
   return folders
     .filter(f => (f.parent_id || null) === parentId)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
     .map(f => ({ ...f, children: _buildTree(folders, f.id) }));
 }
 
