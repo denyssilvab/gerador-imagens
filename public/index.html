@@ -1120,6 +1120,12 @@
     .ulog-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
     .ulog-status{ min-width: 0; flex: 2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
     .ulog-time  { min-width: 46px; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+    .ulog-chk   { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+    .combinar-type-banner { font-size: 12px; color: #a5b4fc; background: rgba(99,102,241,.12); border: 1px solid rgba(99,102,241,.25); border-radius: 6px; padding: 6px 10px; margin-bottom: 8px; }
+    .combinar-item-type { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
+    .combinar-item-type.lesson     { background: rgba(137,193,59,.2);  color: #89c13b; }
+    .combinar-item-type.practice   { background: rgba(99,102,241,.2);  color: #a5b4fc; }
+    .combinar-item-type.lessonplan { background: rgba(251,191,36,.2);  color: #fbbf24; }
     /* ── old upscale rows kept for compat ── */
     .upscale-img-row {
       display: flex; align-items: center; gap: 12px;
@@ -4617,7 +4623,8 @@ let upscaleQueue = [];            // [{ key, url, filename, label }]
 let _upscaleScale = 2;
 let _slibFilter   = null;         // null = all, folder id = that folder
 let _slibSelected = new Set();    // keys selected in storage library
-let _sessionUpscaledKeys = [];    // db_ keys of images upscaled in current session
+let _sessionUpscaledKeys     = []; // db_ keys of images upscaled in current session
+let _sessionUpscaledSelected = new Set(); // subset the user wants to send to Combinar
 
 function refreshUpscalePage() { /* replaced by new queue UI */ }
 
@@ -4866,17 +4873,32 @@ function renderCombinarList() {
   if (selBtn) selBtn.style.display = combinarSelected.size ? '' : 'none';
 
   list.innerHTML = '';
+
+  // Multi-type banner
+  const docTypes = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
+  if (docTypes.length > 1) {
+    const banner = document.createElement('div');
+    banner.className = 'combinar-type-banner';
+    banner.textContent = `⚠ ${docTypes.length} tipos diferentes — serão gerados ${docTypes.length} PDFs separados ao exportar.`;
+    list.appendChild(banner);
+  }
+
+  const typeShort = { lesson: 'L', practice: 'PA', lessonplan: 'LP' };
   combinarItems.forEach((item, i) => {
     const isSel = combinarSelected.has(i);
     const div = document.createElement('div');
     div.className = 'combinar-item' + (isSel ? ' selected' : '');
     div.draggable = true;
     div.dataset.index = i;
+    const typeTag = item.docType && docTypes.length > 1
+      ? `<span class="combinar-item-type ${item.docType}">${typeShort[item.docType] || item.docType}</span>`
+      : '';
     div.innerHTML = `
       <input type="checkbox" ${isSel ? 'checked' : ''} onclick="event.stopPropagation();combinarToggleSelect(${i},this.checked)" />
       <span class="drag-handle">⋮⋮</span>
       <img src="${item.url}" />
       <span class="combinar-item-label">Pág. ${item.pageNum || (i+1)}${item.title ? ' — '+item.title : ''}</span>
+      ${typeTag}
       <button class="combinar-item-remove" onclick="event.stopPropagation();combinarRemove(${i})">×</button>`;
     div.addEventListener('dragstart', e => { combinarDragSrc = i; div.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
     div.addEventListener('dragend',   () => { div.classList.remove('dragging'); document.querySelectorAll('.combinar-item').forEach(d=>d.classList.remove('drag-over')); });
@@ -4939,54 +4961,77 @@ function _refreshCombinarPreview() {
   });
 }
 
-function _buildCombinarFilename() {
-  const types = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
+function _buildCombinarFilenameForType(type) {
   const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
-  const typeStr = types.length === 1 ? (dtLabel[types[0]] || types[0]) : 'Arquivo';
-  const lesson  = document.getElementById('lesson')?.value || document.getElementById('content-lesson')?.value || '';
-  const name    = document.getElementById('lesson-name')?.value || document.getElementById('content-lesson-name')?.value || '';
-  const ccss    = document.getElementById('ccss')?.value || document.getElementById('content-ccss')?.value || '';
-  let filename  = typeStr;
+  const lesson = document.getElementById('lesson')?.value || document.getElementById('content-lesson')?.value || '';
+  const name   = document.getElementById('lesson-name')?.value || document.getElementById('content-lesson-name')?.value || '';
+  const ccss   = document.getElementById('ccss')?.value || document.getElementById('content-ccss')?.value || '';
+  let filename = dtLabel[type] || type || 'Arquivo';
   if (lesson) filename += ` ${lesson}`;
   if (name)   filename += ` - ${name}`;
   if (ccss)   filename += ` (${ccss})`;
   return filename + '.pdf';
 }
 
+function _buildCombinarFilename() {
+  const types = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
+  return types.length === 1 ? _buildCombinarFilenameForType(types[0]) : _buildCombinarFilenameForType('');
+}
+
+async function _buildPdfBytes(items, progElId) {
+  const pdfDoc = await PDFLib.PDFDocument.create();
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+    if (progElId) {
+      const el = document.getElementById(progElId);
+      if (el) el.textContent = `Incorporando página ${i+1} de ${items.length}…`;
+    }
+    await new Promise(r => setTimeout(r, 0));
+    const srcUrl = item.url;
+    if (!srcUrl?.startsWith('data:')) continue;
+    const imgData = await imgBytesForPdf(srcUrl);
+    if (!imgData) continue;
+    const pdfImg = imgData.fmt === 'jpeg'
+      ? await pdfDoc.embedJpg(imgData.bytes)
+      : await pdfDoc.embedPng(imgData.bytes);
+    const page = pdfDoc.addPage([595.28, 841.89]);
+    page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+  }
+  return pdfDoc.save({ useObjectStreams: false });
+}
+
+function _downloadPdfBytes(bytes, filename) {
+  const blob = new Blob([bytes], { type: 'application/pdf' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
+
 async function combinarExportPDF() {
   if (!combinarItems.length) { toast('Adicione imagens primeiro.', 'warn'); return; }
   const overlay = document.createElement('div');
   overlay.className = 'pdf-overlay';
-  overlay.innerHTML = `<div class="spinner"></div><p id="pdf-prog">Preparando PDF… 0 / ${combinarItems.length}</p>`;
+  overlay.innerHTML = `<div class="spinner"></div><p id="pdf-prog">Preparando…</p>`;
   document.body.appendChild(overlay);
   try {
-    const pdfDoc = await PDFLib.PDFDocument.create();
-    for (let i = 0; i < combinarItems.length; i++) {
-      const item = combinarItems[i];
-      document.getElementById('pdf-prog').textContent = `Incorporando página ${i+1} de ${combinarItems.length}…`;
-      await new Promise(r => setTimeout(r, 0));
-      const srcUrl = item.url;
-      if (!srcUrl?.startsWith('data:')) continue;
-      const imgData = await imgBytesForPdf(srcUrl);
-      if (!imgData) continue;
-      const pdfImg = imgData.fmt === 'jpeg'
-        ? await pdfDoc.embedJpg(imgData.bytes)
-        : await pdfDoc.embedPng(imgData.bytes);
-      const page = pdfDoc.addPage([595.28, 841.89]);
-      page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+    const docTypes = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
+    if (docTypes.length > 1) {
+      // Multiple types → one PDF per type
+      const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+      for (const type of docTypes) {
+        const typeItems = combinarItems.filter(i => i.docType === type);
+        const bytes = await _buildPdfBytes(typeItems, 'pdf-prog');
+        _downloadPdfBytes(bytes, _buildCombinarFilenameForType(type));
+        await new Promise(r => setTimeout(r, 300)); // small gap between downloads
+      }
+      toast(`${docTypes.length} PDFs exportados!`, 'ok');
+    } else {
+      const bytes = await _buildPdfBytes(combinarItems, 'pdf-prog');
+      _downloadPdfBytes(bytes, _buildCombinarFilename());
+      toast(`PDF com ${combinarItems.length} página${combinarItems.length > 1 ? 's' : ''} exportado!`, 'ok');
     }
-    document.getElementById('pdf-prog').textContent = 'Finalizando…';
-    await new Promise(r => setTimeout(r, 0));
-    const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = _buildCombinarFilename();
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    toast(`PDF com ${combinarItems.length} página${combinarItems.length > 1 ? 's' : ''} exportado!`, 'ok');
   } catch (e) {
     toast(`Erro ao criar PDF: ${e?.message || String(e)}`, 'err');
   } finally {
@@ -4994,10 +5039,35 @@ async function combinarExportPDF() {
   }
 }
 
+async function _savePdfToLibrary(items, filename, folderId, progElId) {
+  const pdfBytes = await _buildPdfBytes(items, progElId);
+  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const dataUrl = await new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = () => res(reader.result);
+    reader.onerror = rej;
+    reader.readAsDataURL(blob);
+  });
+  const title = filename.replace(/\.pdf$/i, '');
+  const newLocalId = await dbSave({
+    dataUrl, url: dataUrl, filename,
+    pageNum: null, title, docType: 'pdf', folderId,
+  }).catch(() => null);
+  if (newLocalId) {
+    const newKey = `db_${newLocalId}`;
+    results[newKey] = {
+      url: dataUrl, originalUrl: dataUrl,
+      filename, pageNum: null, title, customTitle: null,
+      docType: 'pdf', folderId: folderId || null,
+      ts: Date.now(), localId: newLocalId,
+    };
+  }
+  return newLocalId;
+}
+
 async function combinarSaveToLibrary() {
   if (!combinarItems.length) { toast('Adicione imagens primeiro.', 'warn'); return; }
 
-  // Determine folderId: use common folder if all items share one, else null (root)
   const folderIds = [...new Set(combinarItems.map(i => results[i.key]?.folderId).filter(Boolean))];
   const folderId = folderIds.length === 1 ? folderIds[0] : null;
 
@@ -5007,56 +5077,28 @@ async function combinarSaveToLibrary() {
   document.body.appendChild(overlay);
 
   try {
-    const pdfDoc = await PDFLib.PDFDocument.create();
-    for (let i = 0; i < combinarItems.length; i++) {
-      const item = combinarItems[i];
-      document.getElementById('pdf-prog-lib').textContent = `Incorporando página ${i + 1} de ${combinarItems.length}…`;
-      await new Promise(r => setTimeout(r, 0));
-      const srcUrl = item.url;
-      if (!srcUrl?.startsWith('data:')) continue;
-      const imgData = await imgBytesForPdf(srcUrl);
-      if (!imgData) continue;
-      const pdfImg = imgData.fmt === 'jpeg'
-        ? await pdfDoc.embedJpg(imgData.bytes)
-        : await pdfDoc.embedPng(imgData.bytes);
-      const page = pdfDoc.addPage([595.28, 841.89]);
-      page.drawImage(pdfImg, { x: 0, y: 0, width: 595.28, height: 841.89 });
+    const docTypes = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
+    let savedCount = 0;
+    if (docTypes.length > 1) {
+      for (const type of docTypes) {
+        const typeItems = combinarItems.filter(i => i.docType === type);
+        const filename = _buildCombinarFilenameForType(type);
+        const id = await _savePdfToLibrary(typeItems, filename, folderId, 'pdf-prog-lib');
+        if (id) savedCount++;
+      }
+    } else {
+      const filename = _buildCombinarFilename();
+      const id = await _savePdfToLibrary(combinarItems, filename, folderId, 'pdf-prog-lib');
+      if (id) savedCount++;
     }
-    document.getElementById('pdf-prog-lib').textContent = 'Salvando na biblioteca…';
-    await new Promise(r => setTimeout(r, 0));
-    const pdfBytes = await pdfDoc.save({ useObjectStreams: false });
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
 
-    // Convert blob → base64 data URL
-    const dataUrl = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload  = () => res(reader.result);
-      reader.onerror = rej;
-      reader.readAsDataURL(blob);
-    });
-
-    const filename = _buildCombinarFilename();
-    const title = filename.replace(/\.pdf$/i, '');
-    const newLocalId = await dbSave({
-      dataUrl, url: dataUrl, filename,
-      pageNum: null, title,
-      docType: 'pdf', folderId,
-    }).catch(() => null);
-
-    if (newLocalId) {
-      const newKey = `db_${newLocalId}`;
-      results[newKey] = {
-        url: dataUrl, originalUrl: dataUrl,
-        filename, pageNum: null,
-        title, customTitle: null,
-        docType: 'pdf', folderId: folderId || null,
-        ts: Date.now(), localId: newLocalId,
-      };
+    if (savedCount > 0) {
       refreshDashboard();
       const folderName = folderId
         ? (dashFolders.find(f => Number(f.id) === Number(folderId))?.name || null)
         : null;
-      toast(`PDF salvo na biblioteca${folderName ? ` — pasta "${folderName}"` : ''}!`, 'ok');
+      const label = savedCount > 1 ? `${savedCount} PDFs salvos` : 'PDF salvo';
+      toast(`${label} na biblioteca${folderName ? ` — pasta "${folderName}"` : ''}!`, 'ok');
     } else {
       toast('Erro ao salvar PDF na biblioteca.', 'err');
     }
@@ -6857,7 +6899,7 @@ function _ulogProgress(key, text) {
   if (e.startTs) e.timeEl.textContent = _ulogFmtTime(Math.round((Date.now() - e.startTs) / 1000));
 }
 
-function _ulogDone(key, folderName) {
+function _ulogDone(key, newKey, folderName) {
   const e = _upscaleLogMap.get(key); if (!e) return;
   const elapsed = e.startTs ? Math.round((Date.now() - e.startTs) / 1000) : 0;
   e.statusEl.style.color = 'var(--green)';
@@ -6865,6 +6907,27 @@ function _ulogDone(key, folderName) {
   e.timeEl.style.color = 'var(--green)';
   e.timeEl.textContent = _ulogFmtTime(elapsed);
   e.rowEl.style.background = 'rgba(137,193,59,.08)';
+  // Add checkbox so user can choose which to send to Combinar
+  if (newKey) {
+    _sessionUpscaledSelected.add(newKey); // checked by default
+    const chk = document.createElement('input');
+    chk.type = 'checkbox'; chk.className = 'ulog-chk'; chk.checked = true;
+    chk.title = 'Incluir no Combinar';
+    chk.onchange = () => {
+      if (chk.checked) _sessionUpscaledSelected.add(newKey);
+      else _sessionUpscaledSelected.delete(newKey);
+      _updateCombinarBtn();
+    };
+    e.rowEl.appendChild(chk);
+  }
+}
+
+function _updateCombinarBtn() {
+  const btn = document.getElementById('btn-send-combinar');
+  if (!btn) return;
+  const n = _sessionUpscaledSelected.size;
+  btn.style.display = n > 0 ? '' : 'none';
+  btn.textContent = `📄 Combinar (${n})`;
 }
 
 function _ulogError(key, msg) {
@@ -6891,6 +6954,7 @@ async function upscaleSelected(scale) {
 
   // Reset session tracking and hide Combinar button from previous session
   _sessionUpscaledKeys = [];
+  _sessionUpscaledSelected.clear();
   const _combBtn = document.getElementById('btn-send-combinar');
   if (_combBtn) _combBtn.style.display = 'none';
 
@@ -7013,7 +7077,8 @@ async function upscaleSelected(scale) {
         const folderName = r.folderId
           ? (dashFolders.find(f => Number(f.id) === Number(r.folderId))?.name || null)
           : null;
-        _ulogDone(key, folderName);
+        _ulogDone(key, newLocalId ? `db_${newLocalId}` : null, folderName);
+        _updateCombinarBtn();
         toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
 
@@ -7032,16 +7097,18 @@ async function upscaleSelected(scale) {
     if (stopBtn) stopBtn.style.display = 'none';
     const runBtn = document.getElementById('btn-run-upscale');
     if (runBtn) runBtn.disabled = upscaleQueue.length === 0;
-    const combBtn = document.getElementById('btn-send-combinar');
-    if (combBtn) combBtn.style.display = _sessionUpscaledKeys.length ? '' : 'none';
+    _updateCombinarBtn();
   }
 }
 
 function sendUpscaledToCombinar() {
-  if (!_sessionUpscaledKeys.length) { toast('Nenhuma imagem upscalada nesta sessão.', 'warn'); return; }
+  const keys = _sessionUpscaledSelected.size > 0
+    ? [..._sessionUpscaledSelected]
+    : _sessionUpscaledKeys;
+  if (!keys.length) { toast('Nenhuma imagem upscalada nesta sessão.', 'warn'); return; }
   const existing = new Set(combinarItems.map(i => i.key));
   let added = 0;
-  _sessionUpscaledKeys.forEach(key => {
+  keys.forEach(key => {
     if (existing.has(key)) return;
     const r = results[key];
     if (!r) return;
