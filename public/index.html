@@ -5029,13 +5029,31 @@ function _refreshCombinarPreview() {
 
 function _buildCombinarFilenameForType(type) {
   const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
-  const lesson = document.getElementById('lesson')?.value || document.getElementById('content-lesson')?.value || '';
-  const name   = document.getElementById('lesson-name')?.value || document.getElementById('content-lesson-name')?.value || '';
-  const ccss   = document.getElementById('ccss')?.value || document.getElementById('content-ccss')?.value || '';
-  let filename = dtLabel[type] || type || 'Arquivo';
-  if (lesson) filename += ` ${lesson}`;
-  if (name)   filename += ` - ${name}`;
-  if (ccss)   filename += ` (${ccss})`;
+
+  // Se o tipo passado não tem label, tenta inferir a partir dos próprios itens
+  let effectiveType = type;
+  if (!dtLabel[effectiveType]) {
+    for (const item of combinarItems) {
+      if (dtLabel[item.docType]) { effectiveType = item.docType; break; }
+    }
+  }
+
+  // Campos do formulário (Generate + Content como fallback)
+  const lesson = document.getElementById('lesson')?.value?.trim()
+              || document.getElementById('content-lesson')?.value?.trim() || '';
+  const name   = document.getElementById('lesson-name')?.value?.trim()
+              || document.getElementById('content-lesson-name')?.value?.trim() || '';
+  const ccss   = document.getElementById('ccss')?.value?.trim()
+              || document.getElementById('content-ccss')?.value?.trim() || '';
+
+  // Se nome ainda estiver vazio, usa o título do primeiro item com título
+  const effectiveName = name || combinarItems.find(i => i.title?.trim())?.title?.trim() || '';
+
+  const label = dtLabel[effectiveType] || effectiveType || 'Arquivo';
+  let filename = label;
+  if (lesson)        filename += ` ${lesson}`;
+  if (effectiveName) filename += ` - ${effectiveName}`;
+  if (ccss)          filename += ` (${ccss})`;
   return filename + '.pdf';
 }
 
@@ -7691,9 +7709,12 @@ function _overlayTexts() { return _overlayTextsForType(docType); }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
 function buildFilename(docTypeOverride, ext) {
-  const lesson = document.getElementById('lesson')?.value || '';
-  const ccss   = document.getElementById('ccss')?.value || '';
-  const name   = document.getElementById('lesson-name')?.value || '';
+  const lesson = document.getElementById('lesson')?.value?.trim()
+              || document.getElementById('content-lesson')?.value?.trim() || '';
+  const ccss   = document.getElementById('ccss')?.value?.trim()
+              || document.getElementById('content-ccss')?.value?.trim() || '';
+  const name   = document.getElementById('lesson-name')?.value?.trim()
+              || document.getElementById('content-lesson-name')?.value?.trim() || '';
   const dt = docTypeOverride || docType;
   const dtLabel = dt === 'lesson'     ? 'Lesson'
                : dt === 'practice'    ? 'Practice Activities'
