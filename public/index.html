@@ -4053,6 +4053,7 @@ async function dashCreateFolder() {
     if (!data.ok) throw new Error(data.error);
     dashFolders.push(data.folder);
     renderFolders();
+    refreshDashboard();
     // Auto-expand parent if subfolder
     if (parentId) {
       const ch = document.getElementById(`fchildren-${parentId}`);
