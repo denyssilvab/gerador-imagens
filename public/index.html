@@ -4540,8 +4540,14 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Sort by pageNum so pages always render in correct page order
-  const ordered = [...saved].sort((a, b) => (a.pageNum ?? 9999) - (b.pageNum ?? 9999));
+  // Sort: newest generation session first, then pageNum ascending within each session.
+  // Use 5-minute buckets as a session proxy (most generations finish well within 5 min).
+  const ordered = [...saved].sort((a, b) => {
+    const bucketA = Math.floor((a.ts || 0) / 300000);
+    const bucketB = Math.floor((b.ts || 0) / 300000);
+    if (bucketA !== bucketB) return bucketB - bucketA;          // newer session first
+    return (a.pageNum ?? 9999) - (b.pageNum ?? 9999);           // within session: page order
+  });
 
   ordered.forEach(r => {
     const domKey = `db_${r.id}`;
