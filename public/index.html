@@ -6345,17 +6345,25 @@ async function handleEvent(ev) {
         const { header, footer } = _overlayTextsForType(pageDocType);
         displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType);
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
+      // Stable key for this image — reused in refazer/retry so we update, not duplicate
+      const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
+      const filename = ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`;
       const result = {
         url: displayUrl,
         originalUrl: displayUrl,
-        filename: ev.filename || `page_${String(ev.pageNum).padStart(2,'0')}.png`,
+        filename,
         pageNum: ev.pageNum,
         title: ev.title || '',
         docType: ev.docType || (docType !== 'all' ? docType : undefined),
         folderId: dashFolderFilter || null, // auto-assign to active folder
+        sbKey,
       };
       results[domKey] = result;
-      const _savedId = await dbSave({ ...result, dataUrl: displayUrl });
+      // Upload directly from browser to Supabase Storage (bypasses Vercel 4.5 MB body limit)
+      const storageUrl = await _clientUploadToStorage(displayUrl, filename).catch(() => null);
+      const saveUrl = storageUrl || displayUrl;
+      if (storageUrl) results[domKey].url = storageUrl;
+      const _savedId = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl });
       if (_savedId && results[domKey]) results[domKey].localId = _savedId;
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
@@ -6984,9 +6992,13 @@ async function confirmRefazer() {
               dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
-            results[domKey] = { ...results[domKey], url: dataUrl, filename, docType: pageDocType };
-            if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
-            await dbSave({ dataUrl, url: dataUrl, filename, pageNum, title: '', ts: Date.now() }).catch(() => {});
+            const existingKey = results[domKey]?.sbKey;
+            const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
+            const saveUrl     = storageUrl || dataUrl;
+            results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType };
+            if (existingKey) results[domKey].sbKey = existingKey;
+            if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
+            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: '', ts: Date.now() }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
@@ -7053,8 +7065,12 @@ async function retryPage(domKey) {
               dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
-            results[domKey] = { ...results[domKey], url: dataUrl, originalUrl: dataUrl, filename, pageNum: pd.num, title: pd.title };
-            if (pv) pv.innerHTML = `<img src="${esc(dataUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
+            const existingKey = results[domKey]?.sbKey;
+            const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
+            const saveUrl     = storageUrl || dataUrl;
+            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title };
+            if (existingKey) results[domKey].sbKey = existingKey;
+            if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
             if (stEl) { stEl.className = 'icard-status s-done'; stEl.textContent = '✓ Pronta'; }
             if (ft) {
               ft.style.display = 'flex';
@@ -7063,7 +7079,7 @@ async function retryPage(domKey) {
                 <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
                 <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pd.num})">🔄 Refazer</button>`;
             }
-            dbSave({ dataUrl, url: dataUrl, filename, pageNum: pd.num, title: pd.title }).catch(() => {});
+            dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title }).catch(() => {});
             toast(`Pág. ${pd.num} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (stEl) { stEl.className = 'icard-status s-err'; stEl.textContent = '✗ Erro'; }
