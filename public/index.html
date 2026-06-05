@@ -4844,10 +4844,11 @@ function combinarOpenAddModal() {
 
 async function combinarUploadFiles(files) {
   if (!files || !files.length) return;
+  const fileArr = Array.from(files);
   const input = document.getElementById('combinar-upload-input');
   if (input) input.value = '';
   let added = 0;
-  for (const file of files) {
+  for (const file of fileArr) {
     if (!file.type.startsWith('image/')) continue;
     const url = await new Promise((res, rej) => {
       const reader = new FileReader();
