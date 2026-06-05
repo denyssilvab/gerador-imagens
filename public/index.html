@@ -1551,7 +1551,7 @@
         <div class="dash-preview-footer-meta"  id="preview-meta"></div>
       </div>
       <span class="dash-preview-counter" id="preview-counter"></span>
-      <a id="preview-download" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" download>⬇ Baixar</a>
+      <a id="preview-download" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" onclick="doDownload(this.dataset.url,this.dataset.filename);return false;">⬇ Baixar</a>
       <a id="preview-open" class="btn btn-ghost btn-sm" style="color:#fff;border-color:rgba(255,255,255,.3);" target="_blank">🔗 Abrir</a>
     </div>
   </div>
@@ -4206,7 +4206,7 @@ function _renderPreview() {
     contentEl.appendChild(pre);
     const blob = new Blob([txtEntry.content], { type: 'text/plain' });
     const blobUrl = URL.createObjectURL(blob);
-    dlBtn.href = blobUrl; dlBtn.download = txtEntry.filename;
+    dlBtn.dataset.url = blobUrl; dlBtn.dataset.filename = txtEntry.filename;
     openBtn.style.display = 'none';
     return;
   }
@@ -4230,11 +4230,11 @@ function _renderPreview() {
       const b64  = r.url.split(',')[1];
       pre.textContent = decodeURIComponent(escape(atob(b64)));
     } catch { pre.textContent = '(não foi possível decodificar)'; }
-    dlBtn.href = r.url; dlBtn.download = r.filename || 'arquivo.txt';
+    dlBtn.dataset.url = r.url; dlBtn.dataset.filename = r.filename || 'arquivo.txt';
     openBtn.style.display = 'none';
   } else {
     contentEl.innerHTML = `<img class="dash-preview-img" src="${esc(r.url)}" alt="${esc(disp)}" />`;
-    dlBtn.href = r.url; dlBtn.download = r.filename || 'imagem.png';
+    dlBtn.dataset.url = r.url; dlBtn.dataset.filename = r.filename || 'imagem.png';
     openBtn.href = r.url; openBtn.style.display = '';
   }
 }
@@ -4554,9 +4554,9 @@ function refreshDashboard() {
             <div class="dash-card-title">${esc(disp)}</div>
             <div class="dash-card-meta">${esc(meta)}</div>
           </div>
-          <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'documento.pdf')}" title="Baixar PDF" onclick="event.stopPropagation()">⬇</a>
+          <button class="btn btn-ghost btn-sm" title="Baixar PDF" onclick="event.stopPropagation();doDownload('${esc(r.url)}','${esc(r.filename || 'documento.pdf')}')">⬇</button>
         </div>`;
-      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) { const a = document.createElement('a'); a.href = r.url; a.download = r.filename || 'documento.pdf'; document.body.appendChild(a); a.click(); document.body.removeChild(a); } };
+      div.onclick = (e) => { if (!e.target.closest('button') && !e.target.closest('.dash-card-check-wrap')) doDownload(r.url, r.filename || 'documento.pdf'); };
       grid.appendChild(div);
       return;
     }
@@ -4575,9 +4575,9 @@ function refreshDashboard() {
             <div class="dash-card-title">${esc(r.filename || r.title || 'Arquivo')}</div>
             <div class="dash-card-meta">${esc(meta)}</div>
           </div>
-          <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'arquivo.txt')}" title="Baixar TXT">⬇</a>
+          <button class="btn btn-ghost btn-sm" title="Baixar TXT" onclick="event.stopPropagation();doDownload('${esc(r.url)}','${esc(r.filename || 'arquivo.txt')}')">⬇</button>
         </div>`;
-      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) openTxtInConteudo(r.key); };
+      div.onclick = (e) => { if (!e.target.closest('button') && !e.target.closest('.dash-card-check-wrap')) openTxtInConteudo(r.key); };
       grid.appendChild(div);
       return;
     }
@@ -6874,13 +6874,28 @@ function triggerDownload(key, version) {
   }
 }
 
-function doDownload(url, filename) {
+async function doDownload(url, filename) {
+  if (!url) return;
+  let href = url;
+  let revoke = false;
+  if (!url.startsWith('data:') && !url.startsWith('blob:')) {
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      href   = URL.createObjectURL(blob);
+      revoke = true;
+    } catch {
+      window.open(url, '_blank');
+      return;
+    }
+  }
   const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
+  a.href = href;
+  a.download = filename || 'download';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  if (revoke) setTimeout(() => URL.revokeObjectURL(href), 5000);
 }
 
 function openByKey(key) {
