@@ -1026,7 +1026,7 @@
     .upscale-zone-btn.primary:hover { opacity: .9; }
     /* Queue grid (shown when images added) */
     .upscale-queue-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px;
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px;
       padding: 20px; width: 100%; box-sizing: border-box;
     }
     .upscale-q-item {
@@ -1155,7 +1155,9 @@
     .combinar-pdf-page img { width: 100%; height: 100%; object-fit: contain; display: block; }
     /* Right: pages list */
     .combinar-right { width: 290px; min-width: 290px; flex-shrink: 0; display: flex; flex-direction: column; }
-    .combinar-right-header { padding: 14px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+    .combinar-right-header { padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
+    .combinar-right-header-top { display: flex; align-items: center; gap: 6px; }
+    .combinar-right-header-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
     .combinar-right-list { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
     .combinar-item {
       display: flex; align-items: center; gap: 10px;
@@ -1176,8 +1178,8 @@
     .combinar-modal-bg { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; }
     .combinar-modal { background: var(--surface); border-radius: 14px; padding: 20px; width: min(90vw, 700px); max-height: 82vh; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
     .combinar-modal-header { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .combinar-modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; padding: 4px; }
-    .combinar-modal-item { position: relative; aspect-ratio: 210/297; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid var(--border); transition: border-color .15s, box-shadow .15s; }
+    .combinar-modal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; overflow-y: auto; flex: 1; padding: 4px; }
+    .combinar-modal-item { position: relative; aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid var(--border); transition: border-color .15s, box-shadow .15s; }
     .combinar-modal-item:hover { border-color: var(--border2); }
     .combinar-modal-item.selected { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(99,102,241,.3); }
     .combinar-modal-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -2226,13 +2228,16 @@
       <!-- Direita: lista ordenável -->
       <div class="combinar-right">
         <div class="combinar-right-header">
-          <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Páginas</span>
-          <span style="flex:1;"></span>
-          <button class="btn btn-ghost btn-sm" id="combinar-clear-sel-btn" style="display:none;font-size:11px;color:#f87171;" title="Remover selecionadas" onclick="combinarRemoveSelected()">🗑 sel.</button>
-          <button class="btn btn-ghost btn-sm" title="Adicionar da biblioteca" onclick="combinarOpenAddModal()">+ Adicionar</button>
-          <button class="btn btn-ghost btn-sm" title="Upload do computador" onclick="document.getElementById('combinar-upload-input').click()">⬆ Upload</button>
-          <input type="file" id="combinar-upload-input" accept="image/*" multiple style="display:none" onchange="combinarUploadFiles(this.files)" />
-          <button class="btn btn-ghost btn-sm" title="Limpar lista" onclick="combinarClear()">🗑</button>
+          <div class="combinar-right-header-top">
+            <span style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;">Páginas</span>
+          </div>
+          <div class="combinar-right-header-actions">
+            <button class="btn btn-ghost btn-sm" id="combinar-clear-sel-btn" style="display:none;font-size:11px;color:#f87171;" title="Remover selecionadas" onclick="combinarRemoveSelected()">🗑 Remover sel.</button>
+            <button class="btn btn-ghost btn-sm" title="Adicionar da biblioteca" onclick="combinarOpenAddModal()">+ Adicionar</button>
+            <button class="btn btn-ghost btn-sm" title="Upload do computador" onclick="document.getElementById('combinar-upload-input').click()">⬆ Upload</button>
+            <input type="file" id="combinar-upload-input" accept="image/*" multiple style="display:none" onchange="combinarUploadFiles(this.files)" />
+            <button class="btn btn-ghost btn-sm" title="Limpar lista" onclick="combinarClear()">🗑 Limpar</button>
+          </div>
         </div>
         <div id="combinar-list" class="combinar-right-list">
           <div class="empty"><span class="ico">📄</span><p>Adicione imagens</p></div>
