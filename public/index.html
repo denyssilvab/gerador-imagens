@@ -7536,18 +7536,13 @@ async function upscaleSelected(scale) {
 
         let sourceUrl = r.originalUrl || r.url;
 
-        // Replicate requires a valid HTTPS URI — data: URLs are rejected.
-        // Upload to Supabase Storage first to get a public URL.
+        // For data: URLs (images uploaded from computer): compress to JPEG and send
+        // directly to the server. The server uploads to Replicate Files API to obtain
+        // a valid HTTPS URI — bypasses Supabase entirely so Replicate never rejects it.
+        // HTTPS URLs (generated images already in Supabase) pass through unchanged.
         if (sourceUrl?.startsWith('data:')) {
-          _updateStatus('Enviando imagem para o Storage…');
-          const uploadedUrl = await _clientUploadToStorage(sourceUrl, r.filename || 'upload.png').catch(() => null);
-          if (uploadedUrl) {
-            sourceUrl = uploadedUrl;
-          } else {
-            // Storage upload failed — compress to JPEG as last-resort fallback
-            _updateStatus('Comprimindo imagem…');
-            sourceUrl = await compressForUpscale(sourceUrl);
-          }
+          _updateStatus('Preparando imagem…');
+          sourceUrl = await compressForUpscale(sourceUrl);
           if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
         }
 
