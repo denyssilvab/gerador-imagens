@@ -981,10 +981,11 @@
     /* ── Upscale page ── */
     /* ── Upscale page (Adobe Firefly-style) ── */
     .upscale-layout {
-      display: flex; flex-direction: column; flex: 1; overflow: hidden;
+      display: flex; flex-direction: column; gap: 0;
     }
     .upscale-zone-wrap {
-      flex: 1; display: flex; align-items: center; justify-content: center;
+      height: clamp(300px, 42vh, 460px); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
       padding: 28px; overflow: hidden;
     }
     .upscale-drop-zone {
@@ -4776,6 +4777,17 @@ function refreshCombinarPage() { renderCombinarList(); }
 let combinarSelected = new Set(); // indices of selected combinar items
 let _combinarModalSel = new Set(); // keys selected in add-modal
 
+function _combinarSort(a, b) {
+  // Primary: pageNum ascending (nulls last)
+  const pa = a.pageNum ?? Infinity;
+  const pb = b.pageNum ?? Infinity;
+  if (pa !== pb) return pa - pb;
+  // Secondary: filename / title natural sort (handles uploaded files with no pageNum)
+  const fa = a.title || a.key || '';
+  const fb = b.title || b.key || '';
+  return fa.localeCompare(fb, undefined, { numeric: true, sensitivity: 'base' });
+}
+
 function combinarOpenAddModal() {
   const available = Object.entries(results).filter(([k,r]) => r && r.url);
   if (!available.length) { toast('Nenhuma imagem disponível ainda.', 'warn'); return; }
@@ -4840,7 +4852,7 @@ function combinarModalConfirm() {
     if (!r) return;
     combinarItems.push({ key, pageNum: r.pageNum, title: r.title||'', url: r.upscaledUrl||r.url, docType: r.docType||'' });
   });
-  combinarItems.sort((a,b) => (a.pageNum||0) - (b.pageNum||0));
+  combinarItems.sort(_combinarSort);
   closeCombinarModal();
   renderCombinarList();
   toast(`${_combinarModalSel.size} imagem${_combinarModalSel.size !== 1 ? 'ns' : ''} adicionada${_combinarModalSel.size !== 1 ? 's' : ''}.`, 'ok');
@@ -7208,7 +7220,7 @@ function sendUpscaledToCombinar() {
     combinarItems.push({ key, pageNum: r.pageNum, title: r.title || '', url: r.url, docType: r.docType || '' });
     added++;
   });
-  combinarItems.sort((a, b) => (a.pageNum || 0) - (b.pageNum || 0));
+  combinarItems.sort(_combinarSort);
   const btn = document.querySelector('.nav-item[onclick*="\'combinar\'"]');
   setPage('combinar', btn);
   renderCombinarList();
