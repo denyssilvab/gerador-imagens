@@ -7673,43 +7673,27 @@ async function upscaleSelected(scale) {
         };
         if (pv) pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
 
-        // Upload full-resolution image directly to Supabase Storage (browser → Supabase, no Vercel)
+        // Upload to Supabase Storage for a persistent download URL.
+        // Do NOT save to database — upscaled images must not appear in the generated images history.
         _updateStatus('Enviando para o Storage…');
         const storagePublicUrl = await _clientUploadToStorage(upscaledUrl, filename);
-        if (!storagePublicUrl) {
-          toast(`⚠ Pág. ${r.pageNum} — falha no upload ao Storage. Execute migration_storage.sql no Supabase e tente novamente.`, 'err');
-        }
-        // Use storage public URL if available (small string); otherwise the image only exists in this session
         const saveUrl = storagePublicUrl || upscaledUrl;
 
-        _updateStatus('Salvando no Dashboard…');
-        const { localId: newLocalId, sbId: newSbId } = await dbSave({
-          dataUrl: saveUrl,
-          url: saveUrl,
-          filename,
-          pageNum: r.pageNum,
-          title: r.customTitle || r.title || '',
-          docType: r.docType || '',
-          folderId: r.folderId || null,
-        }, { silent: !storagePublicUrl }).catch(() => ({})); // silent if storage upload failed (toast shown above)
-
-        if (newLocalId || newSbId) {
-          const newKey = `db_${newLocalId}`;
-          results[newKey] = {
-            url: saveUrl, originalUrl: saveUrl,
-            filename, pageNum: r.pageNum,
-            title: r.customTitle || r.title || '', customTitle: null,
-            docType: r.docType || '', folderId: r.folderId || null,
-            ts: Date.now(), localId: newLocalId,
-          };
-          _sessionUpscaledKeys.push(newKey);
-          refreshDashboard();
-        }
+        // Register in session-only results so the upscale log download button works
+        const sessionKey = `upscaled_${key}_${Date.now()}`;
+        results[sessionKey] = {
+          url: saveUrl, originalUrl: saveUrl,
+          filename, pageNum: r.pageNum,
+          title: r.customTitle || r.title || '', customTitle: null,
+          docType: r.docType || '', folderId: r.folderId || null,
+          ts: Date.now(),
+        };
+        _sessionUpscaledKeys.push(sessionKey);
 
         const folderName = r.folderId
           ? (dashFolders.find(f => Number(f.id) === Number(r.folderId))?.name || null)
           : null;
-        _ulogDone(key, newLocalId ? `db_${newLocalId}` : null, folderName);
+        _ulogDone(key, sessionKey, folderName);
         _updateCombinarBtn();
         toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
