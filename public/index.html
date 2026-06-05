@@ -4528,19 +4528,16 @@ function _getOrCreateTypeGroups(grid, saved) {
   return groupGrids;
 }
 
-function _applyLoadedImages(saved, overwrite = false, clearExisting = false) {
-  const grid = document.getElementById('img-grid');
-
-  if (clearExisting && grid) {
-    // Remove all IDB-sourced cards (may have different IDs than Supabase) to prevent duplicates
-    grid.querySelectorAll('.icard[id^="card_db_"]').forEach(c => c.remove());
-    grid.querySelector('.type-groups-container')?.remove();
-  }
-
+// addToImgGrid=false → only populates results (for dashboard); never touches the img-grid DOM.
+// addToImgGrid=true  → also adds/deduplicates cards in the img-grid.
+// Phase 1 (IDB) always uses false: IDB IDs differ from Supabase IDs, so adding them
+// would cause flicker when Phase 2 clears and rebuilds with the real IDs.
+function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
+  const grid = addToImgGrid ? document.getElementById('img-grid') : null;
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Sort by pageNum so pages always render in page order regardless of API sort
+  // Sort by pageNum so pages always render in correct page order
   const ordered = [...saved].sort((a, b) => (a.pageNum ?? 9999) - (b.pageNum ?? 9999));
 
   ordered.forEach(r => {
@@ -4549,21 +4546,24 @@ function _applyLoadedImages(saved, overwrite = false, clearExisting = false) {
     // PDFs and TXTs belong only in the dashboard, not in the generation history grid
     const _isPdf = r.docType === 'pdf' || (r.filename || '').toLowerCase().endsWith('.pdf');
     const _isTxt = (r.url || '').startsWith('data:text/') || (r.filename || '').toLowerCase().endsWith('.txt');
-    // Hidden by explicit per-key delete (both Supabase ID key and stable IDB-derived key)
     const _isHidden = _isPdf || _isTxt
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
-    // Deduplicate: skip if a card for this Supabase ID or this stable key already exists in the DOM
-    const alreadyInDom = !!document.getElementById(`card_${domKey}`)
-      || (r.key && !!document.querySelector(`[data-sb-key="${CSS.escape(r.key)}"]`));
+
+    // Deduplicate by DOM id or stable sb-key (guards against pagination overlap)
+    const alreadyInDom = grid && (
+      !!document.getElementById(`card_${domKey}`) ||
+      (r.key && !!document.querySelector(`[data-sb-key="${CSS.escape(r.key)}"]`))
+    );
+
     if (grid && !alreadyInDom && !_isHidden) {
-      const card = makePersistedCard(r); // also sets results[domKey]
-      card.dataset.sbKey = r.key || '';  // stable key for dedup on next load
+      const card = makePersistedCard(r);
+      card.dataset.sbKey = r.key || '';
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
       visibleAdded++;
     } else {
-      // Still populate results for dashboard; just don't add card to history grid
+      // Populate/update results for dashboard without touching the DOM
       results[domKey] = {
         url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
         filename: r.filename, pageNum: r.pageNum,
@@ -4599,21 +4599,22 @@ async function loadPersistedImages() {
   _dashPage = 0;
   _dashHasMore = false;
 
-  // Phase 1: IndexedDB — instant, shows results immediately
+  // Phase 1: IndexedDB — populate results only (fast, offline-safe).
+  // addToImgGrid=false: IDB uses local auto-increment IDs that differ from Supabase IDs;
+  // adding them to img-grid would cause flicker when Phase 2 overwrites with real IDs.
   try {
     const idbData = await _idbLoadAll();
     if (idbData.length) {
-      _applyLoadedImages(idbData);
+      _applyLoadedImages(idbData, false, false);
       refreshDashboard();
     }
   } catch (_) { /* IDB unavailable */ }
 
-  // Phase 2: Supabase page 0 — authoritative first page
+  // Phase 2: Supabase page 0 — authoritative source; adds cards to img-grid for the first time.
   try {
     const res  = await authFetch(`/api/db?action=load-images&page=0&limit=${_DASH_PAGE_LIMIT}`);
     const data = await res.json();
     if (data.ok && data.images?.length) {
-      // clearExisting=true: wipes IDB cards from DOM before rebuilding from authoritative Supabase data
       _applyLoadedImages(data.images.map(_mapSbImage), true, true);
       refreshDashboard();
     }
@@ -4629,8 +4630,7 @@ async function _loadMoreDashImages() {
     const res  = await authFetch(`/api/db?action=load-images&page=${_dashPage}&limit=${_DASH_PAGE_LIMIT}`);
     const data = await res.json();
     if (data.ok && data.images?.length) {
-      // clearExisting=false: pagination appends, does not clear existing cards
-      _applyLoadedImages(data.images.map(_mapSbImage), true, false);
+      _applyLoadedImages(data.images.map(_mapSbImage), true, true); // append more pages
       refreshDashboard();
     }
     _dashHasMore = data.hasMore || false;
