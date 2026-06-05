@@ -5511,50 +5511,31 @@ let _authSession = null; // current Supabase session
 
 function _getToken() { return _authSession?.access_token || null; }
 
-// Compress a data URL to JPEG until it fits under maxBytes.
-// Tries decreasing quality first, then scales down dimensions if needed.
-async function _compressDataUrl(dataUrl, maxBytes = 3.8 * 1024 * 1024) {
-  if (!dataUrl?.startsWith('data:image')) return dataUrl;
-  const blob = await fetch(dataUrl).then(r => r.blob());
-  const bmp  = await createImageBitmap(blob);
-  const canvas = document.createElement('canvas');
-  const ctx    = canvas.getContext('2d');
-
-  // Try JPEG compression at decreasing quality levels
-  for (const q of [0.85, 0.75, 0.65, 0.55, 0.45, 0.35]) {
-    canvas.width = bmp.width; canvas.height = bmp.height;
-    ctx.drawImage(bmp, 0, 0);
-    const out = canvas.toDataURL('image/jpeg', q);
-    const bytes = Math.ceil((out.length - out.indexOf(',') - 1) * 3 / 4);
-    if (bytes < maxBytes) return out;
-  }
-
-  // Still too large — downscale progressively
-  for (const scale of [0.75, 0.5, 0.35, 0.25]) {
-    canvas.width  = Math.round(bmp.width  * scale);
-    canvas.height = Math.round(bmp.height * scale);
-    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-    const out = canvas.toDataURL('image/jpeg', 0.75);
-    const bytes = Math.ceil((out.length - out.indexOf(',') - 1) * 3 / 4);
-    if (bytes < maxBytes) return out;
-  }
-
-  return null; // could not compress enough
-}
-
-// Compress the upscaled image client-side, then save via the normal dbSave path.
-// The server will try to upload to Supabase Storage; if it fails it falls back to
-// storing the data URL directly in the DB. Either way the image is persisted.
-// Returns the compressed data URL used for saving, or null on failure.
+// Upload a data URL directly to Supabase Storage using the authenticated _sb client.
+// Bypasses Vercel entirely — the binary goes straight from the browser to Supabase.
+// Requires the storage bucket to have RLS policies allowing authenticated users to
+// INSERT to paths starting with their uid (see supabase/migration_storage.sql).
+// Returns the public URL on success, or null on failure.
 async function _clientUploadToStorage(dataUrl, filename) {
   if (!dataUrl?.startsWith('data:')) return null;
+  const userId = _authSession?.user?.id;
+  if (!userId) return null;
   try {
-    const compressed = await _compressDataUrl(dataUrl);
-    if (!compressed) throw new Error('Não foi possível comprimir a imagem para caber no limite de tamanho.');
-    return compressed; // caller will pass this to dbSave
+    const blob = await fetch(dataUrl).then(r => r.blob());
+    const ext  = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'application/pdf' ? 'pdf' : 'png';
+    const path = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
+
+    const { data, error } = await _sb.storage.from('images').upload(path, blob, {
+      contentType: blob.type,
+      upsert: true,
+    });
+    if (error) throw error;
+
+    const { data: urlData } = _sb.storage.from('images').getPublicUrl(data.path);
+    return urlData.publicUrl;
   } catch (e) {
     console.error('[clientUpload]', e);
-    toast(`Erro ao comprimir imagem: ${e.message}`, 'err');
+    toast(`Upload Storage: ${e.message || JSON.stringify(e)}`, 'err');
     return null;
   }
 }
@@ -7165,13 +7146,14 @@ async function upscaleSelected(scale) {
         };
         if (pv) pv.innerHTML = `<img src="${esc(upscaledUrl)}" loading="lazy" alt="Upscale ${scale}×" />`;
 
-        // Save upscaled image — compress to JPEG (<4 MB) so it fits within Vercel's body limit
-        _updateStatus('Comprimindo para salvar…');
-        const compressedUrl = await _clientUploadToStorage(upscaledUrl, filename);
-        if (!compressedUrl) {
-          toast(`⚠ Pág. ${r.pageNum} — não foi possível comprimir a imagem. Existe apenas nesta sessão.`, 'err');
+        // Upload full-resolution image directly to Supabase Storage (browser → Supabase, no Vercel)
+        _updateStatus('Enviando para o Storage…');
+        const storagePublicUrl = await _clientUploadToStorage(upscaledUrl, filename);
+        if (!storagePublicUrl) {
+          toast(`⚠ Pág. ${r.pageNum} — falha no upload ao Storage. Execute migration_storage.sql no Supabase e tente novamente.`, 'err');
         }
-        const saveUrl = compressedUrl || upscaledUrl;
+        // Use storage public URL if available (small string); otherwise the image only exists in this session
+        const saveUrl = storagePublicUrl || upscaledUrl;
 
         _updateStatus('Salvando no Dashboard…');
         const newLocalId = await dbSave({
@@ -7182,7 +7164,7 @@ async function upscaleSelected(scale) {
           title: r.customTitle || r.title || '',
           docType: r.docType || '',
           folderId: r.folderId || null,
-        }, { silent: !compressedUrl }).catch(() => null); // silent if compression failed (toast shown above)
+        }, { silent: !storagePublicUrl }).catch(() => null); // silent if storage upload failed (toast shown above)
 
         if (newLocalId) {
           const newKey = `db_${newLocalId}`;
