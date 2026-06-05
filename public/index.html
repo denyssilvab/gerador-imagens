@@ -5468,22 +5468,28 @@ let _authSession = null; // current Supabase session
 
 function _getToken() { return _authSession?.access_token || null; }
 
-// Upload a data URL directly to Supabase Storage from the client.
-// Bypasses the Vercel body-size limit (4.5 MB) for large upscaled images.
+// Upload a data URL directly to Supabase Storage using a server-issued signed URL.
+// Flow: server generates a signed upload URL (has auth) → client uploads the blob
+// directly to Supabase Storage (bypasses Vercel's 4.5 MB body limit entirely).
 // Returns the public URL on success, or null on failure.
 async function _clientUploadToStorage(dataUrl, filename) {
-  const userId = _authSession?.user?.id;
-  if (!userId || !dataUrl?.startsWith('data:')) return null;
+  if (!dataUrl?.startsWith('data:')) return null;
   try {
-    // Use fetch() to convert data URL → Blob (reliable for 10-50 MB images;
-    // avoids atob + Uint8Array memory spikes on large strings)
-    const blob = await fetch(dataUrl).then(r => r.blob());
-    const ext  = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'application/pdf' ? 'pdf' : 'png';
-    const path = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
-    const { data, error } = await _sb.storage.from('images').upload(path, blob, { contentType: blob.type, upsert: true });
-    if (error) throw error;
-    const { data: urlData } = _sb.storage.from('images').getPublicUrl(data.path);
-    return urlData.publicUrl;
+    // Step 1: ask server for a signed upload URL
+    const r = await authFetch(`/api/db?action=create-upload-url&filename=${encodeURIComponent(filename)}`);
+    const meta = await r.json();
+    if (!meta.ok) throw new Error(meta.error || 'Falha ao obter URL de upload');
+
+    // Step 2: convert data URL → Blob (reliable even for 50 MB images)
+    const blob = await fetch(dataUrl).then(res => res.blob());
+
+    // Step 3: upload blob directly to Supabase Storage via signed URL
+    const { error: upErr } = await _sb.storage
+      .from('images')
+      .uploadToSignedUrl(meta.path, meta.token, blob, { contentType: blob.type });
+    if (upErr) throw upErr;
+
+    return meta.publicUrl;
   } catch (e) {
     console.error('[clientUpload]', e);
     return null;
@@ -5672,7 +5678,7 @@ async function _idbClear() {
 }
 
 // ── Unified persistence (Supabase primary, IndexedDB fallback) ─────────────
-async function dbSave(rec) {
+async function dbSave(rec, { silent = false } = {}) {
   // Persist locally first (fast, offline-safe)
   const localId = await _idbSave(rec).catch(() => null);
 
@@ -5697,7 +5703,7 @@ async function dbSave(rec) {
     if (!data.ok) throw new Error(data.error || 'Erro ao salvar');
   } catch (e) {
     console.warn('[supabase sync]', e);
-    toast('⚠ Falha ao salvar imagem no servidor. Verifique sua conexão.', 'err');
+    if (!silent) toast('⚠ Falha ao salvar imagem no servidor. Verifique sua conexão.', 'err');
   }
 
   return localId;
@@ -7115,7 +7121,7 @@ async function upscaleSelected(scale) {
           title: r.customTitle || r.title || '',
           docType: r.docType || '',
           folderId: r.folderId || null,
-        }).catch(() => null);
+        }, { silent: !publicUrl }).catch(() => null); // silent if upload already failed (toast shown above)
 
         if (newLocalId) {
           const newKey = `db_${newLocalId}`;

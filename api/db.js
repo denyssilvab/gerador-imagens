@@ -84,6 +84,18 @@ module.exports = async function handler(req, res) {
       return res.json({ ok: true, id: data.id, url: publicUrl });
     }
 
+    if (action === 'create-upload-url') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const rawName  = req.query.filename || 'image.png';
+      const safeName = rawName.replace(/[^a-z0-9_.-]/gi, '_');
+      const path     = `${userId}/${safeName}_${Date.now()}`;
+      const { data, error } = await sb.storage.from('images').createSignedUploadUrl(path);
+      if (error) throw error;
+      const { data: pubData } = sb.storage.from('images').getPublicUrl(path);
+      return res.json({ ok: true, signedUrl: data.signedUrl, token: data.token, path, publicUrl: pubData.publicUrl });
+    }
+
     if (action === 'load-images') {
       const userId = await getUserId();
       if (!userId) return res.json({ ok: true, images: [], hasMore: false });
