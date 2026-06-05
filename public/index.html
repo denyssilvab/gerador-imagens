@@ -6387,13 +6387,26 @@ let _hiddenFromHistory = _loadHiddenHistory();
 // Remove stale timestamp key that was hiding too many images
 try { localStorage.removeItem('gerar_history_clear_ts'); } catch {}
 
+// Add all possible identifiers for a card to _hiddenFromHistory so it stays
+// hidden across logout/login regardless of whether the key is a session key
+// (gen0_0), an IDB key (db_3) or a Supabase row key (db_101).
+function _addToHidden(key) {
+  _hiddenFromHistory.add(key);
+  const r = results[key];
+  if (r?.sbKey)   _hiddenFromHistory.add(r.sbKey);           // stable Supabase key column
+  if (r?.localId) _hiddenFromHistory.add(`db_${r.localId}`); // IDB id = Supabase key column for session cards
+  if (r?.sbId)    _hiddenFromHistory.add(`db_${r.sbId}`);    // Supabase row id
+  // Also grab sbKey from the card DOM element (set by _applyLoadedImages)
+  const cardEl = document.getElementById(`card_${key}`);
+  if (cardEl?.dataset?.sbKey) _hiddenFromHistory.add(cardEl.dataset.sbKey);
+}
+
 function icardMenuDelete() {
   const key = _icardMenuKey;
   if (!key) return;
   if (!confirm('Remover esta imagem do histórico?\n\nEla continuará disponível no Dashboard.')) return;
   // Hide from history without deleting from DB/Dashboard
-  _hiddenFromHistory.add(key);
-  const _r = results[key]; if (_r?.sbKey) _hiddenFromHistory.add(_r.sbKey);
+  _addToHidden(key);
   _saveHiddenHistory(_hiddenFromHistory);
   document.getElementById(`card_${key}`)?.remove();
   toast('Imagem removida do histórico.', 'ok');
@@ -6538,9 +6551,7 @@ function clearResults() {
   document.querySelectorAll('#img-grid .icard[data-key]').forEach(card => {
     const key = card.dataset.key;
     if (!key) return;
-    _hiddenFromHistory.add(key);
-    const r = results[key];
-    if (r?.sbKey) _hiddenFromHistory.add(r.sbKey); // also store stable Supabase key column value
+    _addToHidden(key);
   });
   _saveHiddenHistory(_hiddenFromHistory);
 
@@ -6628,10 +6639,7 @@ async function deleteSelected() {
     if (card) card.remove();
 
     // Hide from history (persists across reloads; image stays in Dashboard/Supabase)
-    _hiddenFromHistory.add(key);
-    const _rd = results[key];
-    if (_rd?.sbKey) _hiddenFromHistory.add(_rd.sbKey);
-    if (_rd?.localId) _hiddenFromHistory.add(`db_${_rd.localId}`);
+    _addToHidden(key);
 
     // Remove from IndexedDB cache for db_ keys (Supabase remains for dashboard)
     if (key.startsWith('db_')) {
