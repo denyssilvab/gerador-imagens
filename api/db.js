@@ -67,16 +67,19 @@ module.exports = async function handler(req, res) {
         .from('images')
         .upsert({
           key,
-          user_id:              userId,
-          storage_path:         storagePath,
-          url:                  publicUrl,
+          user_id:      userId,
+          storage_path: storagePath,
+          url:          publicUrl,
           filename,
-          page_num:             pageNum,
+          page_num:     pageNum,
           title,
-          doc_type:             docType,
-          original_url:         originalUrl || null,
-          folder_id:            folderId    || null,
-          hidden_from_history:  false, // always reset — a re-save means the image is new/visible
+          doc_type:     docType,
+          original_url: originalUrl || null,
+          folder_id:    folderId    || null,
+          // hidden_from_history intentionally omitted:
+          // – on INSERT the column DEFAULT (false) applies → image is visible
+          // – on UPDATE (upsert conflict) the existing value is preserved →
+          //   a user-hidden image never gets accidentally un-hidden by a re-save
         }, { onConflict: 'key' })
         .select()
         .single();

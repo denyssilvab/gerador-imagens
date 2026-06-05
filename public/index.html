@@ -3692,6 +3692,7 @@ let dashSelected   = new Set(); // keys of selected dashboard items (images, txt
 let _dashLoadingData = false; // true while initial load (folders + images) is in progress
 let _dashPage        = 0;    // next page to fetch from Supabase
 let _dashHasMore     = false; // whether more pages exist
+const _renderedIds   = new Set(); // Supabase row IDs already in img-grid — absolute dedup guard
 let _dashLoadingMore = false; // guard against concurrent fetches
 const _DASH_PAGE_LIMIT = 50;
 
@@ -4678,7 +4679,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
 
-    // Deduplicate by DOM id or stable sb-key (guards against pagination overlap)
+    // Absolute dedup: never render the same Supabase row twice per page-load
+    if (grid && r.id) {
+      if (_renderedIds.has(r.id)) return;
+      _renderedIds.add(r.id);
+    }
+
+    // Secondary dedup: stable sb-key or existing card id (pagination overlap, in-session cards)
     const alreadyInDom = grid && (
       !!document.getElementById(`card_${domKey}`) ||
       (r.key && !!document.querySelector(`[data-sb-key="${CSS.escape(r.key)}"]`))
@@ -6011,6 +6018,7 @@ function _onAuthChange(event, session) {
     });
   } else {
     _authDataLoaded = false; // reset on logout so next login loads fresh
+    _renderedIds.clear();
     _showAuthScreen();
     const chip = document.getElementById('user-chip');
     if (chip) chip.style.display = 'none';

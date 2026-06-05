@@ -15,6 +15,33 @@ const MODELS = {
   'prunaai/image-upscale':               { slug: 'prunaai/image-upscale',               scaleParam: 'scale' },
 };
 
+// Upload a base64 data: URL to Replicate's Files API and return the HTTPS URL.
+// Replicate models require a valid URI — they reject data: URLs with "format 'uri'" error.
+async function uploadToReplicateFiles(dataUrl, token) {
+  const commaIdx = dataUrl.indexOf(',');
+  if (commaIdx === -1) throw new Error('Invalid data URL format');
+  const mimeType = (dataUrl.slice(0, commaIdx).match(/:(.*?);/) || [])[1] || 'image/png';
+  const binaryStr = atob(dataUrl.slice(commaIdx + 1));
+  const bytes = new Uint8Array(binaryStr.length);
+  for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+
+  const res = await fetch('https://api.replicate.com/v1/files', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': mimeType,
+      'Content-Disposition': 'attachment; filename="image.png"',
+    },
+    body: bytes.buffer,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || `Replicate file upload failed: HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.urls?.get || null;
+}
+
 export default async function handler(req) {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 });
@@ -24,9 +51,22 @@ export default async function handler(req) {
   try { body = await req.json(); }
   catch { return new Response(JSON.stringify({ error: 'JSON inválido' }), { status: 400 }); }
 
-  const { dataUrl, scale, token, upscaleModel = 'nightmareai/real-esrgan' } = body;
+  let { dataUrl, scale, token, upscaleModel = 'nightmareai/real-esrgan' } = body;
   if (!dataUrl || !scale || !token) {
     return new Response(JSON.stringify({ error: 'Parâmetros incompletos' }), { status: 400 });
+  }
+
+  // Convert data: URL to a Replicate-hosted HTTPS URL before building the prediction input
+  if (dataUrl.startsWith('data:')) {
+    try {
+      const fileUrl = await uploadToReplicateFiles(dataUrl, token);
+      if (fileUrl) dataUrl = fileUrl;
+      else throw new Error('Replicate Files API returned no URL');
+    } catch (e) {
+      return new Response(JSON.stringify({ error: `Falha ao enviar imagem: ${e.message}` }), {
+        status: 400, headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   const cfg = MODELS[upscaleModel];
