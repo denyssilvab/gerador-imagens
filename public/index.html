@@ -810,6 +810,12 @@
       display: grid; grid-template-columns: repeat(auto-fill, 190px); gap: 16px;
       padding: 20px 28px 40px; align-content: start; justify-content: start;
     }
+    .dash-skel { width: 190px; min-width: 190px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; position: relative; }
+    .dash-skel::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.06) 50%, transparent); animation: shimmer 1.5s ease infinite; }
+    .dash-skel-thumb { width: 190px; height: 142px; background: var(--surface2); }
+    .dash-skel-info { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .dash-skel-line { height: 11px; border-radius: 4px; background: var(--surface2); }
+    .dash-skel-line.short { width: 55%; }
     .dash-card { width: 190px; min-width: 190px; max-width: 190px; flex-shrink: 0; }
     .dash-card {
       background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
@@ -3549,6 +3555,7 @@ let dashVersion    = 'orig'; // 'orig' = originals, 'edit' = upscaled
 let dashFolders    = [];
 let _dashFolderMenuKey = null;
 let dashSelected   = new Set(); // keys of selected dashboard items (images, txt)
+let _dashLoadingData = false; // true while initial load (folders + images) is in progress
 
 function setDashVersion(v) {
   dashVersion = v;
@@ -3956,6 +3963,42 @@ async function dashDeleteFolder(id) {
 let _previewItems = [];  // ordered list of previewable items
 let _previewIdx   = 0;
 
+function openTxtInConteudo(key) {
+  let content = '', docType = '';
+  const memEntry = generatedFiles.find(f => f.key === key);
+  if (memEntry) {
+    content = memEntry.content;
+    docType = memEntry.type;
+  } else {
+    const r = results[key];
+    if (!r) return;
+    docType = r.docType || '';
+    if (r.url?.startsWith('data:text/')) {
+      try {
+        const bytes = Uint8Array.from(atob(r.url.split(',')[1]), c => c.charCodeAt(0));
+        content = new TextDecoder().decode(bytes);
+      } catch { content = ''; }
+    }
+  }
+  const btn = document.querySelector('.nav-item[onclick*="conteudo"]');
+  setPage('conteudo', btn);
+  const fieldMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', lessonplan: 'claude-output-lessonplan' };
+  const fieldId = fieldMap[docType];
+  if (fieldId) {
+    // All-mode: show the combined output block
+    document.getElementById('claude-output-all').style.display = 'flex';
+    document.getElementById('claude-output-card').style.display = 'none';
+    const el = document.getElementById(fieldId);
+    if (el) { el.value = content; el.scrollTop = 0; }
+  } else {
+    // Single-mode fallback
+    document.getElementById('claude-output-card').style.display = '';
+    document.getElementById('claude-output-all').style.display = 'none';
+    const el = document.getElementById('claude-output');
+    if (el) { el.value = content; el.scrollTop = 0; }
+  }
+}
+
 function openPreview(key) {
   // Build list from current visible items (same order as grid)
   _previewItems = [...document.querySelectorAll('#dash-grid .dash-card[data-key]')]
@@ -4315,6 +4358,16 @@ function refreshDashboard() {
 
   // Empty state for files only (folders above are already rendered)
   if (!allItems.length) {
+    if (_dashLoadingData) {
+      // Show skeleton cards while data is loading
+      for (let _i = 0; _i < 8; _i++) {
+        const sk = document.createElement('div');
+        sk.className = 'dash-skel';
+        sk.innerHTML = '<div class="dash-skel-thumb"></div><div class="dash-skel-info"><div class="dash-skel-line"></div><div class="dash-skel-line short"></div></div>';
+        grid.appendChild(sk);
+      }
+      return;
+    }
     const empty = document.createElement('div');
     empty.style.cssText = 'grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;color:var(--muted);';
     empty.innerHTML = '<span style="font-size:36px;">📂</span><p style="margin-top:8px;font-size:14px;">Nenhum arquivo aqui</p>';
@@ -4341,7 +4394,7 @@ function refreshDashboard() {
           </div>
           <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${r.key}')" title="Baixar TXT">⬇</button>
         </div>`;
-      div.onclick = (e) => { if (!e.target.closest('button') && !e.target.closest('.dash-card-check-wrap')) openPreview(r.key); };
+      div.onclick = (e) => { if (!e.target.closest('button') && !e.target.closest('.dash-card-check-wrap')) openTxtInConteudo(r.key); };
       grid.appendChild(div);
       return;
     }
@@ -4383,7 +4436,7 @@ function refreshDashboard() {
           </div>
           <a class="btn btn-ghost btn-sm" href="${esc(r.url)}" download="${esc(r.filename || 'arquivo.txt')}" title="Baixar TXT">⬇</a>
         </div>`;
-      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) openPreview(r.key); };
+      div.onclick = (e) => { if (!e.target.closest('a') && !e.target.closest('.dash-card-check-wrap')) openTxtInConteudo(r.key); };
       grid.appendChild(div);
       return;
     }
@@ -4631,7 +4684,8 @@ function _renderStorageLibSidebar() {
 function _renderStorageLibGrid() {
   const grid = document.getElementById('storage-modal-grid');
   if (!grid) return;
-  let items = Object.entries(results).filter(([, r]) => r && r.url);
+  let items = Object.entries(results).filter(([, r]) => r && r.url
+    && !(r.url.startsWith('data:text/') || (r.filename || '').endsWith('.txt')));
   if (_slibFilter !== null) items = items.filter(([, r]) => r.folderId === _slibFilter);
   if (!items.length) {
     grid.innerHTML = '<div class="empty" style="grid-column:1/-1"><span class="ico">🖼</span><p>Nenhuma imagem</p></div>';
@@ -5443,8 +5497,11 @@ function _onAuthChange(event, session) {
     const _pageBtn = document.querySelector(`.nav-item[onclick*="'${_savedPage}'"]`);
     setPage(_savedPage, _pageBtn);
     loadApiKeys();
-    loadFolders();
-    loadPersistedImages();
+    _dashLoadingData = true;
+    Promise.all([loadFolders(), loadPersistedImages()]).finally(() => {
+      _dashLoadingData = false;
+      refreshDashboard();
+    });
   } else {
     _showAuthScreen();
     const chip = document.getElementById('user-chip');
