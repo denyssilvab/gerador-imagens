@@ -7524,10 +7524,14 @@ async function upscaleSelected(scale) {
 
         const sourceUrl = r.originalUrl || r.url;
 
-        // Comprime para JPEG antes de enviar (PNG ~4MB → JPEG ~300KB, evita timeout)
-        _updateStatus('Comprimindo imagem…');
-        const compressedUrl = await compressForUpscale(sourceUrl);
-        if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
+        // Compress to JPEG only for data: URLs (large PNGs) to stay under Vercel body limit.
+        // Remote HTTPS URLs are passed directly — no canvas/CORS issues, no needless re-encode.
+        let compressedUrl = sourceUrl;
+        if (sourceUrl?.startsWith('data:')) {
+          _updateStatus('Comprimindo imagem…');
+          compressedUrl = await compressForUpscale(sourceUrl);
+          if (signal.aborted) { if (pv) pv.innerHTML = prev; return; }
+        }
 
         // Vercel cria a prediction e retorna predictionId imediatamente (sem wait)
         _updateStatus(`Upscale ${scale}× — iniciando…`);
