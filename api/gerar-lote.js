@@ -160,17 +160,34 @@ export default async function handler(req) {
         const onAbort = () => ctrl.abort();
         reqSignal.addEventListener('abort', onAbort);
 
-        try {
-          const dataUrl = provider === 'replicate'
-            ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
-            : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
+        const MAX_ATTEMPTS = 3;
+        let lastError;
 
-          send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl, docType: page.docType });
+        try {
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            if (ctrl.signal.aborted) break;
+            try {
+              const dataUrl = provider === 'replicate'
+                ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
+                : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
+
+              send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl, docType: page.docType });
+              return; // success — exit retry loop
+            } catch (e) {
+              if (ctrl.signal.aborted) throw e; // don't retry on user cancel
+              lastError = e;
+              if (attempt < MAX_ATTEMPTS) {
+                const waitSec = attempt * 8; // 8s, 16s between retries
+                await new Promise(r => setTimeout(r, waitSec * 1000));
+              }
+            }
+          }
+          throw lastError;
         } catch (e) {
           if (ctrl.signal.aborted) {
             send({ type: 'cancelled', index, pageNum: page.num, title: page.title });
           } else {
-            send({ type: 'error', index, pageNum: page.num, title: page.title, error: e.message });
+            send({ type: 'error', index, pageNum: page.num, title: page.title, error: lastError?.message || e.message });
           }
         } finally {
           reqSignal.removeEventListener('abort', onAbort);
