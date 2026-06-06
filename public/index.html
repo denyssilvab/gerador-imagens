@@ -7707,7 +7707,9 @@ async function upscaleSelected(scale) {
 
         const upscaledUrl = data.dataUrl;
         const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
-        const filename = r.filename.replace('.png', `_${modelSlug}_${scale}x.png`);
+        const outExt  = upscaledUrl.startsWith('data:image/jpeg') ? 'jpg' : 'png';
+        const baseName = (r.filename || 'image').replace(/\.[^.]+$/, '');
+        const filename = `${baseName}_${modelSlug}_${scale}x.${outExt}`;
         const modelKey = `${upscaleModel}:${scale}x`;
         const upscales = { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } };
         results[key] = {
@@ -7794,10 +7796,18 @@ async function zipUpscaledImages() {
   toast('Gerando ZIP…', '');
   try {
     const zip = new JSZip();
+    const usedNames = new Map();
     for (const key of keys) {
       const r = results[key];
       if (!r?.url) continue;
-      const fname = r.filename || `${key}.png`;
+      const raw      = r.filename || `${key}.png`;
+      const lastDot  = raw.lastIndexOf('.');
+      const base     = lastDot > 0 ? raw.slice(0, lastDot) : raw;
+      const ext      = lastDot > 0 ? raw.slice(lastDot + 1) : 'png';
+      const candidate = `${base}.${ext}`;
+      const count    = usedNames.get(candidate) || 0;
+      usedNames.set(candidate, count + 1);
+      const fname    = count > 0 ? `${base} (${count}).${ext}` : candidate;
       if (r.url.startsWith('data:')) {
         zip.file(fname, r.url.split(',')[1], { base64: true });
       } else {
