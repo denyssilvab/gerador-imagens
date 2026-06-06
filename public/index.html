@@ -6503,12 +6503,18 @@ async function startGeneration() {
         ...p,
         title: `[${typeLabels[type]}] ${p.title}`,
         content: buildPromptForType(p, type),
+        _rawContent: p.content, // raw page text preserved for retry
         docType: type,
       }));
     }
   } else {
     const rawPages = parsePages(document.getElementById('prompt').value);
-    rawPages.forEach(p => pages.push({ ...p, content: buildPrompt(p), docType }));
+    rawPages.forEach(p => pages.push({
+      ...p,
+      content: buildPrompt(p),
+      _rawContent: p.content, // raw page text preserved for retry
+      docType,
+    }));
   }
   if (!pages.length) { toast('Nenhuma página detectada. Verifique o formato do prompt.', 'err'); return; }
 
@@ -7337,13 +7343,20 @@ async function retryPage(domKey) {
   if (pv) pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Gerando novamente…</span></div>`;
   if (ft) ft.style.display = 'none';
 
+  // Rebuild the prompt from the stored raw page content so the retry uses
+  // exclusively this page's text, not a previously combined/cached string.
+  const rawPage = { num: pd.num, title: pd.title, content: pd._rawContent ?? pd.content };
+  const retryContent = (pd.docType && pd.docType !== 'all')
+    ? buildPromptForType(rawPage, pd.docType)
+    : buildPrompt(rawPage);
+
   try {
     const res = await fetch('/api/gerar-lote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         apiKey, provider, model, quality, size,
-        pages: [{ num: pd.num, title: pd.title, content: pd.content, docType: pd.docType }]
+        pages: [{ num: pd.num, title: pd.title, content: retryContent, docType: pd.docType }]
       }),
     });
 
