@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerador de Material Pedagógico</title>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     :root {
@@ -2235,7 +2236,7 @@
             <button class="btn btn-ghost btn-sm" id="combinar-clear-sel-btn" style="display:none;font-size:11px;color:#f87171;" title="Remover selecionadas" onclick="combinarRemoveSelected()">🗑 Remover sel.</button>
             <button class="btn btn-ghost btn-sm" title="Adicionar da biblioteca" onclick="combinarOpenAddModal()">+ Adicionar</button>
             <button class="btn btn-ghost btn-sm" title="Upload do computador" onclick="document.getElementById('combinar-upload-input').click()">⬆ Upload</button>
-            <input type="file" id="combinar-upload-input" accept="image/*" multiple style="display:none" onchange="combinarUploadFiles(this.files)" />
+            <input type="file" id="combinar-upload-input" accept="image/*,application/pdf" multiple style="display:none" onchange="combinarUploadFiles(this.files)" />
             <button class="btn btn-ghost btn-sm" title="Limpar lista" onclick="combinarClear()">🗑 Limpar</button>
           </div>
         </div>
@@ -5040,28 +5041,74 @@ function combinarOpenAddModal() {
   openStorageLibrary('combinar');
 }
 
+async function _renderPdfPages(file, onProgress) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js não carregado');
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const pages = [];
+  for (let n = 1; n <= pdf.numPages; n++) {
+    if (onProgress) onProgress(n, pdf.numPages);
+    const page     = await pdf.getPage(n);
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas   = document.createElement('canvas');
+    canvas.width   = viewport.width;
+    canvas.height  = viewport.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    pages.push({ url: canvas.toDataURL('image/jpeg', 0.88), pageNum: n });
+    canvas.width = 0; canvas.height = 0; // release GPU memory
+  }
+  return pages;
+}
+
 async function combinarUploadFiles(files) {
   if (!files || !files.length) return;
   const fileArr = Array.from(files);
   const input = document.getElementById('combinar-upload-input');
   if (input) input.value = '';
   let added = 0;
-  for (const file of fileArr) {
-    if (!file.type.startsWith('image/')) continue;
-    const url = await new Promise((res, rej) => {
-      const reader = new FileReader();
-      reader.onload  = () => res(reader.result);
-      reader.onerror = rej;
-      reader.readAsDataURL(file);
-    });
-    const key = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const title = file.name.replace(/\.[^.]+$/, '');
-    combinarItems.push({ key, pageNum: null, title, url, docType: '' });
-    added++;
+  let overlay = null;
+  try {
+    for (const file of fileArr) {
+      const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+      if (isPdf) {
+        if (!overlay) {
+          overlay = document.createElement('div');
+          overlay.className = 'pdf-overlay';
+          overlay.innerHTML = '<div class="spinner"></div><p id="pdf-split-prog">Processando PDF…</p>';
+          document.body.appendChild(overlay);
+        }
+        const title = file.name.replace(/\.[^.]+$/, '');
+        const pages = await _renderPdfPages(file, (cur, total) => {
+          const el = document.getElementById('pdf-split-prog');
+          if (el) el.textContent = `Renderizando página ${cur} de ${total}…`;
+        });
+        for (const { url, pageNum } of pages) {
+          const key = `upload_pdf_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+          combinarItems.push({ key, pageNum: null, title: `${title} — pág. ${pageNum}`, url, docType: '' });
+          added++;
+        }
+      } else if (file.type.startsWith('image/')) {
+        const url = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload  = () => res(reader.result);
+          reader.onerror = rej;
+          reader.readAsDataURL(file);
+        });
+        const key = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        combinarItems.push({ key, pageNum: null, title: file.name.replace(/\.[^.]+$/, ''), url, docType: '' });
+        added++;
+      }
+    }
+  } catch (e) {
+    toast(`Erro ao processar arquivo: ${e.message}`, 'err');
+  } finally {
+    if (overlay) overlay.remove();
   }
   if (added) {
     renderCombinarList();
-    toast(`${added} imagem${added !== 1 ? 'ns' : ''} adicionada${added !== 1 ? 's' : ''}.`, 'ok');
+    toast(`${added} página${added !== 1 ? 's' : ''} adicionada${added !== 1 ? 's' : ''}.`, 'ok');
   }
 }
 
