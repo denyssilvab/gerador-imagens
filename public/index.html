@@ -7806,13 +7806,22 @@ async function zipUpscaledImages() {
     ? [..._sessionUpscaledSelected]
     : _sessionUpscaledKeys;
   if (!keys.length) { toast('Nenhuma imagem upscalada para baixar.', 'warn'); return; }
-  toast('Gerando ZIP…', '');
+
+  const overlay = document.createElement('div');
+  overlay.className = 'pdf-overlay';
+  overlay.innerHTML = `<div class="spinner"></div><p id="upscale-zip-prog">Preparando ZIP… 0 / ${keys.length}</p>`;
+  document.body.appendChild(overlay);
+
   try {
     const zip = new JSZip();
     const usedNames = new Map();
-    for (const key of keys) {
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
       const r = results[key];
       if (!r?.url) continue;
+      const prog = document.getElementById('upscale-zip-prog');
+      if (prog) prog.textContent = `Adicionando ${i + 1} de ${keys.length}…`;
+      await new Promise(res => setTimeout(res, 0));
       const raw      = r.filename || `${key}.png`;
       const lastDot  = raw.lastIndexOf('.');
       const base     = lastDot > 0 ? raw.slice(0, lastDot) : raw;
@@ -7828,7 +7837,12 @@ async function zipUpscaledImages() {
         zip.file(fname, blob);
       }
     }
-    const blob = await zip.generateAsync({ type: 'blob' });
+    const prog = document.getElementById('upscale-zip-prog');
+    if (prog) prog.textContent = 'Gerando ZIP…';
+    const blob = await zip.generateAsync({ type: 'blob' }, ({ percent }) => {
+      const p = document.getElementById('upscale-zip-prog');
+      if (p) p.textContent = `Comprimindo… ${Math.round(percent)}%`;
+    });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `upscaled_${Date.now()}.zip`;
@@ -7837,6 +7851,8 @@ async function zipUpscaledImages() {
     toast(`ZIP com ${keys.length} imagem${keys.length !== 1 ? 'ns' : ''} baixado!`, 'ok');
   } catch (e) {
     toast(`Erro ao gerar ZIP: ${e.message}`, 'err');
+  } finally {
+    overlay.remove();
   }
 }
 
