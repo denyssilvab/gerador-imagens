@@ -4818,7 +4818,22 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
     // PDFs, TXTs and upscaled images belong only in the dashboard, not in the generation history grid
     const _isPdf = r.docType === 'pdf' || (r.filename || '').toLowerCase().endsWith('.pdf');
     const _isTxt = (r.url || '').startsWith('data:text/') || (r.filename || '').toLowerCase().endsWith('.txt');
-    const _isHidden = _isPdf || _isTxt || _isUpscaled(r.filename)
+
+    // TXT files: restore to generatedFiles (deduped by r.key) to avoid IDB/Supabase dual-entry duplication in dashboard
+    if (_isTxt) {
+      const txtKey = r.key || domKey;
+      if (!generatedFiles.find(f => f.key === txtKey)) {
+        let content = '';
+        try {
+          const b64 = (r.dataUrl || r.url || '').split(',')[1] || '';
+          content = decodeURIComponent(escape(atob(b64)));
+        } catch { content = ''; }
+        generatedFiles.push({ key: txtKey, type: r.docType || '', filename: r.filename || r.title || '', content, ts: r.ts || 0 });
+      }
+      return;
+    }
+
+    const _isHidden = _isPdf || _isUpscaled(r.filename)
       || _hiddenFromHistory.has(domKey)
       || (r.key && _hiddenFromHistory.has(r.key));
 
