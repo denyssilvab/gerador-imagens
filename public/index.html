@@ -4086,9 +4086,10 @@ async function confirmBulkMove() {
   // Persist in background, then clear pending guards
   for (const key of keys) {
     const sbKey = results[key]?.sbKey;
+    const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
     authFetch('/api/db?action=assign-folder', {
       method: 'POST',
-      body: JSON.stringify({ ..._deletePayload(key), folderId }),
+      body: JSON.stringify(payload),
     }).then(() => {
       if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
     }).catch(() => {}).finally(() => {
@@ -4720,8 +4721,9 @@ async function confirmMove() {
     if (found) key = found;
   }
 
-  const folderId = _moveSelectedFolderId;
-  const sbKey = results[key]?.sbKey || _fileCtxSbKey || null;
+  const folderId    = _moveSelectedFolderId;
+  const sbKey       = results[key]?.sbKey || _fileCtxSbKey || null;
+  const prevFolderId = results[key]?.folderId ?? null;
   closeMoveModal();
 
   // Optimistic update + guard against Phase-2 race condition
@@ -4730,14 +4732,22 @@ async function confirmMove() {
   refreshDashboard();
 
   try {
-    // Build payload: prefer sbKey (stable Supabase key) to avoid sending wrong IDB local id
     const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
-    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
-    // Re-apply in case Phase-2 ran while awaiting and replaced the entry
+    const apiRes = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) });
+    if (!apiRes.ok) throw new Error(`HTTP ${apiRes.status}`);
+    // Re-apply + re-render in case Phase-2 ran while awaiting and replaced the entry
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
+    refreshDashboard();
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
+  } catch (e) {
+    // Revert optimistic update
+    const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
+    if (liveKey && results[liveKey]) results[liveKey].folderId = prevFolderId;
+    if (results[key]) results[key].folderId = prevFolderId;
+    refreshDashboard();
+    toast('Erro ao mover arquivo.', 'err');
   } finally {
     if (sbKey) delete _pendingMoves[sbKey];
   }
@@ -4812,7 +4822,10 @@ function refreshDashboard() {
   // ── Folder cards — rendered BEFORE empty check so an empty folder still shows subfolders ──
   const _renderFolderCard = (f) => {
     const fid = Number(f.id);
-    const fileCount = Object.values(results).filter(r => r && Number(r.folderId) === fid).length;
+    const fileCount = Object.values(results).filter(r =>
+      r && r.url && Number(r.folderId) === fid &&
+      (dashVersion === 'edit' ? _isUpscaled(r.filename) : !_isUpscaled(r.filename))
+    ).length;
     const subCount  = dashFolders.filter(sf => Number(sf.parent_id) === fid).length;
     const metaParts = [];
     if (subCount)  metaParts.push(`${subCount} pasta${subCount !== 1 ? 's' : ''}`);
