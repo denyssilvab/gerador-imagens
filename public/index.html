@@ -4991,8 +4991,8 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Phase 2 only: build sbKey→domKey index so we can patch Phase-1 (IDB) results entries
-  // with the authoritative Supabase folderId and sbId — fixes folder moves not persisting after reload.
+  // Phase-2 only: index of sbKey→domKey built from Phase-1 (IDB) results entries so we can
+  // remove stale IDB entries after Phase-2 writes the authoritative Supabase entry.
   const sbKeyToDomKey = {};
   if (addToImgGrid) {
     Object.entries(results).forEach(([dk, r]) => { if (r?.sbKey) sbKeyToDomKey[r.sbKey] = dk; });
@@ -5045,19 +5045,11 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
     );
 
     if (grid && !alreadyInDom && !_isHidden) {
-      const card = makePersistedCard(r);
+      const card = makePersistedCard(r); // also writes results[domKey] with Supabase data
       card.dataset.sbKey = r.key || '';
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
       visibleAdded++;
-      // Patch Phase-1 (IDB) results entry with Supabase folderId and real sbId.
-      // folderId: Supabase is authoritative — IDB was never updated by old assign-folder calls.
-      // sbId: IDB entry stores local auto-increment id, not the real Supabase id.
-      const phase1Key = r.key ? sbKeyToDomKey[r.key] : null;
-      if (phase1Key && results[phase1Key]) {
-        results[phase1Key].folderId = r.folderId;
-        results[phase1Key].sbId     = r.id;
-      }
     } else {
       // Populate/update results for dashboard without touching the DOM
       results[domKey] = {
@@ -5067,6 +5059,17 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
         docType: r.docType, folderId: r.folderId, ts: r.ts,
         sbId: r.id, sbKey: r.key,
       };
+    }
+
+    // Phase-2 only: remove the stale Phase-1 IDB entry (db_<localId>) to prevent dashboard
+    // duplication and stale folderId. makePersistedCard / else branch already wrote the
+    // authoritative Supabase entry (db_<supabaseId>). Only remove IDB-derived keys (db_ prefix
+    // with a different id) — session-generated keys have a different format and must stay.
+    if (addToImgGrid && r.key) {
+      const phase1Key = sbKeyToDomKey[r.key];
+      if (phase1Key && phase1Key !== domKey && phase1Key.startsWith('db_')) {
+        delete results[phase1Key];
+      }
     }
   });
   if (grid && visibleAdded > 0) {
