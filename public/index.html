@@ -4171,6 +4171,17 @@ function filterDashboardFolder(folderId, el) {
   const todosTab = document.querySelector('.dash-type-tab[onclick*="\'all\'"]');
   if (todosTab) todosTab.classList.add('active');
   if (el) el.classList.add('active');
+  // DIAG
+  const allEntries = Object.entries(results).filter(([,r]) => r && r.url);
+  console.log(`[FOLDER-FILTER] Entering folder id=${folderId} (type=${typeof folderId}). Total results entries: ${allEntries.length}`);
+  const byFolder = allEntries.reduce((acc, [k, r]) => {
+    const key = r.folderId === null ? 'null' : r.folderId === undefined ? 'undefined' : String(r.folderId);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  console.log('[FOLDER-FILTER] folderId distribution in results:', byFolder);
+  const srcIdbCount = allEntries.filter(([,r]) => r._srcIDB).length;
+  console.log(`[FOLDER-FILTER] _srcIDB entries: ${srcIdbCount}`);
   _updateBreadcrumb();
   refreshDashboard();
 }
@@ -4784,7 +4795,17 @@ function refreshDashboard() {
   // only Supabase-confirmed entries (no _srcIDB) are shown inside folders.
   if (dashFolderFilter !== null) {
     // Inside a folder: only Supabase-confirmed files belonging to this folder
-    items = items.filter(r => !r._srcIDB && Number(r.folderId) === Number(dashFolderFilter));
+    const beforeCount = items.length;
+    const passing = [], failing = [];
+    items.forEach(r => {
+      const passes = !r._srcIDB && Number(r.folderId) === Number(dashFolderFilter);
+      (passes ? passing : failing).push(r);
+    });
+    console.log(`[REFRESH-FOLDER] dashFolderFilter=${dashFolderFilter} (${typeof dashFolderFilter}) | total=${beforeCount} passing=${passing.length} failing=${failing.length}`);
+    if (passing.length) console.log('[REFRESH-FOLDER] PASSING items:', passing.map(r => ({ key: r.key, folderId: r.folderId, _srcIDB: r._srcIDB, filename: r.filename })));
+    const falsePositives = failing.filter(r => !r.folderId || r.folderId === null);
+    if (falsePositives.length) console.warn('[REFRESH-FOLDER] Root files that SHOULD NOT pass (folderId=null):', falsePositives.map(r => ({ key: r.key, folderId: r.folderId, _srcIDB: r._srcIDB, filename: r.filename })));
+    items = passing;
     if (dashFilter !== 'all') items = items.filter(r => r.docType === dashFilter);
   } else {
     // Root: unfiled files (IDB entries with folderId=null are safe to show here)
