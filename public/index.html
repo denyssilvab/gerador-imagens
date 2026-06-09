@@ -4073,30 +4073,61 @@ async function confirmBulkMove() {
   const keys = [...dashSelected];
   document.getElementById('move-modal').style.display = 'none';
 
-  // Optimistic update + guard against Phase-2 race condition
-  for (const key of keys) {
+  console.log(`[BULK-MOVE] folderId=${folderId} keys=${JSON.stringify(keys)}`);
+
+  // Build per-key metadata before clearing selection
+  const moveItems = keys.map(key => {
+    const r = results[key];
+    const sbKey = r?.sbKey || null;
+    const prevFolderId = r?.folderId ?? null;
+    console.log(`[BULK-MOVE]   key=${key} exists=${!!r} sbKey=${sbKey} prevFolderId=${prevFolderId}`);
+    return { key, sbKey, prevFolderId };
+  });
+
+  // Optimistic update + Phase-2 race guard
+  moveItems.forEach(({ key, sbKey }) => {
     if (results[key]) results[key].folderId = folderId;
-    const sbKey = results[key]?.sbKey;
     if (sbKey) _pendingMoves[sbKey] = folderId;
-  }
+  });
   dashSelected.clear();
   refreshDashboard();
   _updateDashBulkBar();
 
-  // Persist in background, then clear pending guards
-  for (const key of keys) {
-    const sbKey = results[key]?.sbKey;
+  // Persist each file; await sequentially so errors don't swallow each other
+  let successCount = 0, failCount = 0;
+  for (const { key, sbKey, prevFolderId } of moveItems) {
     const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
-    authFetch('/api/db?action=assign-folder', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    }).then(() => {
+    console.log(`[BULK-MOVE] API payload:`, payload);
+    try {
+      const res = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      console.log(`[BULK-MOVE] ✓ key=${key} sbKey=${sbKey} → folderId=${folderId}`);
+      // Re-confirm in results (Phase-2 may have created a new domKey for this sbKey)
+      const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
+      if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
       if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
-    }).catch(() => {}).finally(() => {
+      successCount++;
+    } catch (e) {
+      console.error(`[BULK-MOVE] ✗ key=${key} sbKey=${sbKey} error=${e.message}`);
+      // Rollback optimistic update for this file
+      const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
+      if (liveKey && results[liveKey]) results[liveKey].folderId = prevFolderId;
+      if (results[key]) results[key].folderId = prevFolderId;
+      failCount++;
+    } finally {
       if (sbKey) delete _pendingMoves[sbKey];
-    });
+    }
   }
-  toast(folderId ? `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''}.` : `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''} para a raiz.`, 'ok');
+
+  refreshDashboard();
+  if (failCount === 0) {
+    toast(`${successCount} arquivo${successCount!==1?'s':''} movido${successCount!==1?'s':''}.`, 'ok');
+  } else if (successCount === 0) {
+    toast(`Erro ao mover arquivos.`, 'err');
+  } else {
+    toast(`${successCount} movido${successCount!==1?'s':''}; ${failCount} com erro.`, 'warn');
+  }
 }
 
 // ── Breadcrumb helpers ─────────────────────────────────────────────────────
@@ -4735,23 +4766,29 @@ async function confirmMove() {
   const folderId    = _moveSelectedFolderId;
   const sbKey       = results[key]?.sbKey || _fileCtxSbKey || null;
   const prevFolderId = results[key]?.folderId ?? null;
+  console.log(`[MOVE] key=${key} exists=${!!results[key]} sbKey=${sbKey} prevFolderId=${prevFolderId} → folderId=${folderId}`);
   closeMoveModal();
 
   // Optimistic update + guard against Phase-2 race condition
   if (results[key]) results[key].folderId = folderId;
+  else console.warn(`[MOVE] results[${key}] not found — optimistic update skipped!`);
   if (sbKey) _pendingMoves[sbKey] = folderId;
+  else console.warn(`[MOVE] sbKey is null — _pendingMoves guard not set!`);
   refreshDashboard();
 
   try {
     const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
+    console.log(`[MOVE] API payload:`, payload);
     const apiRes = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) });
     const apiData = await apiRes.json().catch(() => ({}));
     if (!apiRes.ok) throw new Error(apiData.error || `HTTP ${apiRes.status}`);
+    console.log(`[MOVE] ✓ success sbKey=${sbKey} → folderId=${folderId}`);
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
     refreshDashboard();
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
   } catch (e) {
+    console.error(`[MOVE] ✗ error: ${e.message}`);
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = prevFolderId;
     if (results[key]) results[key].folderId = prevFolderId;
@@ -5136,6 +5173,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
                      || null;
       if (phase1Key && phase1Key !== domKey && phase1Key.startsWith('db_')) {
         delete results[phase1Key];
+        // If the user selected the IDB card before Phase-2 dedup replaced it,
+        // migrate the selection to the live Supabase key so moves still work.
+        if (typeof dashSelected !== 'undefined' && dashSelected.has(phase1Key)) {
+          dashSelected.delete(phase1Key);
+          dashSelected.add(domKey);
+          console.log(`[DEDUP] Migrated dashSelected: ${phase1Key} → ${domKey}`);
+        }
       }
     }
   });
