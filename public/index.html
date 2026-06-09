@@ -4072,18 +4072,24 @@ async function confirmBulkMove() {
   const folderId = _moveSelectedFolderId;
   const keys = [...dashSelected];
   document.getElementById('move-modal').style.display = 'none';
+
+  // Optimistic update: move all files in UI immediately
   for (const key of keys) {
     if (results[key]) results[key].folderId = folderId;
-    await authFetch('/api/db?action=assign-folder', {
+  }
+  dashSelected.clear();
+  refreshDashboard();
+  _updateDashBulkBar();
+
+  // Persist in background
+  for (const key of keys) {
+    authFetch('/api/db?action=assign-folder', {
       method: 'POST',
       body: JSON.stringify({ ..._deletePayload(key), folderId }),
     }).catch(() => {});
     const sbKey = results[key]?.sbKey;
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
   }
-  dashSelected.clear();
-  refreshDashboard();
-  _updateDashBulkBar();
   toast(folderId ? `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''}.` : `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''} para a raiz.`, 'ok');
 }
 
@@ -4696,15 +4702,24 @@ function closeMoveModal() { document.getElementById('move-modal').style.display 
 async function confirmMove() {
   const key = _fileCtxKey;
   const folderId = _moveSelectedFolderId;
+  const prevFolderId = results[key]?.folderId ?? null;
   closeMoveModal();
+
+  // Optimistic update: move in UI immediately, before the network request
+  if (results[key]) results[key].folderId = folderId;
+  refreshDashboard();
+
   try {
     await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
-    if (results[key]) results[key].folderId = folderId;
     const sbKey = results[key]?.sbKey;
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
-    refreshDashboard();
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
-  } catch (e) { toast('Erro ao mover arquivo.', 'err'); }
+  } catch (e) {
+    // Revert optimistic update on failure
+    if (results[key]) results[key].folderId = prevFolderId;
+    refreshDashboard();
+    toast('Erro ao mover arquivo.', 'err');
+  }
 }
 
 function showFolderAssign(evt, key) { showFileCtxMenu(evt, key); }
