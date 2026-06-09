@@ -1642,9 +1642,10 @@
                 placeholder="Cole aqui o conteúdo das Activities geradas anteriormente. Usado como contexto para gerar o Lesson Plan."></textarea>
             </div>
 
-            <div style="display:flex;align-items:center;gap:10px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
               <button class="btn btn-primary" id="btn-claude-gen" onclick="generateContent()">✦ Gerar com Claude</button>
               <button class="btn btn-danger" id="btn-claude-stop" style="display:none;" onclick="stopClaudeGeneration()">⏹ Parar</button>
+              <span id="conteudo-folder-badge" style="display:none;font-size:12px;color:var(--primary);background:var(--surface2);padding:4px 10px;border-radius:20px;"></span>
               <div class="prog-wrap" id="claude-prog-wrap" style="display:none;">
                 <div class="prog-track"><div class="prog-fill" id="claude-prog-fill" style="width:100%;animation:shimmer 1.5s ease infinite;"></div></div>
                 <div class="prog-label" id="claude-prog-label">Gerando com Claude…</div>
@@ -1902,6 +1903,7 @@
         <button class="btn btn-danger" id="btn-stop" onclick="stopGeneration()" style="display:none;">
           ⏹ Parar Geração
         </button>
+        <span id="gerar-folder-badge" style="display:none;font-size:12px;color:var(--primary);background:var(--surface2);padding:4px 10px;border-radius:20px;"></span>
         <div class="prog-wrap" id="prog-wrap" style="display:none;">
           <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
           <div class="prog-label" id="prog-label">Preparando...</div>
@@ -3483,7 +3485,8 @@ async function resumeGeneration() {
     claudeAbortCtrl = null;
   }
 }
-const generatedFiles = [];
+const generatedFiles = [];          // all txt files (dashboard use)
+const _sessionFiles  = [];          // only files generated in current session (conteudo page display)
 
 function _buildContentFilename(type) {
   const lesson = document.getElementById('content-lesson')?.value || '';
@@ -3498,48 +3501,78 @@ function _buildContentFilename(type) {
   return (parts.join(' ') || type) + '.txt';
 }
 
-function addGeneratedFile(type, content) {
+async function addGeneratedFile(type, content) {
   const filename = _buildContentFilename(type);
-  const ts  = Date.now();
-  const key = `txt_${type}_${ts}`;
-  generatedFiles.push({ key, type, filename, content, ts });
+  const ts       = Date.now();
+  const key      = `txt_${type}_${ts}`;
+  const folderId = dashFolderFilter || null;
 
-  // Persist TXT to DB so it survives page refresh
-  try {
-    const b64     = btoa(unescape(encodeURIComponent(content)));
-    const dataUrl = `data:text/plain;base64,${b64}`;
-    dbSave({
-      key, dataUrl, filename,
-      pageNum:  null,
-      title:    filename,
-      docType:  type,
-      folderId: dashFolderFilter || null,
-    }).catch(() => {});
-  } catch (_) { /* encoding error — skip persist */ }
+  const entry = { key, type, filename, content, ts, folderId };
+  generatedFiles.push(entry);   // dashboard
+  _sessionFiles.push(entry);    // conteudo page (session only)
 
   refreshContentFiles();
   refreshDashboard();
+
+  // Persist to IDB + Supabase; update entry status when done
+  try {
+    const b64     = btoa(unescape(encodeURIComponent(content)));
+    const dataUrl = `data:text/plain;base64,${b64}`;
+    await dbSave({ key, dataUrl, filename, pageNum: null, title: filename, docType: type, folderId });
+    entry._saved = true;
+    refreshContentFiles(); // update saved indicator
+  } catch (_) { /* dbSave shows its own error toast */ }
 }
 
 function refreshContentFiles() {
   const section = document.getElementById('content-generated-files');
   const list    = document.getElementById('content-files-list');
   if (!section || !list) return;
-  if (!generatedFiles.length) { section.style.display = 'none'; return; }
+  if (!_sessionFiles.length) { section.style.display = 'none'; return; }
   section.style.display = '';
+  _refreshConteudoFolderBadge();
   const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
   list.innerHTML = '';
-  generatedFiles.slice().reverse().forEach(f => {
+  _sessionFiles.slice().reverse().forEach(f => {
+    const savedBadge = f._saved
+      ? `<span style="font-size:11px;color:#4caf50;font-weight:600;">✓ Salvo</span>`
+      : `<span style="font-size:11px;color:var(--muted);">Salvando…</span>`;
     const div = document.createElement('div');
     div.className = 'content-file-entry';
     div.innerHTML = `
       <span style="font-size:20px;">📄</span>
       <span class="content-file-entry-name">${esc(f.filename)}</span>
       <span class="content-file-entry-meta">${esc(dtLabel[f.type] || f.type)} · ${_relTime(f.ts)}</span>
+      ${savedBadge}
       <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${f.key}')">⬇ Baixar</button>
     `;
     list.appendChild(div);
   });
+}
+
+function _refreshConteudoFolderBadge() {
+  const badge = document.getElementById('conteudo-folder-badge');
+  if (!badge) return;
+  if (dashFolderFilter) {
+    const f = dashFolders.find(f => Number(f.id) === Number(dashFolderFilter));
+    badge.textContent = `📁 Salvando em: ${f?.name || 'pasta'}`;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function _refreshFolderBadges() {
+  _refreshConteudoFolderBadge();
+  const gb = document.getElementById('gerar-folder-badge');
+  if (!gb) return;
+  if (dashFolderFilter) {
+    const f = dashFolders.find(f => Number(f.id) === Number(dashFolderFilter));
+    gb.textContent = `📁 Salvando em: ${f?.name || 'pasta'}`;
+    gb.style.display = '';
+  } else {
+    gb.style.display = 'none';
+  }
 }
 
 function downloadGeneratedFile(key) {
@@ -3918,6 +3951,7 @@ function setPage(name, el) {
   if (name === 'dashboard')  refreshDashboard();
   if (name === 'upscale')    refreshUpscalePage();
   if (name === 'combinar')   refreshCombinarPage();
+  _refreshFolderBadges();
   try { localStorage.setItem('active_page', name); } catch (_) {}
 }
 
@@ -4198,6 +4232,7 @@ function filterDashboard(type, el) {
   if (todosTab) todosTab.classList.add('active');
   if (el) el.classList.add('active');
   _updateBreadcrumb();
+  _refreshFolderBadges();
   refreshDashboard();
 }
 
@@ -4210,9 +4245,9 @@ function filterDashboardFolder(folderId, el) {
   if (todosTab) todosTab.classList.add('active');
   if (el) el.classList.add('active');
   _updateBreadcrumb();
+  _refreshFolderBadges();
   refreshDashboard();
   // If more Supabase pages exist, load them now so folder files aren't missed
-  // (files in folders may be in later pages if they were created earlier)
   if (_dashHasMore) _loadAllRemainingPages();
 }
 
