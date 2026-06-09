@@ -4776,14 +4776,16 @@ function refreshDashboard() {
     .filter(([, r]) => r && r.url)
     .map(([key, r]) => ({ key, ...r, kind: 'img' }));
 
-  // Include text files (generated prompts) — not folder-organized
+  // Include text files (generated prompts) — not folder-organized.
+  // They must never appear inside a folder view.
   let txtItems = generatedFiles.map(f => ({ ...f, kind: 'txt' }));
-  if (dashFilter === 'folder') {
-    txtItems = []; // text files aren't assigned to folders
+  if (dashFolderFilter !== null || dashFilter === 'folder') {
+    txtItems = []; // text files have no folder assignment — hide inside any folder
   } else if (dashFilter !== 'all') {
     txtItems = txtItems.filter(f => f.type === dashFilter);
   }
   if (search) txtItems = txtItems.filter(f => f.filename.toLowerCase().includes(search));
+  if (dashFolderFilter !== null) console.log(`[REFRESH-FOLDER] txtItems after filter: ${txtItems.length} (should be 0 inside folder)`);
 
   // Filter by version (Originais / Editadas)
   items = dashVersion === 'edit'
