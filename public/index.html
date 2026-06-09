@@ -4734,20 +4734,20 @@ async function confirmMove() {
   try {
     const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
     const apiRes = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) });
-    if (!apiRes.ok) throw new Error(`HTTP ${apiRes.status}`);
-    // Re-apply + re-render in case Phase-2 ran while awaiting and replaced the entry
+    const apiData = await apiRes.json().catch(() => ({}));
+    // DIAGNÓSTICO TEMPORÁRIO — remove após confirmar funcionamento
+    toast(`[DBG] status:${apiRes.status} ok:${apiRes.ok} sbKey:${sbKey||'null'} fId:${folderId}`, apiRes.ok ? 'ok' : 'err');
+    if (!apiRes.ok) throw new Error(apiData.error || `HTTP ${apiRes.status}`);
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
     refreshDashboard();
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
-    toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
   } catch (e) {
-    // Revert optimistic update
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = prevFolderId;
     if (results[key]) results[key].folderId = prevFolderId;
     refreshDashboard();
-    toast('Erro ao mover arquivo.', 'err');
+    toast(`Erro ao mover: ${e.message}`, 'err');
   } finally {
     if (sbKey) delete _pendingMoves[sbKey];
   }
