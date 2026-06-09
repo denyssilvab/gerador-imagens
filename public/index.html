@@ -4084,9 +4084,11 @@ async function confirmBulkMove() {
     return { key, sbKey, prevFolderId };
   });
 
-  // Optimistic update + Phase-2 race guard
+  // Optimistic update + Phase-2 race guard (images + txt files)
   moveItems.forEach(({ key, sbKey }) => {
     if (results[key]) results[key].folderId = folderId;
+    const gfIdx = generatedFiles.findIndex(f => f.key === key);
+    if (gfIdx !== -1) generatedFiles[gfIdx].folderId = folderId;
     if (sbKey) _pendingMoves[sbKey] = folderId;
   });
   dashSelected.clear();
@@ -4106,6 +4108,9 @@ async function confirmBulkMove() {
       // Re-confirm in results (Phase-2 may have created a new domKey for this sbKey)
       const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
       if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
+      // Re-confirm in generatedFiles (for txt files)
+      const gfIdxOk = generatedFiles.findIndex(f => f.key === key);
+      if (gfIdxOk !== -1) generatedFiles[gfIdxOk].folderId = folderId;
       if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
       successCount++;
     } catch (e) {
@@ -4114,6 +4119,8 @@ async function confirmBulkMove() {
       const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
       if (liveKey && results[liveKey]) results[liveKey].folderId = prevFolderId;
       if (results[key]) results[key].folderId = prevFolderId;
+      const gfIdxErr = generatedFiles.findIndex(f => f.key === key);
+      if (gfIdxErr !== -1) generatedFiles[gfIdxErr].folderId = prevFolderId;
       failCount++;
     } finally {
       if (sbKey) delete _pendingMoves[sbKey];
@@ -4813,16 +4820,21 @@ function refreshDashboard() {
     .filter(([, r]) => r && r.url)
     .map(([key, r]) => ({ key, ...r, kind: 'img' }));
 
-  // Include text files (generated prompts) — not folder-organized.
-  // They must never appear inside a folder view.
+  // Include text files — folder-aware: same filtering logic as image files.
   let txtItems = generatedFiles.map(f => ({ ...f, kind: 'txt' }));
-  if (dashFolderFilter !== null || dashFilter === 'folder') {
-    txtItems = []; // text files have no folder assignment — hide inside any folder
+  if (dashFilter === 'folder') {
+    txtItems = []; // folder tab: text files not relevant
   } else if (dashFilter !== 'all') {
     txtItems = txtItems.filter(f => f.type === dashFilter);
   }
+  // Apply folder filter the same way as image files
+  if (dashFolderFilter !== null) {
+    txtItems = txtItems.filter(r => Number(r.folderId) === Number(dashFolderFilter));
+    console.log(`[REFRESH-FOLDER] txtItems in folder ${dashFolderFilter}: ${txtItems.length}`);
+  } else {
+    txtItems = txtItems.filter(r => !r.folderId); // root: only unfiled txt
+  }
   if (search) txtItems = txtItems.filter(f => f.filename.toLowerCase().includes(search));
-  if (dashFolderFilter !== null) console.log(`[REFRESH-FOLDER] txtItems after filter: ${txtItems.length} (should be 0 inside folder)`);
 
   // Filter by version (Originais / Editadas)
   items = dashVersion === 'edit'
@@ -5114,16 +5126,20 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
     const _isPdf = r.docType === 'pdf' || (r.filename || '').toLowerCase().endsWith('.pdf');
     const _isTxt = (r.url || '').startsWith('data:text/') || (r.filename || '').toLowerCase().endsWith('.txt');
 
-    // TXT files: restore to generatedFiles (deduped by r.key) to avoid IDB/Supabase dual-entry duplication in dashboard
+    // TXT files: restore to generatedFiles with folderId so folder filtering works.
     if (_isTxt) {
       const txtKey = r.key || domKey;
-      if (!generatedFiles.find(f => f.key === txtKey)) {
+      const existing = generatedFiles.find(f => f.key === txtKey);
+      if (!existing) {
         let content = '';
         try {
           const b64 = (r.dataUrl || r.url || '').split(',')[1] || '';
           content = decodeURIComponent(escape(atob(b64)));
         } catch { content = ''; }
-        generatedFiles.push({ key: txtKey, type: r.docType || '', filename: r.filename || r.title || '', content, ts: r.ts || 0 });
+        generatedFiles.push({ key: txtKey, type: r.docType || '', filename: r.filename || r.title || '', content, ts: r.ts || 0, folderId: r.folderId ?? null });
+      } else if (overwrite) {
+        // Phase-2: update folderId from Supabase (authoritative)
+        existing.folderId = r.folderId ?? null;
       }
       return;
     }
