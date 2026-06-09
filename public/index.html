@@ -4952,6 +4952,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
+  // Phase 2 only: build sbKey→domKey index so we can patch Phase-1 (IDB) results entries
+  // with the authoritative Supabase folderId and sbId — fixes folder moves not persisting after reload.
+  const sbKeyToDomKey = {};
+  if (addToImgGrid) {
+    Object.entries(results).forEach(([dk, r]) => { if (r?.sbKey) sbKeyToDomKey[r.sbKey] = dk; });
+  }
+
   // Sort: pageNum ascending (correct position in the sequence) then ts descending
   // (if the same pageNum was regenerated, the newest version appears first).
   // Session-bucket sort was a workaround for broken hide-from-history — no longer needed.
@@ -5004,6 +5011,12 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
       visibleAdded++;
+      // Patch Phase-1 (IDB) results entry with authoritative Supabase folderId and sbId
+      const phase1Key = r.key ? sbKeyToDomKey[r.key] : null;
+      if (phase1Key && results[phase1Key]) {
+        results[phase1Key].folderId = r.folderId;
+        results[phase1Key].sbId     = r.id;
+      }
     } else {
       // Populate/update results for dashboard without touching the DOM
       results[domKey] = {
