@@ -4779,13 +4779,15 @@ function refreshDashboard() {
     ? items.filter(r => _isUpscaled(r.filename))
     : items.filter(r => !_isUpscaled(r.filename));
 
-  // Filter images — files in folders only appear when inside that folder
+  // Filter images — files in folders only appear when inside that folder.
+  // _srcIDB entries are from IndexedDB phase-1 and may have stale folderId;
+  // only Supabase-confirmed entries (no _srcIDB) are shown inside folders.
   if (dashFolderFilter !== null) {
-    // Inside a folder: show only files of this folder, then apply type filter on top
-    items = items.filter(r => Number(r.folderId) === Number(dashFolderFilter));
+    // Inside a folder: only Supabase-confirmed files belonging to this folder
+    items = items.filter(r => !r._srcIDB && Number(r.folderId) === Number(dashFolderFilter));
     if (dashFilter !== 'all') items = items.filter(r => r.docType === dashFilter);
   } else {
-    // Root: only unfiled files, then apply type filter on top
+    // Root: unfiled files (IDB entries with folderId=null are safe to show here)
     items = items.filter(r => !r.folderId);
     if (dashFilter !== 'all') items = items.filter(r => r.docType === dashFilter);
   }
@@ -5023,11 +5025,16 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Phase-2 only: index to find and remove stale Phase-1 IDB entries by stable key.
+  // Phase-2 only: indexes to find and remove stale Phase-1 IDB entries.
+  // sbKeyToDomKey: normal case (keyed IDB records).
+  // urlToDomKey: fallback for old IDB records saved without a key field.
+  // NOTE: urlToDomKey is used ONLY for dedup (deleting stale entries), never for folderId.
   const sbKeyToDomKey = {};
+  const urlToDomKey   = {};
   if (addToImgGrid) {
     Object.entries(results).forEach(([dk, r]) => {
-      if (r?.sbKey) sbKeyToDomKey[r.sbKey] = dk;
+      if (r?.sbKey)      sbKeyToDomKey[r.sbKey] = dk;
+      else if (r?._srcIDB && r?.url) urlToDomKey[r.url] = dk; // only keyless IDB entries
     });
   }
 
@@ -5093,12 +5100,17 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
         title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
         docType: r.docType, folderId: _eff, ts: r.ts,
         sbId: r.id, sbKey: r.key,
+        // IDB entries (phase 1) must not influence folder filtering — only Supabase is authoritative
+        ...(addToImgGrid ? {} : { _srcIDB: true }),
       };
     }
 
     // Phase-2 only: remove the stale Phase-1 IDB entry to prevent dashboard duplication.
+    // sbKey match handles keyed records; URL match handles old keyless IDB records.
     if (addToImgGrid) {
-      const phase1Key = (r.key ? sbKeyToDomKey[r.key] : null) || null;
+      const phase1Key = (r.key ? sbKeyToDomKey[r.key] : null)
+                     || urlToDomKey[r.url || r.dataUrl]
+                     || null;
       if (phase1Key && phase1Key !== domKey && phase1Key.startsWith('db_')) {
         delete results[phase1Key];
       }
