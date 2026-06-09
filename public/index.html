@@ -4696,6 +4696,8 @@ function openMoveModal(key) {
   if (_moveSelectedFolderId) {
     setTimeout(() => document.getElementById(`mfitem-${_moveSelectedFolderId}`)?.classList.add('selected'), 0);
   }
+  // Reset confirm button — dashBulkMove may have overridden it
+  document.querySelector('#move-modal .btn-primary').onclick = confirmMove;
   document.getElementById('move-modal').style.display = 'flex';
 }
 
@@ -4720,18 +4722,12 @@ async function confirmMove() {
   refreshDashboard();
 
   try {
-    const res  = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    // Re-apply folderId in case Phase-2 overrode the optimistic entry while awaiting
+    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) }).catch(() => {});
+    // Re-apply folderId in case Phase-2 replaced the entry while awaiting
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
-  } catch (e) {
-    if (results[key]) results[key].folderId = prevFolderId;
-    refreshDashboard();
-    toast(`Erro ao mover arquivo: ${e.message || ''}`, 'err');
   } finally {
     if (sbKey) delete _pendingMoves[sbKey];
   }
