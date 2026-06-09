@@ -4078,7 +4078,8 @@ async function confirmBulkMove() {
       method: 'POST',
       body: JSON.stringify({ ..._deletePayload(key), folderId }),
     }).catch(() => {});
-    if (results[key]) results[key].folderId = folderId;
+    const sbKey = results[key]?.sbKey;
+    if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
   }
   dashSelected.clear();
   refreshDashboard();
@@ -4613,7 +4614,28 @@ function fileCtxMove() {
 
 function _deletePayload(key) {
   const r = results[key];
-  return r?.sbId ? { id: r.sbId } : { key: r?.sbKey || key };
+  // Prefer stable sbKey over sbId: IDB-loaded entries have sbId = IDB local id (not Supabase id)
+  const sbKey = r?.sbKey;
+  if (sbKey) return { key: sbKey };
+  if (r?.sbId) return { id: r.sbId };
+  return { key };
+}
+
+async function _idbUpdateFolderByKey(sbKey, folderId) {
+  try {
+    const d = await openDB();
+    await new Promise((res, rej) => {
+      const store = d.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE);
+      const req = store.openCursor();
+      req.onsuccess = e => {
+        const c = e.target.result;
+        if (!c) { res(); return; }
+        if (c.value.key === sbKey) { c.update({ ...c.value, folderId }); res(); }
+        else c.continue();
+      };
+      req.onerror = () => rej(req.error);
+    });
+  } catch (_) {}
 }
 
 async function fileCtxDelete() {
@@ -4678,6 +4700,8 @@ async function confirmMove() {
   try {
     await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
     if (results[key]) results[key].folderId = folderId;
+    const sbKey = results[key]?.sbKey;
+    if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
     refreshDashboard();
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
   } catch (e) { toast('Erro ao mover arquivo.', 'err'); }
@@ -5011,11 +5035,10 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       const target = groupGrids[r.docType] || grid;
       target.appendChild(card);
       visibleAdded++;
-      // Patch Phase-1 (IDB) results entry with authoritative Supabase folderId and sbId
+      // Patch Phase-1 (IDB) results entry with real Supabase sbId (IDB entry has local auto-increment id)
       const phase1Key = r.key ? sbKeyToDomKey[r.key] : null;
       if (phase1Key && results[phase1Key]) {
-        results[phase1Key].folderId = r.folderId;
-        results[phase1Key].sbId     = r.id;
+        results[phase1Key].sbId = r.id;
       }
     } else {
       // Populate/update results for dashboard without touching the DOM
