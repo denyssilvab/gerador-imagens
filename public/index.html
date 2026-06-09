@@ -1653,6 +1653,20 @@
           </div>
         </div>
 
+        <!-- Resume banner: shown when all-mode generation is interrupted mid-flow -->
+        <div id="gen-resume-banner" style="display:none;background:#fff8f0;border:1.5px solid #ff6b35;border-radius:10px;padding:14px 18px;margin-bottom:8px;display:none;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#c0410a;margin-bottom:4px;">Geração interrompida</div>
+              <div id="gen-resume-status" style="font-size:13px;color:#555;"></div>
+            </div>
+            <button onclick="dismissResumeBanner()" style="background:none;border:none;font-size:18px;color:#999;cursor:pointer;padding:0;line-height:1;" title="Fechar">✕</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="resumeGeneration()">↺ Retomar do passo que falhou</button>
+          </div>
+        </div>
+
         <!-- Output: individual mode -->
         <div class="card" id="claude-output-card" style="display:none;">
           <div class="card-head">
@@ -3344,6 +3358,131 @@ Rules:
 let contentDocType = 'all';
 let claudeAbortCtrl = null;
 const savedContent = { lesson: null, practice: null, lessonplan: null };
+let _genFailedStep = null; // which step failed (for resume)
+
+function _showResumeBanner(failedStep) {
+  const banner = document.getElementById('gen-resume-banner');
+  const status = document.getElementById('gen-resume-status');
+  if (!banner || !status) return;
+  const steps = [
+    { key: 'lesson',     label: 'Lesson' },
+    { key: 'practice',   label: 'Activities' },
+    { key: 'lessonplan', label: 'Lesson Plan' },
+  ];
+  const order = steps.map(s => s.key);
+  const failIdx = order.indexOf(failedStep);
+  const parts = steps.map((s, i) => {
+    if (i < failIdx) return `<span style="color:#2a7a2a;font-weight:600;">${s.label} ✓</span>`;
+    if (i === failIdx) return `<span style="color:#c0410a;font-weight:600;">${s.label} ✗</span>`;
+    return `<span style="color:#999;">${s.label} –</span>`;
+  });
+  status.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+  banner.style.display = 'flex';
+}
+
+function dismissResumeBanner() {
+  const banner = document.getElementById('gen-resume-banner');
+  if (banner) banner.style.display = 'none';
+  _genFailedStep = null;
+}
+
+async function resumeGeneration() {
+  if (!_genFailedStep) return;
+  const banner = document.getElementById('gen-resume-banner');
+  if (banner) banner.style.display = 'none';
+
+  const apiKey = getClaudeApiKey();
+  if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
+  const baseInput = document.getElementById('claude-input')?.value.trim() || '';
+  if (!baseInput) { toast('Preencha a descrição da aula.', 'warn'); return; }
+
+  const btnGen  = document.getElementById('btn-claude-gen');
+  const btnStop = document.getElementById('btn-claude-stop');
+  const prog    = document.getElementById('claude-prog-wrap');
+  const label   = document.getElementById('claude-prog-label');
+  const outLesson   = document.getElementById('claude-output-lesson');
+  const outPractice = document.getElementById('claude-output-practice');
+  const outPlan     = document.getElementById('claude-output-lessonplan');
+
+  function _setBadge(id, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.style.display = text ? '' : 'none';
+    el.className = 'pg-badge' + (text ? ' has' : '');
+  }
+
+  btnGen.style.display  = 'none';
+  btnStop.style.display = '';
+  prog.style.display    = '';
+  claudeAbortCtrl = new AbortController();
+
+  const startStep = _genFailedStep;
+  _genFailedStep = null;
+
+  const steps = ['lesson', 'practice', 'lessonplan'];
+  const startIdx = steps.indexOf(startStep);
+
+  try {
+    const total = steps.length - startIdx;
+    let done = 0;
+
+    if (startIdx <= 0) {
+      done++;
+      _genFailedStep = 'lesson';
+      _startGenTimer(label, `Gerando Lesson… (${done}/${total})`);
+      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
+        (p) => { if (outLesson) outLesson.value = p; });
+      const lTime = _stopPhaseTime();
+      savedContent.lesson = lessonContent;
+      if (outLesson) outLesson.value = lessonContent;
+      _setBadge('all-badge-lesson', `${(lessonContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(lTime)}`.trim().replace(/^\s*·\s*/, ''));
+      addGeneratedFile('lesson', lessonContent);
+      updateContentTabs();
+    }
+
+    if (startIdx <= 1) {
+      done++;
+      _genFailedStep = 'practice';
+      _startGenTimer(label, `Gerando Activities… (${done}/${total})`);
+      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, savedContent.lesson, null), CONTENT_SPECS.practice,
+        (p) => { if (outPractice) outPractice.value = p; });
+      const pTime = _stopPhaseTime();
+      savedContent.practice = practiceContent;
+      if (outPractice) outPractice.value = practiceContent;
+      _setBadge('all-badge-practice', `${(practiceContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(pTime)}`.trim().replace(/^\s*·\s*/, ''));
+      addGeneratedFile('practice', practiceContent);
+      updateContentTabs();
+    }
+
+    if (startIdx <= 2) {
+      done++;
+      _genFailedStep = 'lessonplan';
+      _startGenTimer(label, `Gerando Lesson Plan… (${done}/${total})`);
+      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, savedContent.lesson, savedContent.practice), CONTENT_SPECS.lessonplan,
+        (p) => { if (outPlan) outPlan.value = p; });
+      const plTime = _stopPhaseTime();
+      savedContent.lessonplan = planContent;
+      if (outPlan) outPlan.value = planContent;
+      _setBadge('all-badge-lessonplan', `${(planContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(plTime)}`.trim().replace(/^\s*·\s*/, ''));
+      addGeneratedFile('lessonplan', planContent);
+      updateContentTabs();
+    }
+
+    _genFailedStep = null;
+    toast('Geração retomada com sucesso!', 'ok');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast(e.message || 'Erro de conexão.', 'err');
+    if (_genFailedStep && (savedContent.lesson || savedContent.practice)) _showResumeBanner(_genFailedStep);
+  } finally {
+    _stopGenTimer();
+    btnGen.style.display  = '';
+    btnStop.style.display = 'none';
+    prog.style.display    = 'none';
+    if (label) label.textContent = 'Gerando com Claude…';
+    claudeAbortCtrl = null;
+  }
+}
 const generatedFiles = [];
 
 function _buildContentFilename(type) {
@@ -3593,6 +3732,7 @@ async function generateContent() {
     el.className = 'pg-badge' + (text ? ' has' : '');
   }
 
+  _genFailedStep = null;
   try {
     if (contentDocType === 'all') {
       // ── Geração sequencial: caixas separadas ──────────────────────────
@@ -3600,6 +3740,7 @@ async function generateContent() {
       if (allOut) allOut.style.display = 'flex';
 
       // 1. Lesson
+      _genFailedStep = 'lesson';
       _startGenTimer(label, 'Gerando Lesson… (1/3)');
       const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
         (partial) => { if (outLesson) outLesson.value = partial; });
@@ -3612,6 +3753,7 @@ async function generateContent() {
       updateContentTabs();
 
       // 2. Activities
+      _genFailedStep = 'practice';
       _startGenTimer(label, 'Gerando Activities… (2/3)');
       const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
         (partial) => { if (outPractice) outPractice.value = partial; });
@@ -3624,6 +3766,7 @@ async function generateContent() {
       updateContentTabs();
 
       // 3. Lesson Plan
+      _genFailedStep = 'lessonplan';
       _startGenTimer(label, 'Gerando Lesson Plan… (3/3)');
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
         (partial) => { if (outPlan) outPlan.value = partial; });
@@ -3635,6 +3778,7 @@ async function generateContent() {
       addGeneratedFile('lessonplan', planContent);
       updateContentTabs();
 
+      _genFailedStep = null;
       // Sync all 3 to Supabase
       sbSaveContent('lesson',     lessonContent);
       sbSaveContent('practice',   practiceContent);
@@ -3679,6 +3823,11 @@ async function generateContent() {
 
   } catch (e) {
     if (e.name !== 'AbortError') toast(e.message || 'Erro de conexão.', 'err');
+    if (contentDocType === 'all' && _genFailedStep && (savedContent.lesson || savedContent.practice)) {
+      _showResumeBanner(_genFailedStep);
+    } else {
+      _genFailedStep = null;
+    }
   } finally {
     _stopGenTimer();
     btnGen.style.display  = '';
