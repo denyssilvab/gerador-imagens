@@ -4090,14 +4090,9 @@ async function confirmBulkMove() {
     authFetch('/api/db?action=assign-folder', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }).then(async r => {
-      const d = await r.json().catch(() => ({}));
-      // DIAGNÓSTICO TEMPORÁRIO
-      toast(`[DBG-bulk] status:${r.status} ok:${r.ok} sbKey:${sbKey||'null'} fId:${folderId} err:${d.error||'-'}`, r.ok ? 'ok' : 'err');
+    }).then(() => {
       if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
-    }).catch(e => {
-      toast(`[DBG-bulk] NETWORK ERROR: ${e.message}`, 'err');
-    }).finally(() => {
+    }).catch(() => {}).finally(() => {
       if (sbKey) delete _pendingMoves[sbKey];
     });
   }
@@ -4740,8 +4735,6 @@ async function confirmMove() {
     const payload = sbKey ? { key: sbKey, folderId } : { ..._deletePayload(key), folderId };
     const apiRes = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify(payload) });
     const apiData = await apiRes.json().catch(() => ({}));
-    // DIAGNÓSTICO TEMPORÁRIO — remove após confirmar funcionamento
-    toast(`[DBG] status:${apiRes.status} ok:${apiRes.ok} sbKey:${sbKey||'null'} fId:${folderId}`, apiRes.ok ? 'ok' : 'err');
     if (!apiRes.ok) throw new Error(apiData.error || `HTTP ${apiRes.status}`);
     const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
     if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
@@ -5030,11 +5023,16 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
   const groupGrids = grid ? _getOrCreateTypeGroups(grid, saved.filter(r => !r.url?.startsWith('data:text/'))) : {};
   let visibleAdded = 0;
 
-  // Phase-2 only: index of sbKey→domKey built from Phase-1 (IDB) results entries so we can
-  // remove stale IDB entries after Phase-2 writes the authoritative Supabase entry.
+  // Phase-2 only: indexes to find and remove stale Phase-1 IDB entries.
+  // sbKeyToDomKey: matches by stable key (normal case).
+  // urlToDomKey: URL fallback for old records saved without a key field.
   const sbKeyToDomKey = {};
+  const urlToDomKey   = {};
   if (addToImgGrid) {
-    Object.entries(results).forEach(([dk, r]) => { if (r?.sbKey) sbKeyToDomKey[r.sbKey] = dk; });
+    Object.entries(results).forEach(([dk, r]) => {
+      if (r?.sbKey) sbKeyToDomKey[r.sbKey] = dk;
+      else if (r?.url) urlToDomKey[r.url] = dk; // fallback for keyless IDB records
+    });
   }
 
   // Sort: pageNum ascending (correct position in the sequence) then ts descending
@@ -5107,12 +5105,12 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       };
     }
 
-    // Phase-2 only: remove the stale Phase-1 IDB entry (db_<localId>) to prevent dashboard
-    // duplication and stale folderId. makePersistedCard / else branch already wrote the
-    // authoritative Supabase entry (db_<supabaseId>). Only remove IDB-derived keys (db_ prefix
-    // with a different id) — session-generated keys have a different format and must stay.
-    if (addToImgGrid && r.key) {
-      const phase1Key = sbKeyToDomKey[r.key];
+    // Phase-2 only: remove the stale Phase-1 IDB entry to prevent dashboard duplication.
+    // Try sbKey match first (normal case); fall back to URL match for old keyless records.
+    if (addToImgGrid) {
+      const phase1Key = (r.key ? sbKeyToDomKey[r.key] : null)
+                     || urlToDomKey[r.url || r.dataUrl]
+                     || null;
       if (phase1Key && phase1Key !== domKey && phase1Key.startsWith('db_')) {
         delete results[phase1Key];
       }
@@ -5726,7 +5724,9 @@ async function _savePdfToLibrary(items, filename, folderId, progElId) {
     reader.readAsDataURL(blob);
   });
   const title = filename.replace(/\.pdf$/i, '');
+  const _pdfKey = `pdf_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const { localId: newLocalId, sbId: newSbId } = await dbSave({
+    key: _pdfKey,
     dataUrl, url: dataUrl, filename,
     pageNum: null, title, docType: 'pdf', folderId,
   }).catch(() => ({}));
@@ -5737,7 +5737,7 @@ async function _savePdfToLibrary(items, filename, folderId, progElId) {
       filename, pageNum: null, title, customTitle: null,
       docType: 'pdf', folderId: folderId || null,
       ts: Date.now(), localId: newLocalId, sbId: newSbId,
-      sbKey: `pdf_${newSbId || newLocalId}`,
+      sbKey: _pdfKey,
     };
   }
   return newLocalId || newSbId;
@@ -6589,10 +6589,9 @@ async function _idbClear() {
 // ── Unified persistence (Supabase primary, IndexedDB fallback) ─────────────
 // Returns { localId, sbId } — localId is IndexedDB id, sbId is Supabase integer id.
 async function dbSave(rec, { silent = false } = {}) {
-  // Persist locally first (fast, offline-safe)
-  const localId = await _idbSave(rec).catch(() => null);
-
+  // Pre-compute key so IDB and Supabase always share the same stable key
   const key = rec.key || `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const localId = await _idbSave({ ...rec, key }).catch(() => null);
   let sbId = null;
   try {
     const res  = await authFetch('/api/db?action=save-image', {
@@ -8137,7 +8136,9 @@ async function upscaleSelected(scale) {
         const saveUrl = storagePublicUrl || upscaledUrl;
 
         _updateStatus('Salvando no Dashboard…');
+        const _upscaleKey = `img_upscale_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         const { localId: newLocalId, sbId: newSbId } = await dbSave({
+          key: _upscaleKey,
           dataUrl: saveUrl,
           url: saveUrl,
           filename,
@@ -8154,7 +8155,8 @@ async function upscaleSelected(scale) {
             filename, pageNum: r.pageNum,
             title: r.customTitle || r.title || '', customTitle: null,
             docType: r.docType || '', folderId: r.folderId || null,
-            ts: Date.now(), localId: newLocalId,
+            ts: Date.now(), localId: newLocalId, sbId: newSbId,
+            sbKey: _upscaleKey,
           };
           _sessionUpscaledKeys.push(newKey);
           refreshDashboard();
