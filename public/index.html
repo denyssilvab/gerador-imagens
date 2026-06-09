@@ -4090,9 +4090,14 @@ async function confirmBulkMove() {
     authFetch('/api/db?action=assign-folder', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }).then(() => {
+    }).then(async r => {
+      const d = await r.json().catch(() => ({}));
+      // DIAGNÓSTICO TEMPORÁRIO
+      toast(`[DBG-bulk] status:${r.status} ok:${r.ok} sbKey:${sbKey||'null'} fId:${folderId} err:${d.error||'-'}`, r.ok ? 'ok' : 'err');
       if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
-    }).catch(() => {}).finally(() => {
+    }).catch(e => {
+      toast(`[DBG-bulk] NETWORK ERROR: ${e.message}`, 'err');
+    }).finally(() => {
       if (sbKey) delete _pendingMoves[sbKey];
     });
   }
