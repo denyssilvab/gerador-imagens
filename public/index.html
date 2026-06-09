@@ -4073,22 +4073,27 @@ async function confirmBulkMove() {
   const keys = [...dashSelected];
   document.getElementById('move-modal').style.display = 'none';
 
-  // Optimistic update: move all files in UI immediately
+  // Optimistic update + guard against Phase-2 race condition
   for (const key of keys) {
     if (results[key]) results[key].folderId = folderId;
+    const sbKey = results[key]?.sbKey;
+    if (sbKey) _pendingMoves[sbKey] = folderId;
   }
   dashSelected.clear();
   refreshDashboard();
   _updateDashBulkBar();
 
-  // Persist in background
+  // Persist in background, then clear pending guards
   for (const key of keys) {
+    const sbKey = results[key]?.sbKey;
     authFetch('/api/db?action=assign-folder', {
       method: 'POST',
       body: JSON.stringify({ ..._deletePayload(key), folderId }),
-    }).catch(() => {});
-    const sbKey = results[key]?.sbKey;
-    if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
+    }).then(() => {
+      if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
+    }).catch(() => {}).finally(() => {
+      if (sbKey) delete _pendingMoves[sbKey];
+    });
   }
   toast(folderId ? `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''}.` : `${keys.length} arquivo${keys.length!==1?'s':''} movido${keys.length!==1?'s':''} para a raiz.`, 'ok');
 }
@@ -4563,6 +4568,9 @@ function folderCardDelete() {
 // ── File context menu ───────────────────────────────────────────────────────
 let _fileCtxKey = null;
 let _moveSelectedFolderId = null;
+// sbKey → folderId for moves in-flight: prevents Phase-2 makePersistedCard from overwriting
+// an optimistic folderId with stale Supabase data before the API call completes.
+const _pendingMoves = {};
 
 function showFileCtxMenu(evt, key) {
   evt.stopPropagation();
@@ -4703,22 +4711,29 @@ async function confirmMove() {
   const key = _fileCtxKey;
   const folderId = _moveSelectedFolderId;
   const prevFolderId = results[key]?.folderId ?? null;
+  const sbKey = results[key]?.sbKey || null;
   closeMoveModal();
 
-  // Optimistic update: move in UI immediately, before the network request
+  // Optimistic update + guard against Phase-2 race condition
   if (results[key]) results[key].folderId = folderId;
+  if (sbKey) _pendingMoves[sbKey] = folderId;
   refreshDashboard();
 
   try {
-    await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
-    const sbKey = results[key]?.sbKey;
+    const res  = await authFetch('/api/db?action=assign-folder', { method: 'POST', body: JSON.stringify({ ..._deletePayload(key), folderId }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    // Re-apply folderId in case Phase-2 overrode the optimistic entry while awaiting
+    const liveKey = sbKey ? Object.keys(results).find(k => results[k]?.sbKey === sbKey) : key;
+    if (liveKey && results[liveKey]) results[liveKey].folderId = folderId;
     if (sbKey) _idbUpdateFolderByKey(sbKey, folderId).catch(() => {});
     toast(folderId ? 'Arquivo movido para a pasta.' : 'Arquivo movido para a raiz.', 'ok');
   } catch (e) {
-    // Revert optimistic update on failure
     if (results[key]) results[key].folderId = prevFolderId;
     refreshDashboard();
-    toast('Erro ao mover arquivo.', 'err');
+    toast(`Erro ao mover arquivo: ${e.message || ''}`, 'err');
+  } finally {
+    if (sbKey) delete _pendingMoves[sbKey];
   }
 }
 
@@ -5052,11 +5067,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       visibleAdded++;
     } else {
       // Populate/update results for dashboard without touching the DOM
+      // Honour in-flight move: don't override folderId with stale Supabase data
+      const _pendingFolderId = r.key && _pendingMoves[r.key] !== undefined ? _pendingMoves[r.key] : r.folderId;
       results[domKey] = {
         url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url,
         filename: r.filename, pageNum: r.pageNum,
         title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
-        docType: r.docType, folderId: r.folderId, ts: r.ts,
+        docType: r.docType, folderId: _pendingFolderId, ts: r.ts,
         sbId: r.id, sbKey: r.key,
       };
     }
@@ -7111,7 +7128,9 @@ function makeCard(gen, idx, num, title) {
 
 function makePersistedCard(r) {
   const domKey = `db_${r.id}`;
-  results[domKey] = { url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId: r.folderId || null, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
+  // Honour in-flight move: don't override folderId with stale Supabase data
+  const folderId = (r.key && _pendingMoves[r.key] !== undefined) ? _pendingMoves[r.key] : (r.folderId || null);
+  results[domKey] = { url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
   const d = document.createElement('div');
   d.className = 'icard';
   d.id = `card_${domKey}`;
