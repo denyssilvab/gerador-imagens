@@ -7201,6 +7201,12 @@ async function handleEvent(ev) {
       const { localId: _savedId, sbId: _sbId } = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl }) || {};
       if (_savedId && results[domKey]) results[domKey].localId = _savedId;
       if (_sbId    && results[domKey]) results[domKey].sbId = _sbId;
+      // Race-condition guard: if clearResults() ran while this save was in-flight,
+      // the server never received this key (image didn't exist yet). Sync now.
+      if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
+        const _lateHide = new Set([sbKey, _sbId ? `id:${_sbId}` : null].filter(Boolean));
+        _syncHiddenToServer(_lateHide);
+      }
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
       break;
@@ -7664,15 +7670,18 @@ async function downloadAll() {
 }
 
 function clearResults() {
-  // Explicitly hide each currently visible card by its stable key (persists across reloads)
+  // Mark all cards hidden — includes cards still pending/saving (race-condition guard
+  // in the save callback will sync to server once dbSave completes for those).
   const _allStable = new Set();
   document.querySelectorAll('#img-grid .icard[data-key]').forEach(card => {
     const key = card.dataset.key;
     if (!key) return;
+    // Always add the domKey so the post-save guard can detect it even before sbKey/sbId exist
+    _hiddenFromHistory.add(key);
     _addToHidden(key).forEach(k => _allStable.add(k));
   });
   _saveHiddenHistory(_hiddenFromHistory);
-  _syncHiddenToServer(_allStable);
+  if (_allStable.size) _syncHiddenToServer(_allStable);
 
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
@@ -7968,6 +7977,9 @@ async function retryPage(domKey) {
               .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
             if (_rLid)   results[domKey].localId = _rLid;
             if (_rSbId)  results[domKey].sbId    = _rSbId;
+            if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
+              _syncHiddenToServer(new Set([sbKey, _rSbId ? `id:${_rSbId}` : null].filter(Boolean)));
+            }
             toast(`Pág. ${pd.num} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (stEl) { stEl.className = 'icard-status s-err'; stEl.textContent = '✗ Erro'; }
