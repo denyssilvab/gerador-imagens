@@ -5238,9 +5238,16 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
       return;
     }
 
-    const _isHidden = _isPdf || _isUpscaled(r.filename)
-      || _hiddenFromHistory.has(domKey)
-      || (r.key && _hiddenFromHistory.has(r.key));
+    const _isHiddenLocally = _hiddenFromHistory.has(domKey) || (r.key && _hiddenFromHistory.has(r.key));
+    const _isHidden = _isPdf || _isUpscaled(r.filename) || _isHiddenLocally;
+
+    // Retroactive Supabase sync: image appeared in Phase-2 response (hidden_from_history=false in DB)
+    // but is marked hidden locally — previous clear failed to reach Supabase.
+    if (addToImgGrid && _isHiddenLocally && r.key && !_isPdf && !_isUpscaled(r.filename)) {
+      const _retroStable = new Set([r.key, r.id ? `id:${r.id}` : null].filter(Boolean));
+      console.log(`[CLEAR] retroactive sync para key=${r.key} id=${r.id} (estava em _hiddenFromHistory mas voltou do Supabase)`);
+      _syncHiddenToServer(_retroStable);
+    }
 
     // Absolute dedup: never render the same Supabase row twice per page-load
     if (grid && r.id) {
