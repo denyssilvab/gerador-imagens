@@ -7328,6 +7328,7 @@ function makeCard(gen, idx, num, title) {
   const d = document.createElement('div');
   d.className = 'icard';
   d.id = `card_${key}`;
+  d.dataset.key = key; // set early so clearResults() captures in-progress cards
   d.innerHTML = `
     <div class="icard-head">
       <input type="checkbox" class="icard-check" id="chk_${key}" onchange="toggleSelect('${key}',this.checked)" />
