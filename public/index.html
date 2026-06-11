@@ -7731,7 +7731,9 @@ function openByKey(key) {
 async function downloadAll() {
   const keys = selectedKeys.size > 0
     ? [...selectedKeys].filter(k => results[k]?.url)
-    : Object.keys(results).filter(k => results[k]?.url);
+    : [...document.querySelectorAll('#img-grid .icard[data-key]')]
+        .map(c => c.dataset.key)
+        .filter(k => results[k]?.url);
   if (!keys.length) { toast('Nenhuma imagem para baixar.', 'warn'); return; }
 
   const lessonNum = document.getElementById('lesson')?.value?.trim() || '';
