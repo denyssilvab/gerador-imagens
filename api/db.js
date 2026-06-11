@@ -170,6 +170,40 @@ module.exports = async function handler(req, res) {
       return res.json({ ok: true });
     }
 
+    if (action === 'bulk-delete-images') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+
+      const { keys = [], ids = [] } = req.body;
+
+      // Collect storage paths before deleting
+      const strKeys = keys.filter(Boolean);
+      const numIds  = ids.map(Number).filter(n => Number.isFinite(n) && n > 0);
+
+      const paths = [];
+      if (strKeys.length) {
+        const { data: rows } = await sb.from('images').select('storage_path').eq('user_id', userId).in('key', strKeys);
+        (rows || []).forEach(r => r.storage_path && paths.push(r.storage_path));
+      }
+      if (numIds.length) {
+        const { data: rows } = await sb.from('images').select('storage_path').eq('user_id', userId).in('id', numIds);
+        (rows || []).forEach(r => r.storage_path && paths.push(r.storage_path));
+      }
+
+      if (paths.length) await sb.storage.from('images').remove(paths);
+
+      if (strKeys.length) {
+        const { error } = await sb.from('images').delete().eq('user_id', userId).in('key', strKeys);
+        if (error) throw error;
+      }
+      if (numIds.length) {
+        const { error } = await sb.from('images').delete().eq('user_id', userId).in('id', numIds);
+        if (error) throw error;
+      }
+
+      return res.json({ ok: true, deleted: strKeys.length + numIds.length });
+    }
+
     if (action === 'clear-images') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });

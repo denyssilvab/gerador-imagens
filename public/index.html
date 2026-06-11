@@ -4073,12 +4073,10 @@ function dashBulkSelectAll() {
 async function dashBulkDelete() {
   try {
   const keys = [...dashSelected];
-  console.log('[DELETE] dashSelected:', [...dashSelected]);
   if (!keys.length) return;
 
   const folderKeys = keys.filter(k => k.startsWith('folder_'));
   const fileKeys   = keys.filter(k => !k.startsWith('folder_'));
-  console.log('[DELETE] folderKeys:', folderKeys, 'fileKeys:', fileKeys);
 
   if (!folderKeys.length) {
     // File-only path (original behavior)
@@ -4121,48 +4119,39 @@ async function dashBulkDelete() {
   const nFolders = allFolderIds.size;
   const nFilesInside = allFileKeysInFolders.length;
   const nFilesSelected = fileKeys.length;
-  console.log('[DELETE] allFolderIds:', [...allFolderIds], 'nFilesInside:', nFilesInside);
   let msg = `Excluir ${nFolders} pasta${nFolders !== 1 ? 's' : ''}`;
   if (nFilesSelected) msg += ` e ${nFilesSelected} arquivo${nFilesSelected !== 1 ? 's' : ''} selecionado${nFilesSelected !== 1 ? 's' : ''}`;
   msg += '?';
   if (nFilesInside) msg += `\n\n${nFilesInside} arquivo${nFilesInside !== 1 ? 's' : ''} dentro das pastas também ser${nFilesInside !== 1 ? 'ão' : 'á'} excluído${nFilesInside !== 1 ? 's' : ''}.`;
   msg += '\n\nEsta ação não pode ser desfeita.';
-  if (!confirm(msg)) { console.log('[DELETE] cancelado pelo usuário'); return; }
-  console.log('[DELETE] confirmado, iniciando exclusão...');
+  if (!confirm(msg)) return;
 
-  // Delete individually selected files
-  for (const key of fileKeys) {
-    await authFetch('/api/db?action=delete-image', {
-      method: 'POST', body: JSON.stringify(_deletePayload(key)),
+  // Bulk delete all files (selected + inside folders) in a single API call
+  const allFilesToDelete = [...new Set([...fileKeys, ...allFileKeysInFolders])];
+  if (allFilesToDelete.length) {
+    const bulkKeys = [], bulkIds = [];
+    for (const key of allFilesToDelete) {
+      const p = _deletePayload(key);
+      if (p.key) bulkKeys.push(p.key);
+      else if (p.id) bulkIds.push(p.id);
+    }
+    await authFetch('/api/db?action=bulk-delete-images', {
+      method: 'POST', body: JSON.stringify({ keys: bulkKeys, ids: bulkIds }),
     }).catch(() => {});
-    delete results[key];
-    const gfi = generatedFiles.findIndex(f => f.key === key);
-    if (gfi !== -1) generatedFiles.splice(gfi, 1);
+    for (const key of allFilesToDelete) {
+      delete results[key];
+      const gfi = generatedFiles.findIndex(f => f.key === key);
+      if (gfi !== -1) generatedFiles.splice(gfi, 1);
+    }
   }
 
-  // Delete files inside folders
-  for (const key of allFileKeysInFolders) {
-    await authFetch('/api/db?action=delete-image', {
-      method: 'POST', body: JSON.stringify(_deletePayload(key)),
-    }).catch(() => {});
-    delete results[key];
-    const gfi = generatedFiles.findIndex(f => f.key === key);
-    if (gfi !== -1) generatedFiles.splice(gfi, 1);
-  }
-
-  // Delete folders
-  let folderDeleteErr = null;
-  for (const fid of allFolderIds) {
-    try {
-      console.log('[DELETE] deletando pasta fid=', fid);
-      const res  = await authFetch('/api/db?action=delete-folder', {
-        method: 'POST', body: JSON.stringify({ folderId: fid }),
-      });
-      const data = await res.json().catch(() => ({}));
-      console.log('[DELETE] resposta fid=', fid, 'status=', res.status, 'data=', data);
-      if (!res.ok) folderDeleteErr = data.error || `HTTP ${res.status}`;
-    } catch (e) { folderDeleteErr = e.message; console.error('[DELETE] erro fid=', fid, e); }
-  }
+  // Delete folders in parallel
+  const folderResults = await Promise.all([...allFolderIds].map(fid =>
+    authFetch('/api/db?action=delete-folder', {
+      method: 'POST', body: JSON.stringify({ folderId: fid }),
+    }).then(r => r.json().catch(() => ({}))).catch(e => ({ error: e.message }))
+  ));
+  const folderDeleteErr = folderResults.find(d => d.error)?.error || null;
 
   if (folderDeleteErr) {
     toast(`Erro ao excluir pasta: ${folderDeleteErr}`, 'err');
@@ -4170,9 +4159,7 @@ async function dashBulkDelete() {
   }
 
   // Update local state
-  console.log('[DELETE] atualizando estado local, dashFolders antes:', dashFolders.length);
   dashFolders = dashFolders.filter(f => !allFolderIds.has(f.id));
-  console.log('[DELETE] dashFolders depois:', dashFolders.length);
   renderFolders();
   dashSelected.clear();
   _updateDashBulkBar();
