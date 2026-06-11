@@ -7209,6 +7209,7 @@ async function handleEvent(ev) {
       // the server never received this key (image didn't exist yet). Sync now.
       if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
         const _lateHide = new Set([sbKey, _sbId ? `id:${_sbId}` : null].filter(Boolean));
+        console.log(`[CLEAR] late-hide guard disparado para domKey=${domKey} sbKey=${sbKey} sbId=${_sbId}`);
         _syncHiddenToServer(_lateHide);
       }
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
@@ -7478,24 +7479,47 @@ function _addToHidden(key) {
   // sbKey is the actual value stored in images.key — use it directly
   const sbKey = r?.sbKey || document.getElementById(`card_${key}`)?.dataset?.sbKey;
   if (sbKey) { _hiddenFromHistory.add(sbKey); stable.add(sbKey); }
+  else console.warn(`[CLEAR] card ${key}: sem sbKey — não vai sincronizar com Supabase`);
 
   // sbId is the Supabase integer id — prefix with "id:" so the API knows to match by id
   const sbId = r?.sbId || (key.match(/^db_(\d+)$/)?.[1]);
   if (sbId) { stable.add(`id:${sbId}`); }
 
+  console.log(`[CLEAR] _addToHidden(${key}) → stable=[${[...stable].join(', ')}] r.sbKey=${r?.sbKey} r.sbId=${r?.sbId}`);
   return stable;
 }
 
-// Fire-and-forget: marks images as hidden_from_history=true in Supabase so
-// they are excluded from load-images even after a full cache clear.
-function _syncHiddenToServer(stableKeys) {
+// Marks images as hidden_from_history=true in Supabase; retries once on failure.
+// Returns promise that resolves to true on success, false on failure.
+async function _syncHiddenToServer(stableKeys) {
   const keys = [...stableKeys].filter(Boolean);
-  if (!keys.length) return;
-  authFetch('/api/db?action=hide-from-history', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ keys }),
-  }).catch(e => console.warn('[hide-from-history]', e));
+  if (!keys.length) { console.log('[CLEAR] _syncHiddenToServer: sem stable keys — nada a sincronizar'); return false; }
+  console.log(`[CLEAR] _syncHiddenToServer: enviando ${keys.length} keys →`, keys);
+  const _doSync = async () => {
+    const res  = await authFetch('/api/db?action=hide-from-history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  };
+  try {
+    const data = await _doSync();
+    console.log('[CLEAR] hide-from-history ✓', data);
+    return true;
+  } catch (e) {
+    console.warn('[CLEAR] hide-from-history falhou, tentando novamente:', e.message);
+    try {
+      const data = await _doSync();
+      console.log('[CLEAR] hide-from-history retry ✓', data);
+      return true;
+    } catch (e2) {
+      console.error('[CLEAR] hide-from-history retry falhou:', e2.message);
+      return false;
+    }
+  }
 }
 
 function icardMenuDelete() {
@@ -7673,20 +7697,26 @@ async function downloadAll() {
   }
 }
 
-function clearResults() {
-  // Mark all cards hidden — includes cards still pending/saving (race-condition guard
-  // in the save callback will sync to server once dbSave completes for those).
+async function clearResults() {
+  const cards = [...document.querySelectorAll('#img-grid .icard[data-key]')];
+  if (!cards.length) return;
+
+  // Collect stable keys and mark hidden locally before touching the DOM
   const _allStable = new Set();
-  document.querySelectorAll('#img-grid .icard[data-key]').forEach(card => {
+  const _noStable  = [];   // keys with no sbKey/sbId — only protected by localStorage
+  cards.forEach(card => {
     const key = card.dataset.key;
     if (!key) return;
-    // Always add the domKey so the post-save guard can detect it even before sbKey/sbId exist
-    _hiddenFromHistory.add(key);
-    _addToHidden(key).forEach(k => _allStable.add(k));
+    _hiddenFromHistory.add(key); // domKey guard for post-save race
+    const stable = _addToHidden(key);
+    stable.forEach(k => _allStable.add(k));
+    if (!stable.size) _noStable.push(key);
   });
   _saveHiddenHistory(_hiddenFromHistory);
-  if (_allStable.size) _syncHiddenToServer(_allStable);
 
+  console.log(`[CLEAR] ${cards.length} cards | stable keys: ${_allStable.size} | sem stable: ${_noStable.length}`, { stable: [..._allStable], noStable: _noStable });
+
+  // Clear the DOM immediately for responsiveness
   document.getElementById('img-grid').innerHTML = `
     <div class="empty"><span class="ico">🖼</span><p>As imagens aparecerão aqui conforme forem geradas</p></div>`;
   document.getElementById('results-card').style.display = 'none';
@@ -7694,6 +7724,16 @@ function clearResults() {
   selectedKeys.clear();
   updateSelectionUI();
   doneCount = 0; errorCount = 0; totalPages = 0;
+
+  // Sync to Supabase (with retry) so hidden state survives cache clears
+  if (_allStable.size) {
+    const ok = await _syncHiddenToServer(_allStable);
+    if (!ok) {
+      toast('⚠ Histórico limpo localmente, mas falhou ao sincronizar com o servidor. Se limpar o cache, algumas imagens podem reaparecer.', 'warn');
+    } else if (_noStable.length) {
+      console.warn(`[CLEAR] ${_noStable.length} cards pendentes sem ID Supabase — protegidos apenas pelo localStorage por agora`);
+    }
+  }
 }
 
 // ── Selection ──────────────────────────────────────────────────────────────
