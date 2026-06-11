@@ -4044,6 +4044,12 @@ function _updateDashBulkBar() {
   const n = dashSelected.size;
   bar.style.display = n > 0 ? '' : 'none';
   if (cnt) cnt.textContent = `${n} selecionado${n !== 1 ? 's' : ''}`;
+  const hasFiles   = [...dashSelected].some(k => !k.startsWith('folder_'));
+  const hasFolders = [...dashSelected].some(k => k.startsWith('folder_'));
+  const zipBtn  = bar.querySelector('[onclick="dashBulkZip()"]');
+  const moveBtn = bar.querySelector('[onclick="dashBulkMove()"]');
+  if (zipBtn)  zipBtn.style.display  = hasFiles ? '' : 'none';
+  if (moveBtn) moveBtn.style.display = hasFiles && !hasFolders ? '' : 'none';
 }
 
 function dashClearSelection() {
@@ -4067,18 +4073,102 @@ function dashBulkSelectAll() {
 async function dashBulkDelete() {
   const keys = [...dashSelected];
   if (!keys.length) return;
-  if (!confirm(`Excluir ${keys.length} arquivo${keys.length !== 1 ? 's' : ''}?`)) return;
-  for (const key of keys) {
+
+  const folderKeys = keys.filter(k => k.startsWith('folder_'));
+  const fileKeys   = keys.filter(k => !k.startsWith('folder_'));
+
+  if (!folderKeys.length) {
+    // File-only path (original behavior)
+    if (!confirm(`Excluir ${fileKeys.length} arquivo${fileKeys.length !== 1 ? 's' : ''}?`)) return;
+    for (const key of fileKeys) {
+      await authFetch('/api/db?action=delete-image', {
+        method: 'POST', body: JSON.stringify(_deletePayload(key)),
+      }).catch(() => {});
+      delete results[key];
+      const gfi = generatedFiles.findIndex(f => f.key === key);
+      if (gfi !== -1) generatedFiles.splice(gfi, 1);
+      document.querySelector(`.dash-card[data-key="${CSS.escape(key)}"]`)?.remove();
+    }
+    dashSelected.clear();
+    _updateDashBulkBar();
+    toast(`${fileKeys.length} arquivo${fileKeys.length !== 1 ? 's' : ''} excluído${fileKeys.length !== 1 ? 's' : ''}.`, 'ok');
+    return;
+  }
+
+  // Collect all folder IDs including descendants
+  const selectedFolderIds = folderKeys.map(k => Number(k.replace('folder_', '')));
+  const allFolderIds = new Set(selectedFolderIds);
+  const collectDesc = (pid) => {
+    dashFolders.filter(f => Number(f.parent_id) === pid).forEach(f => {
+      allFolderIds.add(f.id); collectDesc(f.id);
+    });
+  };
+  selectedFolderIds.forEach(id => collectDesc(id));
+
+  // Files inside those folders
+  const imgKeysInFolders = Object.keys(results).filter(k =>
+    results[k]?.url && allFolderIds.has(Number(results[k].folderId))
+  );
+  const txtKeysInFolders = generatedFiles
+    .filter(f => allFolderIds.has(Number(f.folderId)))
+    .map(f => f.key);
+  const allFileKeysInFolders = [...new Set([...imgKeysInFolders, ...txtKeysInFolders])];
+
+  // Confirm
+  const nFolders = allFolderIds.size;
+  const nFilesInside = allFileKeysInFolders.length;
+  const nFilesSelected = fileKeys.length;
+  let msg = `Excluir ${nFolders} pasta${nFolders !== 1 ? 's' : ''}`;
+  if (nFilesSelected) msg += ` e ${nFilesSelected} arquivo${nFilesSelected !== 1 ? 's' : ''} selecionado${nFilesSelected !== 1 ? 's' : ''}`;
+  msg += '?';
+  if (nFilesInside) msg += `\n\n${nFilesInside} arquivo${nFilesInside !== 1 ? 's' : ''} dentro das pastas também ser${nFilesInside !== 1 ? 'ão' : 'á'} excluído${nFilesInside !== 1 ? 's' : ''}.`;
+  msg += '\n\nEsta ação não pode ser desfeita.';
+  if (!confirm(msg)) return;
+
+  // Delete individually selected files
+  for (const key of fileKeys) {
     await authFetch('/api/db?action=delete-image', {
-      method: 'POST',
-      body: JSON.stringify(_deletePayload(key)),
+      method: 'POST', body: JSON.stringify(_deletePayload(key)),
     }).catch(() => {});
     delete results[key];
-    document.querySelector(`.dash-card[data-key="${key}"]`)?.remove();
+    const gfi = generatedFiles.findIndex(f => f.key === key);
+    if (gfi !== -1) generatedFiles.splice(gfi, 1);
   }
+
+  // Delete files inside folders
+  for (const key of allFileKeysInFolders) {
+    await authFetch('/api/db?action=delete-image', {
+      method: 'POST', body: JSON.stringify(_deletePayload(key)),
+    }).catch(() => {});
+    delete results[key];
+    const gfi = generatedFiles.findIndex(f => f.key === key);
+    if (gfi !== -1) generatedFiles.splice(gfi, 1);
+  }
+
+  // Delete folders
+  for (const fid of allFolderIds) {
+    await authFetch('/api/db?action=delete-folder', {
+      method: 'POST', body: JSON.stringify({ folderId: fid }),
+    }).catch(() => {});
+  }
+
+  // Update local state
+  dashFolders = dashFolders.filter(f => !allFolderIds.has(f.id));
+  renderFolders();
   dashSelected.clear();
   _updateDashBulkBar();
-  toast(`${keys.length} arquivo${keys.length !== 1 ? 's' : ''} excluído${keys.length !== 1 ? 's' : ''}.`, 'ok');
+
+  if (dashFolderFilter !== null && allFolderIds.has(dashFolderFilter)) {
+    filterDashboardFolder(null, null);
+  } else {
+    refreshDashboard();
+  }
+
+  const parts = [];
+  if (nFolders) parts.push(`${nFolders} pasta${nFolders !== 1 ? 's' : ''}`);
+  const totalFiles = nFilesSelected + nFilesInside;
+  if (totalFiles) parts.push(`${totalFiles} arquivo${totalFiles !== 1 ? 's' : ''}`);
+  toast(`${parts.join(' e ')} excluído${parts.length + totalFiles > 1 ? 's' : ''}.`, 'ok');
 }
 
 async function dashBulkZip() {
@@ -4988,6 +5078,8 @@ function refreshDashboard() {
   // ── Folder cards — rendered BEFORE empty check so an empty folder still shows subfolders ──
   const _renderFolderCard = (f) => {
     const fid = Number(f.id);
+    const fkey = `folder_${f.id}`;
+    const isFolderSel = dashSelected.has(fkey);
     const fileCount = Object.values(results).filter(r =>
       r && r.url && Number(r.folderId) === fid &&
       (dashVersion === 'edit' ? _isUpscaled(r.filename) : !_isUpscaled(r.filename))
@@ -4997,8 +5089,10 @@ function refreshDashboard() {
     if (subCount)  metaParts.push(`${subCount} pasta${subCount !== 1 ? 's' : ''}`);
     if (fileCount) metaParts.push(`${fileCount} arquivo${fileCount !== 1 ? 's' : ''}`);
     const div = document.createElement('div');
-    div.className = 'dash-card folder-card';
+    div.className = 'dash-card folder-card' + (isFolderSel ? ' selected' : '');
+    div.dataset.key = fkey;
     div.innerHTML = `
+      <div class="dash-card-check-wrap"><input type="checkbox" ${isFolderSel ? 'checked' : ''} onchange="toggleDashSelect('${fkey}',this.checked,event)" /></div>
       <div class="dash-card-thumb"></div>
       <div class="dash-card-info">
         <div class="dash-card-text">
@@ -5008,7 +5102,7 @@ function refreshDashboard() {
         <button class="dash-card-more" onclick="event.stopPropagation();showFolderCardMenu(event,${f.id})" title="Opções">···</button>
       </div>`;
     div.onclick = (e) => {
-      if (!e.target.closest('.dash-card-more')) {
+      if (!e.target.closest('.dash-card-more') && !e.target.closest('.dash-card-check-wrap')) {
         filterDashboardFolder(f.id, document.getElementById(`fitem-${f.id}`));
       }
     };
