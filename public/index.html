@@ -4146,10 +4146,20 @@ async function dashBulkDelete() {
   }
 
   // Delete folders
+  let folderDeleteErr = null;
   for (const fid of allFolderIds) {
-    await authFetch('/api/db?action=delete-folder', {
-      method: 'POST', body: JSON.stringify({ folderId: fid }),
-    }).catch(() => {});
+    try {
+      const res  = await authFetch('/api/db?action=delete-folder', {
+        method: 'POST', body: JSON.stringify({ folderId: fid }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) folderDeleteErr = data.error || `HTTP ${res.status}`;
+    } catch (e) { folderDeleteErr = e.message; }
+  }
+
+  if (folderDeleteErr) {
+    toast(`Erro ao excluir pasta: ${folderDeleteErr}`, 'err');
+    return;
   }
 
   // Update local state
@@ -4633,7 +4643,9 @@ async function dashDeleteFolder(id) {
   const f = dashFolders.find(f => f.id === id);
   if (!f || !confirm(`Excluir "${f.name}"?\n\nSubpastas e imagens dentro dela não serão apagadas.`)) return;
   try {
-    await authFetch('/api/db?action=delete-folder', { method: 'POST', body: JSON.stringify({ folderId: id }) });
+    const res  = await authFetch('/api/db?action=delete-folder', { method: 'POST', body: JSON.stringify({ folderId: id }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
     // Remove folder and all its descendants from dashFolders
     const toRemove = new Set();
     const collect = (pid) => { dashFolders.filter(x => x.parent_id === pid).forEach(x => { toRemove.add(x.id); collect(x.id); }); };
@@ -4643,7 +4655,7 @@ async function dashDeleteFolder(id) {
     if (toRemove.has(dashFolderFilter)) filterDashboard('all', document.querySelector('#pg-dashboard .folder-item'));
     else refreshDashboard();
     toast(`Pasta excluída.`, 'ok');
-  } catch (e) { toast('Erro ao excluir pasta.', 'err'); }
+  } catch (e) { toast(`Erro ao excluir pasta: ${e.message}`, 'err'); }
 }
 
 // ── Dashboard file preview ────────────────────────────────────────────────
