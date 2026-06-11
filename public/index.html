@@ -935,11 +935,37 @@
     .dash-preview-footer-meta  { font-size: 12px; color: rgba(255,255,255,.55); margin-top: 2px; }
     .dash-preview-counter { font-size: 12px; color: rgba(255,255,255,.5); white-space: nowrap; }
     /* List view override */
-    .dash-card-grid.list-view { display: flex; flex-direction: column; gap: 3px; }
-    .dash-card-grid.list-view .dash-card { flex-direction: row; border-radius: 8px; transform: none !important; box-shadow: none !important; }
-    .dash-card-grid.list-view .dash-card:hover { background: var(--surface2); }
-    .dash-card-grid.list-view .dash-card-thumb { width: 64px; height: 48px; aspect-ratio: unset; flex-shrink: 0; border-radius: 0 0 0 8px; }
-    .dash-card-grid.list-view .dash-card-info { padding: 8px 12px; flex: 1; align-items: center; }
+    .dash-card-grid.list-view { display: flex; flex-direction: column; gap: 3px; padding: 10px 20px 30px; }
+    .dash-card-grid.list-view .dash-card {
+      width: 100% !important; min-width: 0 !important; max-width: none !important;
+      flex-direction: row; border-radius: 8px; height: 56px;
+      transform: none !important; box-shadow: none !important;
+    }
+    .dash-card-grid.list-view .dash-card:hover { background: var(--surface2); box-shadow: none !important; transform: none !important; }
+    .dash-card-grid.list-view .dash-card-check-wrap {
+      position: static; opacity: 1; display: flex; align-items: center;
+      padding: 0 4px 0 10px; flex-shrink: 0; z-index: auto;
+    }
+    .dash-card-grid.list-view .dash-card-thumb {
+      width: 72px !important; min-width: 72px !important; height: 56px !important; min-height: 56px !important;
+      aspect-ratio: unset; flex-shrink: 0; border-radius: 0;
+    }
+    .dash-card-grid.list-view .dash-card-info {
+      padding: 0 10px 0 12px; flex: 1; min-width: 0;
+      flex-direction: row; align-items: center; gap: 10px;
+    }
+    .dash-card-grid.list-view .dash-card-text {
+      flex: 1; min-width: 0; display: flex; flex-direction: row; align-items: center; gap: 12px;
+    }
+    .dash-card-grid.list-view .dash-card-title {
+      font-size: 13px; -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+      display: -webkit-box; overflow: hidden; white-space: normal;
+    }
+    .dash-card-grid.list-view .dash-card-meta { margin-top: 0; white-space: nowrap; flex-shrink: 0; font-size: 11px; }
+    .dash-card-grid.list-view .dash-card-more { opacity: 1; flex-shrink: 0; }
+    .dash-card-grid.list-view .dash-card.folder-card .dash-card-thumb { background: transparent; font-size: 22px; border-radius: 0; }
+    .dash-card-grid.list-view .dash-card.txt-card .dash-card-thumb,
+    .dash-card-grid.list-view .dash-card.pdf-card .dash-card-thumb { font-size: 22px; border-radius: 0; }
     /* File context menu */
     .file-ctx-menu {
       position: fixed; z-index: 600; background: var(--surface); border: 1px solid var(--border);
@@ -1089,10 +1115,12 @@
     }
     .storage-modal-grid {
       flex: 1; overflow-y: auto; padding: 16px;
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; align-content: start;
+      display: grid; grid-template-columns: repeat(auto-fill, 110px);
+      gap: 10px; align-content: start; justify-content: start;
     }
     .storage-item {
-      aspect-ratio: 1; border-radius: 8px; overflow: hidden; cursor: pointer;
+      width: 110px; height: 110px;
+      border-radius: 8px; overflow: hidden; cursor: pointer;
       border: 2px solid transparent; background: var(--surface2); position: relative; transition: border-color .15s;
     }
     .storage-item:hover { border-color: var(--border2); }
