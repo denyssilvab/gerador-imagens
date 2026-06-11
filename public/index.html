@@ -4082,19 +4082,33 @@ async function dashBulkDelete() {
 }
 
 async function dashBulkZip() {
-  const keys = [...dashSelected].filter(k => results[k]?.url);
-  if (!keys.length) { toast('Nenhum arquivo selecionado.', 'warn'); return; }
+  const allKeys = [...dashSelected];
+  if (!allKeys.length) { toast('Nenhum arquivo selecionado.', 'warn'); return; }
 
   const usedNames = new Map();
-  const entries = keys.map(key => {
-    const r = results[key];
-    const base = (r.filename || r.customTitle || r.title || key).replace(/\.[^.]+$/, '');
-    const ext  = (r.filename || 'arquivo.png').split('.').pop() || 'png';
-    const candidate = `${base}.${ext}`;
+  function _uniqueName(candidate) {
     const count = usedNames.get(candidate) || 0;
     usedNames.set(candidate, count + 1);
-    return { r, zipName: count > 0 ? `${base} (${count}).${ext}` : candidate };
-  });
+    const dot = candidate.lastIndexOf('.');
+    return count > 0
+      ? (dot >= 0 ? `${candidate.slice(0, dot)} (${count})${candidate.slice(dot)}` : `${candidate} (${count})`)
+      : candidate;
+  }
+
+  // Build entries: images from results + txt files from generatedFiles
+  const entries = [];
+  for (const key of allKeys) {
+    if (results[key]?.url) {
+      const r = results[key];
+      const base = (r.filename || r.customTitle || r.title || key).replace(/\.[^.]+$/, '');
+      const ext  = (r.filename || 'arquivo.png').split('.').pop() || 'png';
+      entries.push({ type: 'image', r, zipName: _uniqueName(`${base}.${ext}`) });
+    } else {
+      const f = generatedFiles.find(g => g.key === key);
+      if (f) entries.push({ type: 'txt', f, zipName: _uniqueName(f.filename || `${key}.txt`) });
+    }
+  }
+  if (!entries.length) { toast('Nenhum arquivo selecionado.', 'warn'); return; }
 
   const overlay = document.createElement('div');
   overlay.className = 'pdf-overlay';
@@ -4103,15 +4117,20 @@ async function dashBulkZip() {
   try {
     const zip = new JSZip();
     for (let i = 0; i < entries.length; i++) {
-      const { r, zipName } = entries[i];
+      const entry = entries[i];
       const prog = document.getElementById('dash-zip-prog');
       if (prog) prog.textContent = `Adicionando ${i + 1} de ${entries.length}…`;
       await new Promise(res => setTimeout(res, 0));
-      if (r.url.startsWith('data:')) {
-        zip.file(zipName, r.url.split(',')[1], { base64: true });
+      if (entry.type === 'txt') {
+        zip.file(entry.zipName, entry.f.content || '');
       } else {
-        const res = await fetch(r.url);
-        zip.file(zipName, await res.blob());
+        const { r, zipName } = entry;
+        if (r.url.startsWith('data:')) {
+          zip.file(zipName, r.url.split(',')[1], { base64: true });
+        } else {
+          const res = await fetch(r.url);
+          zip.file(zipName, await res.blob());
+        }
       }
     }
     const prog = document.getElementById('dash-zip-prog');
@@ -7856,7 +7875,7 @@ async function confirmRefazer() {
             results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType };
             if (existingKey) results[domKey].sbKey = existingKey;
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
-            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, ts: Date.now() }).catch(() => {});
+            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now() }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
@@ -7945,7 +7964,7 @@ async function retryPage(domKey) {
                 <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
                 <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pd.num})">🔄 Refazer</button>`;
             }
-            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType })
+            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, folderId: results[domKey]?.folderId ?? null })
               .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
             if (_rLid)   results[domKey].localId = _rLid;
             if (_rSbId)  results[domKey].sbId    = _rSbId;
