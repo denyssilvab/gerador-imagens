@@ -1793,6 +1793,16 @@
               <label>Nome da Aula</label>
               <input id="content-lesson-name" placeholder="Ex: Algebraic Expressions" style="padding:6px 8px;font-size:12px;" />
             </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="fg">
+                <label>Disciplina</label>
+                <input id="content-disciplina" value="Mathematics" placeholder="Ex: Mathematics" style="padding:6px 8px;font-size:12px;" />
+              </div>
+              <div class="fg">
+                <label>Turma</label>
+                <input id="content-turma" value="6th Grade" placeholder="Ex: 6th Grade" style="padding:6px 8px;font-size:12px;" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -2024,6 +2034,18 @@
             <div class="fg">
               <label>Nome da Aula</label>
               <input id="lesson-name" placeholder="Ex: Algebraic Expressions" style="padding:6px 8px;font-size:12px;" />
+            </div>
+
+            <!-- Disciplina + Turma na mesma linha -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="fg">
+                <label>Disciplina</label>
+                <input id="disciplina" value="Mathematics" placeholder="Ex: Mathematics" style="padding:6px 8px;font-size:12px;" />
+              </div>
+              <div class="fg">
+                <label>Turma</label>
+                <input id="turma" value="6th Grade" placeholder="Ex: 6th Grade" style="padding:6px 8px;font-size:12px;" />
+              </div>
             </div>
 
             <hr class="sep" />
@@ -6930,12 +6952,14 @@ function onPromptInput() {
 
 // ── Build full prompt ──────────────────────────────────────────────────────
 function buildPromptForType(page, type) {
-  const unit  = document.getElementById('unit').value.trim();
-  const lesson= document.getElementById('lesson').value.trim();
-  const ccss  = document.getElementById('ccss').value.trim();
+  const unit       = document.getElementById('unit').value.trim();
+  const lesson     = document.getElementById('lesson').value.trim();
+  const ccss       = document.getElementById('ccss').value.trim();
+  const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
+  const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const specs = SPECS[type];
   const tagText    = type === 'lessonplan' ? `Unit ${unit} | Lesson Plan` : `Unit ${unit} | Lesson ${lesson}`;
-  const footerText = `Mathematics - 6th Grade | ${ccss}`;
+  const footerText = `${disciplina} - ${turma} | ${ccss}`;
   const [zone, maxY, leftX] = type === 'lessonplan'
     ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
@@ -8600,13 +8624,15 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
 }
 
 function _overlayTextsForType(type) {
-  const unit   = document.getElementById('unit')?.value.trim()   || '';
-  const lesson = document.getElementById('lesson')?.value.trim() || '';
-  const ccss   = document.getElementById('ccss')?.value.trim()   || '';
+  const unit       = document.getElementById('unit')?.value.trim()       || '';
+  const lesson     = document.getElementById('lesson')?.value.trim()     || '';
+  const ccss       = document.getElementById('ccss')?.value.trim()       || '';
+  const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
+  const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const header = type === 'lessonplan'
     ? `Unit ${unit} | Lesson Plan ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
-  const footer = `Mathematics - 6th Grade | ${ccss}`;
+  const footer = `${disciplina} - ${turma} | ${ccss}`;
   return { header, footer };
 }
 function _overlayTexts() { return _overlayTextsForType(docType); }
@@ -8758,10 +8784,14 @@ function saveSettings() {
       lesson:              document.getElementById('lesson')?.value ?? '',
       ccss:                document.getElementById('ccss')?.value ?? '',
       lessonName:          document.getElementById('lesson-name')?.value ?? '',
+      disciplina:          document.getElementById('disciplina')?.value ?? '',
+      turma:               document.getElementById('turma')?.value ?? '',
       contentUnit:         document.getElementById('content-unit')?.value ?? '',
       contentLesson:       document.getElementById('content-lesson')?.value ?? '',
       contentCcss:         document.getElementById('content-ccss')?.value ?? '',
       contentLessonName:   document.getElementById('content-lesson-name')?.value ?? '',
+      contentDisciplina:   document.getElementById('content-disciplina')?.value ?? '',
+      contentTurma:        document.getElementById('content-turma')?.value ?? '',
       provider, docType,
       modelOpenai:         document.getElementById('model-openai')?.value,
       quality:             document.getElementById('quality')?.value,
@@ -8787,10 +8817,14 @@ function loadSettings() {
     set('lesson',             s.lesson);
     set('ccss',               s.ccss);
     set('lesson-name',        s.lessonName);
-    set('content-unit',       s.contentUnit   ?? s.unit);
-    set('content-lesson',     s.contentLesson ?? s.lesson);
-    set('content-ccss',       s.contentCcss   ?? s.ccss);
+    set('disciplina',         s.disciplina);
+    set('turma',              s.turma);
+    set('content-unit',       s.contentUnit        ?? s.unit);
+    set('content-lesson',     s.contentLesson      ?? s.lesson);
+    set('content-ccss',       s.contentCcss        ?? s.ccss);
     set('content-lesson-name', s.contentLessonName ?? s.lessonName);
+    set('content-disciplina', s.contentDisciplina  ?? s.disciplina);
+    set('content-turma',      s.contentTurma       ?? s.turma);
     set('quality', s.quality);
     set('model-openai', s.modelOpenai);
     set('resolution-openai', s.resolutionOpenai);
