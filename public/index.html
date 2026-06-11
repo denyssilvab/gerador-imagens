@@ -7107,9 +7107,13 @@ async function startGeneration() {
   const groupGrids  = useGroups ? setupTypeGroupsForGen(grid, pages) : {};
   console.log('[gerador] groupGrids keys:', Object.keys(groupGrids));
 
+  const _genFolderId = dashFolderFilter || null;
   const frag = document.createDocumentFragment();
   pages.forEach((p, i) => {
-    retryData[ck(currentGen, i)] = p;
+    const domKey = ck(currentGen, i);
+    // Seed results with folderId so retry/refazer can read it even if the page errors
+    results[domKey] = { folderId: _genFolderId };
+    retryData[domKey] = { ...p, folderId: _genFolderId };
     const card = makeCard(currentGen, i, p.num, p.title);
     const targetGrid = groupGrids[p.docType];
     if (targetGrid) {
@@ -7963,7 +7967,8 @@ async function retryPage(domKey) {
             const pageDocType = ev.docType || pd.docType || (docType !== 'all' ? docType : '');
             const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
-            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey };
+            const _rFolderId = results[domKey]?.folderId ?? retryData[domKey]?.folderId ?? null;
+            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey, folderId: _rFolderId };
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
             if (stEl) { stEl.className = 'icard-status s-done'; stEl.textContent = '✓ Pronta'; }
             if (ft) {
@@ -7973,7 +7978,9 @@ async function retryPage(domKey) {
                 <button class="btn btn-ghost btn-sm" onclick="openByKey('${domKey}')">🔗 Abrir</button>
                 <button class="btn btn-ghost btn-sm" onclick="openRefazer('${domKey}',${pd.num})">🔄 Refazer</button>`;
             }
-            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, folderId: results[domKey]?.folderId ?? null })
+            // folderId priority: live results entry > retryData seed > null
+            const _retryFolderId = results[domKey]?.folderId ?? retryData[domKey]?.folderId ?? null;
+            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, folderId: _retryFolderId })
               .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
             if (_rLid)   results[domKey].localId = _rLid;
             if (_rSbId)  results[domKey].sbId    = _rSbId;
