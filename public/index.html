@@ -8264,6 +8264,8 @@ async function pollReplicateClient(predictionId, token, onStatus, signal) {
 
 // ── Upscale ────────────────────────────────────────────────────────────────
 let _upscaleAbortCtrl = null;
+let _lastUpscaleModel = 'nightmareai/real-esrgan';
+let _lastUpscaleScale = 2;
 
 function stopUpscale() {
   if (_upscaleAbortCtrl) {
@@ -8387,6 +8389,103 @@ function _ulogError(key, msg) {
   e.timeEl.style.color = 'var(--red)';
   e.timeEl.textContent = _ulogFmtTime(elapsed);
   e.rowEl.style.background = 'rgba(239,68,68,.08)';
+
+  // Retry button for this specific item
+  const btn = document.createElement('button');
+  btn.className = 'ulog-dl'; btn.title = 'Tentar novamente'; btn.textContent = '🔄';
+  btn.onclick = () => { btn.remove(); retryUpscaleItem(key); };
+  e.rowEl.appendChild(btn);
+}
+
+async function retryUpscaleItem(key) {
+  const scale       = _lastUpscaleScale;
+  const upscaleModel = _lastUpscaleModel;
+  const token = getApiKeyByProvider('replicate');
+  if (!token) { toast('Upscale AI requer o Replicate API Token.', 'err'); return; }
+  const r = results[key];
+  if (!r?.url) { toast('Imagem original não encontrada.', 'err'); return; }
+
+  _ulogStart(key);
+  const _updateStatus = txt => _ulogProgress(key, txt);
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      if (attempt > 0) {
+        const wait = attempt * 15;
+        _updateStatus(`Aguardando ${wait}s (retry ${attempt})…`);
+        await new Promise(res => setTimeout(res, wait * 1000));
+        _updateStatus(`Upscale ${scale}× (retry ${attempt})…`);
+      }
+
+      let sourceUrl = r.originalUrl || r.url;
+      if (sourceUrl?.startsWith('data:') || sourceUrl?.startsWith('blob:')) {
+        _updateStatus('Preparando imagem…');
+        sourceUrl = await compressForUpscale(sourceUrl);
+      }
+
+      _updateStatus(`Upscale ${scale}× — iniciando…`);
+      const sbToken = _getToken();
+      const hdrs = { 'Content-Type': 'application/json' };
+      if (sbToken) hdrs['Authorization'] = `Bearer ${sbToken}`;
+      const res = await fetch('/api/upscale', {
+        method: 'POST', headers: hdrs,
+        body: JSON.stringify({ dataUrl: sourceUrl, scale, token, upscaleModel }),
+      });
+      const pred = await res.json().catch(async () => ({ error: await res.text().catch(() => `HTTP ${res.status}`) }));
+      if (!res.ok) {
+        const msg = String(pred.detail || pred.error || `HTTP ${res.status}`);
+        const isThrottle = msg.toLowerCase().includes('throttled') || msg.toLowerCase().includes('rate limit') || res.status === 429;
+        if ((isThrottle || res.status === 504) && attempt < 2) throw Object.assign(new Error(msg), { retry: true });
+        throw new Error(msg);
+      }
+
+      _updateStatus(`Upscale ${scale}× — processando…`);
+      const data = await pollReplicateClient(pred.predictionId || pred.id, token, txt => _updateStatus(txt), null);
+
+      const upscaledUrl = data.dataUrl;
+      const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
+      const outExt    = upscaledUrl.startsWith('data:image/jpeg') ? 'jpg' : 'png';
+      const baseName  = (r.filename || 'image').replace(/\.[^.]+$/, '');
+      const filename  = `${baseName}_${modelSlug}_${scale}x.${outExt}`;
+      const modelKey  = `${upscaleModel}:${scale}x`;
+      results[key] = { ...r, originalUrl: r.originalUrl || r.url, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale,
+        upscales: { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } } };
+
+      _updateStatus('Enviando para o Storage…');
+      const storagePublicUrl = await _clientUploadToStorage(upscaledUrl, filename);
+      if (!storagePublicUrl) toast('⚠ Falha no upload ao Storage.', 'err');
+      const saveUrl = storagePublicUrl || upscaledUrl;
+
+      _updateStatus('Salvando no Dashboard…');
+      const _upscaleKey = `img_upscale_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const { localId: newLocalId } = await dbSave({
+        key: _upscaleKey, dataUrl: saveUrl, url: saveUrl, filename,
+        pageNum: r.pageNum, title: r.customTitle || r.title || '',
+        docType: r.docType || '', folderId: r.folderId || null,
+      }, { silent: !storagePublicUrl }).catch(() => ({}));
+
+      if (newLocalId) {
+        const newKey = `db_${newLocalId}`;
+        results[newKey] = { url: saveUrl, originalUrl: saveUrl, filename, pageNum: r.pageNum,
+          title: r.customTitle || r.title || '', customTitle: null, docType: r.docType || '',
+          folderId: r.folderId || null, ts: Date.now(), localId: newLocalId, sbKey: _upscaleKey };
+        _sessionUpscaledKeys.push(newKey);
+        refreshDashboard();
+        _ulogDone(key, newKey, r.folderId ? (dashFolders.find(f => Number(f.id) === Number(r.folderId))?.name || null) : null);
+      } else {
+        _ulogDone(key, null, null);
+      }
+      _updateCombinarBtn();
+      toast(`Upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
+      return;
+
+    } catch (e) {
+      if (e.retry) continue;
+      _ulogError(key, e.message);
+      toast(`Erro: ${e.message}`, 'err');
+      return;
+    }
+  }
 }
 
 async function upscaleSelected(scale) {
@@ -8400,6 +8499,8 @@ async function upscaleSelected(scale) {
   }
 
   const upscaleModel = document.getElementById('upscale-model-pg')?.value ?? 'nightmareai/real-esrgan';
+  _lastUpscaleModel  = upscaleModel;
+  _lastUpscaleScale  = scale;
 
   // Reset session tracking and hide Combinar button from previous session
   _sessionUpscaledKeys = [];
