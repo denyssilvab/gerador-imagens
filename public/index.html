@@ -1057,10 +1057,16 @@
       padding: 20px; width: 100%; box-sizing: border-box;
     }
     .upscale-q-item {
-      aspect-ratio: 1; border-radius: 10px; overflow: hidden; position: relative;
+      border-radius: 10px; overflow: hidden; position: relative;
       background: var(--surface); border: 1px solid var(--border);
+      display: flex; flex-direction: column;
     }
-    .upscale-q-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .upscale-q-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; flex-shrink: 0; }
+    .upscale-q-label {
+      font-size: 10px; color: var(--muted); padding: 3px 6px 4px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      text-align: center; background: var(--surface); flex-shrink: 0;
+    }
     .upscale-q-del {
       position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
       background: rgba(0,0,0,.7); border: none; color: #fff; font-size: 12px; cursor: pointer;
@@ -5517,6 +5523,7 @@ function _renderUpscaleQueue() {
   grid.innerHTML = upscaleQueue.map((item, i) => `
     <div class="upscale-q-item">
       <img src="${esc(item.url)}" loading="lazy" />
+      <span class="upscale-q-label" title="${esc(item.label || item.filename)}">${esc(item.label || item.filename)} - [UP]</span>
       <button class="upscale-q-del" onclick="upscaleQueueRemove(${i})" title="Remover">✕</button>
     </div>`).join('');
 }
@@ -5648,7 +5655,7 @@ function confirmStorageLibrary() {
     _slibSelected.forEach(key => {
       if (!upscaleQueue.find(i => i.key === key)) {
         const r = results[key];
-        if (r) upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label: r.customTitle || r.title || key });
+        if (r) upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label: r.customTitle || r.title || r.filename || key });
       }
     });
     closeStorageLibrary();
@@ -7947,7 +7954,7 @@ function exportSelectedToUpscale() {
     if (upscaleQueue.find(i => i.key === key)) return;
     const r = results[key];
     if (!r) return;
-    const label = r.customTitle || r.title || (r.pageNum != null ? `Pág. ${r.pageNum}` : r.filename || key);
+    const label = r.customTitle || r.title || r.filename || key;
     upscaleQueue.push({ key, url: r.url, filename: r.filename || key, label });
     added++;
   });
@@ -8319,7 +8326,7 @@ function _ulogInit(queue, model, scale) {
     row.className = 'ulog-row';
     row.innerHTML = `
       <span class="ulog-idx">${i + 1}</span>
-      <span class="ulog-name" title="${esc(item.filename)}">${esc(item.filename)}</span>
+      <span class="ulog-name" title="${esc(item.filename)}">${esc(item.label || item.filename)} - [UP]</span>
       <span class="ulog-status">⏳ Na fila…</span>
       <span class="ulog-time">—</span>`;
     rowsEl.appendChild(row);
