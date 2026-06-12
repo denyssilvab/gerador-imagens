@@ -5344,12 +5344,13 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
     const _isHiddenLocally = _hiddenFromHistory.has(domKey) || (r.key && _hiddenFromHistory.has(r.key));
     const _isHidden = _isPdf || _isUpscaled(r.filename) || _isHiddenLocally;
 
-    // Retroactive Supabase sync: image appeared in Phase-2 response (hidden_from_history=false in DB)
-    // but is marked hidden locally — previous clear failed to reach Supabase.
+    // Retroactive delete: image reappeared in Phase-2 (previous clear failed to reach Supabase).
     if (addToImgGrid && _isHiddenLocally && r.key && !_isPdf && !_isUpscaled(r.filename)) {
-      const _retroStable = new Set([r.key, r.id ? `id:${r.id}` : null].filter(Boolean));
-      console.log(`[CLEAR] retroactive sync para key=${r.key} id=${r.id} (estava em _hiddenFromHistory mas voltou do Supabase)`);
-      _syncHiddenToServer(_retroStable);
+      authFetch('/api/db?action=bulk-delete-images', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: [r.key], ids: r.id ? [r.id] : [] }),
+      }).catch(() => {});
     }
 
     // Absolute dedup: never render the same Supabase row twice per page-load
@@ -7315,12 +7316,19 @@ async function handleEvent(ev) {
       const { localId: _savedId, sbId: _sbId } = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl }) || {};
       if (_savedId && results[domKey]) results[domKey].localId = _savedId;
       if (_sbId    && results[domKey]) results[domKey].sbId = _sbId;
-      // Race-condition guard: if clearResults() ran while this save was in-flight,
-      // the server never received this key (image didn't exist yet). Sync now.
+      // Late-delete guard: clearResults() ran while this save was in-flight.
+      // The image was just saved to Supabase — delete it now so it doesn't reappear.
       if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
-        const _lateHide = new Set([sbKey, _sbId ? `id:${_sbId}` : null].filter(Boolean));
-        console.log(`[CLEAR] late-hide guard disparado para domKey=${domKey} sbKey=${sbKey} sbId=${_sbId}`);
-        _syncHiddenToServer(_lateHide);
+        const keys = sbKey ? [sbKey] : [];
+        const ids  = _sbId ? [Number(_sbId)] : [];
+        if (keys.length || ids.length) {
+          authFetch('/api/db?action=bulk-delete-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keys, ids }),
+          }).catch(() => {});
+        }
+        delete results[domKey];
       }
       cardDone(currentGen, ev.index, displayUrl, domKey, result);
       updateProg();
@@ -7814,20 +7822,29 @@ async function clearResults() {
   const cards = [...document.querySelectorAll('#img-grid .icard[data-key]')];
   if (!cards.length) return;
 
-  // Collect stable keys and mark hidden locally before touching the DOM
-  const _allStable = new Set();
-  const _noStable  = [];   // keys with no sbKey/sbId — only protected by localStorage
+  // Collect deletion targets and mark locally for in-flight late-delete guard
+  const bulkKeys = [];
+  const bulkIds  = [];
+
   cards.forEach(card => {
     const key = card.dataset.key;
     if (!key) return;
-    _hiddenFromHistory.add(key); // domKey guard for post-save race
-    const stable = _addToHidden(key);
-    stable.forEach(k => _allStable.add(k));
-    if (!stable.size) _noStable.push(key);
+
+    const r = results[key];
+    const sbKey   = r?.sbKey || card.dataset.sbKey || null;
+    const sbIdRaw = r?.sbId  || (key.match(/^db_(\d+)$/)?.[1]) || null;
+    const sbId    = sbIdRaw ? Number(sbIdRaw) : null;
+
+    if (sbKey) bulkKeys.push(sbKey);
+    if (sbId)  bulkIds.push(sbId);
+
+    // Guard for in-flight saves: late-delete fires in handleEvent after dbSave
+    _hiddenFromHistory.add(key);
+    if (sbKey) _hiddenFromHistory.add(sbKey);
+
+    delete results[key];
   });
   _saveHiddenHistory(_hiddenFromHistory);
-
-  console.log(`[CLEAR] ${cards.length} cards | stable keys: ${_allStable.size} | sem stable: ${_noStable.length}`, { stable: [..._allStable], noStable: _noStable });
 
   // Clear the DOM immediately for responsiveness
   document.getElementById('img-grid').innerHTML = `
@@ -7838,15 +7855,20 @@ async function clearResults() {
   updateSelectionUI();
   doneCount = 0; errorCount = 0; totalPages = 0;
 
-  // Sync to Supabase (with retry) so hidden state survives cache clears
-  if (_allStable.size) {
-    const ok = await _syncHiddenToServer(_allStable);
+  // Hard-delete from Supabase so images never reappear on page reload
+  if (bulkKeys.length || bulkIds.length) {
+    const ok = await authFetch('/api/db?action=bulk-delete-images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keys: bulkKeys, ids: bulkIds }),
+    }).then(r => r.ok).catch(() => false);
     if (!ok) {
-      toast('⚠ Histórico limpo localmente, mas falhou ao sincronizar com o servidor. Se limpar o cache, algumas imagens podem reaparecer.', 'warn');
-    } else if (_noStable.length) {
-      console.warn(`[CLEAR] ${_noStable.length} cards pendentes sem ID Supabase — protegidos apenas pelo localStorage por agora`);
+      toast('⚠ Histórico limpo localmente, mas falhou ao apagar do servidor. Algumas imagens podem reaparecer ao recarregar.', 'warn');
     }
   }
+
+  // Clear IDB cache so deleted images don't resurface via Phase-1 load
+  _idbClear().catch(() => {});
 }
 
 // ── Selection ──────────────────────────────────────────────────────────────

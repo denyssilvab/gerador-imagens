@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
         .from('images')
         .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
         .eq('user_id', userId)
-        .eq('hidden_from_history', false)  // never return images hidden by the user
+        .not('hidden_from_history', 'is', true)  // returns false AND null (tables without DEFAULT)
         .order('created_at', { ascending: false }); // newest first — first page always has the latest images
 
       if (limit > 0) query = query.range(page * limit, page * limit + limit - 1);
