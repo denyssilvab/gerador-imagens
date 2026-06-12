@@ -4539,7 +4539,7 @@ let _createFolderParentId = null;
 async function loadFolders() {
   try {
     const res  = await authFetch('/api/db?action=load-folders');
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (data.ok) { dashFolders = data.folders || []; renderFolders(); }
   } catch (e) { console.warn('[folders]', e); }
 }
@@ -4612,7 +4612,7 @@ async function dashCreateFolder() {
   const parentId = _createFolderParentId || null;
   try {
     const res  = await authFetch('/api/db?action=create-folder', { method: 'POST', body: JSON.stringify({ name, parentId }) });
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (!data.ok) throw new Error(data.error);
     dashFolders.push(data.folder);
     renderFolders();
@@ -4866,7 +4866,7 @@ async function fileCtxDuplicate() {
   const key = _fileCtxKey;
   try {
     const res  = await authFetch('/api/db?action=duplicate-image', { method: 'POST', body: JSON.stringify({ key }) });
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (!data.ok) throw new Error(data.error);
     const img = data.image;
     const newKey = img.key;
@@ -5457,7 +5457,7 @@ async function loadPersistedImages() {
   // Phase 2: Supabase page 0 — authoritative source; adds cards to img-grid for the first time.
   try {
     const res  = await authFetch(`/api/db?action=load-images&page=0&limit=${_DASH_PAGE_LIMIT}`);
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (data.ok && data.images?.length) {
       _applyLoadedImages(data.images.map(_mapSbImage), true, true);
       refreshDashboard();
@@ -5477,7 +5477,7 @@ async function _loadMoreDashImages() {
   _dashLoadingMore = true;
   try {
     const res  = await authFetch(`/api/db?action=load-images&page=${_dashPage}&limit=${_DASH_PAGE_LIMIT}`);
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (data.ok && data.images?.length) {
       _applyLoadedImages(data.images.map(_mapSbImage), true, true); // append more pages
       refreshDashboard();
@@ -6701,6 +6701,16 @@ async function _clientUploadToStorage(dataUrl, filename, overridePath = null) {
   }
 }
 
+// Wrapper for authFetch that throws a meaningful error when the server returns
+// a non-2xx status or a non-JSON body (e.g. Vercel plain-text "A server error").
+async function _apiJson(res) {
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Erro HTTP ${res.status}`);
+  }
+  return res.json().catch(() => { throw new Error(`Resposta inválida do servidor`); });
+}
+
 // Fetches an image from a URL and returns it as a data: URL for canvas operations.
 // Used when the server sends a Supabase Storage URL instead of base64 via SSE.
 async function _storageUrlToDataUrl(url) {
@@ -6946,7 +6956,7 @@ async function dbLoadAll() {
   // Fetches ALL images (no pagination) — used for ZIP download, combinar, etc.
   try {
     const res  = await authFetch('/api/db?action=load-images');
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (data.ok && data.images?.length) return data.images.map(_mapSbImage);
   } catch (e) { console.warn('[supabase load]', e); }
   return _idbLoadAll();
@@ -9273,7 +9283,7 @@ function genId() { return `${Date.now()}_${Math.random().toString(36).slice(2,8)
 async function loadApiKeys() {
   try {
     const res  = await authFetch('/api/db?action=load-api-keys');
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (data.ok) {
       vaultKeys = (data.keys || []).map(k => ({ id: k.key_id, name: k.name, provider: k.provider, value: k.key_value }));
       renderApiKeys();
@@ -9353,7 +9363,7 @@ async function saveNewApiKey() {
       method: 'POST',
       body: JSON.stringify({ keyId, name, provider: prov, keyValue: value }),
     });
-    const data = await res.json();
+    const data = await _apiJson(res);
     if (!data.ok) throw new Error(data.error);
     vaultKeys.push({ id: keyId, name, provider: prov, value });
     renderApiKeys();
