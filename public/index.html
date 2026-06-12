@@ -2213,6 +2213,9 @@
           <button class="upscale-scale-btn" id="scale-btn-4" onclick="setUpscaleScale(4,this)">4×</button>
           <button class="upscale-scale-btn" id="scale-btn-6" onclick="setUpscaleScale(6,this)">6×</button>
         </div>
+        <button class="btn btn-ghost btn-sm" id="btn-clear-upscale" onclick="clearUpscaleQueue()" style="display:none;">
+          🗑 Limpar
+        </button>
         <button class="btn btn-primary btn-sm" id="btn-run-upscale" onclick="runUpscaleQueue()" disabled>
           ⬆ Fazer Upscale
         </button>
@@ -5495,16 +5498,18 @@ function setUpscaleScale(n, el) {
 }
 
 function _renderUpscaleQueue() {
-  const grid    = document.getElementById('upscale-queue-grid');
-  const empty   = document.getElementById('upscale-empty-state');
-  const actions = document.getElementById('upscale-queue-actions');
-  const runBtn  = document.getElementById('btn-run-upscale');
+  const grid     = document.getElementById('upscale-queue-grid');
+  const empty    = document.getElementById('upscale-empty-state');
+  const actions  = document.getElementById('upscale-queue-actions');
+  const runBtn   = document.getElementById('btn-run-upscale');
+  const clearBtn = document.getElementById('btn-clear-upscale');
   if (!grid) return;
   const has = upscaleQueue.length > 0;
   grid.style.display    = has ? 'grid' : 'none';
-  if (empty)   empty.style.display   = has ? 'none' : '';
-  if (actions) actions.style.display = has ? 'flex' : 'none';
-  if (runBtn)  runBtn.disabled       = !has;
+  if (empty)    empty.style.display    = has ? 'none' : '';
+  if (actions)  actions.style.display  = has ? 'flex' : 'none';
+  if (runBtn)   runBtn.disabled        = !has;
+  if (clearBtn) clearBtn.style.display = has ? '' : 'none';
   grid.innerHTML = upscaleQueue.map((item, i) => `
     <div class="upscale-q-item">
       <img src="${esc(item.url)}" loading="lazy" />
@@ -5514,6 +5519,11 @@ function _renderUpscaleQueue() {
 
 function upscaleQueueRemove(i) {
   upscaleQueue.splice(i, 1);
+  _renderUpscaleQueue();
+}
+
+function clearUpscaleQueue() {
+  upscaleQueue = [];
   _renderUpscaleQueue();
 }
 
