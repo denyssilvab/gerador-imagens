@@ -663,6 +663,7 @@
     }
     .nav-item:hover { background: var(--surface2); color: var(--text); }
     .nav-item.active { background: rgba(99,102,241,.15); color: var(--primary); }
+    .nav-item.sound-on { color: var(--text); }
     .nav-icon { font-size: 15px; flex-shrink: 0; width: 18px; text-align: center; }
     .nav-divider { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
     .nav-spacer { flex: 1; }
@@ -1404,6 +1405,9 @@
       <span class="user-chip-email" id="user-chip-email">—</span>
       <button class="user-chip-logout" onclick="authLogout()" title="Sair">⏏</button>
     </div>
+    <button class="nav-item" id="sound-toggle-btn" onclick="_toggleSound()" title="Notificações sonoras ao concluir tarefas">
+      <span class="nav-icon" id="sound-toggle-icon">🔕</span><span>Som</span>
+    </button>
     <button class="nav-item" onclick="setPage('config',this)">
       <span class="nav-icon">⚙</span><span>Configurações</span>
     </button>
@@ -3875,6 +3879,7 @@ async function generateContent() {
       sbSaveContent('lesson',     lessonContent);
       sbSaveContent('practice',   practiceContent);
       sbSaveContent('lessonplan', planContent);
+      _playNotification();
       toast('Lesson + Activities + Lesson Plan gerados!', 'ok');
 
     } else {
@@ -3900,6 +3905,7 @@ async function generateContent() {
       if (outputEl) outputEl.value = content;
       sbSaveContent(contentDocType, content);
       addGeneratedFile(contentDocType, content);
+      _playNotification();
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
 
@@ -6739,6 +6745,46 @@ function authFetch(url, opts = {}) {
   return fetch(url, { ...opts, headers });
 }
 
+// ── Sound notifications ────────────────────────────────────────────────────
+let _soundEnabled = localStorage.getItem('soundNotif') === '1';
+
+function _initSoundToggle() {
+  const btn  = document.getElementById('sound-toggle-btn');
+  const icon = document.getElementById('sound-toggle-icon');
+  if (icon) icon.textContent = _soundEnabled ? '🔔' : '🔕';
+  if (btn)  btn.classList.toggle('sound-on', _soundEnabled);
+}
+
+function _toggleSound() {
+  _soundEnabled = !_soundEnabled;
+  localStorage.setItem('soundNotif', _soundEnabled ? '1' : '0');
+  _initSoundToggle();
+  toast(_soundEnabled ? 'Notificações sonoras ativadas.' : 'Notificações sonoras desativadas.', 'ok');
+  if (_soundEnabled) _playNotification();
+}
+
+function _playNotification() {
+  if (!_soundEnabled) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const t   = ctx.currentTime;
+    // Two-tone rising chime: C5 → G5
+    [523.25, 783.99].forEach((freq, i) => {
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t + i * 0.2);
+      gain.gain.setValueAtTime(0, t + i * 0.2);
+      gain.gain.linearRampToValueAtTime(0.28, t + i * 0.2 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.2 + 0.55);
+      osc.start(t + i * 0.2);
+      osc.stop(t + i * 0.2 + 0.6);
+    });
+  } catch (_) {}
+}
+
 // Show/hide the auth overlay
 function _showApp()      { document.getElementById('auth-screen').classList.add('hidden'); }
 function _showAuthScreen(){ document.getElementById('auth-screen').classList.remove('hidden'); }
@@ -6824,6 +6870,7 @@ function _onAuthChange(event, session) {
   _authSession = session;
   if (session) {
     _showApp();
+    _initSoundToggle();
     const chip  = document.getElementById('user-chip');
     const email = document.getElementById('user-chip-email');
     if (chip)  chip.style.display  = '';
@@ -7434,6 +7481,7 @@ function finishGen() {
   document.getElementById('btn-stop').style.display = 'none';
   if (doneCount > 0) {
     const ok = doneCount - errorCount;
+    _playNotification();
     if (errorCount === 0) {
       toast(`✅ ${ok} imagem${ok > 1 ? 'ns geradas' : ' gerada'} com sucesso!`, 'ok');
     } else {
@@ -8555,6 +8603,7 @@ async function retryUpscaleItem(key) {
         _ulogDone(key, null, null);
       }
       _updateCombinarBtn();
+      _playNotification();
       toast(`Upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
       return;
 
@@ -8735,6 +8784,7 @@ async function upscaleSelected(scale) {
           : null;
         _ulogDone(key, newLocalId ? `db_${newLocalId}` : null, folderName);
         _updateCombinarBtn();
+        _playNotification();
         toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
 
