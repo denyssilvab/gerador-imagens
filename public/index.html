@@ -5460,6 +5460,10 @@ async function loadPersistedImages() {
     _dashPage = 1;
   } catch (e) { console.warn('[loadPersistedImages supabase]', e); }
   finally { _imagesLoading = false; }
+
+  // Upscaled images (newer created_at) can push original images to later pages.
+  // Load all remaining pages now so the full history is visible without scrolling.
+  if (_dashHasMore) _loadAllRemainingPages();
 }
 
 async function _loadMoreDashImages() {
