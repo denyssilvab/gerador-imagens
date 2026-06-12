@@ -7325,8 +7325,11 @@ async function handleEvent(ev) {
       // Fetch from Supabase CDN to get a dataUrl for the canvas overlay — no Vercel FOT.
       let displayUrl = ev.dataUrl || ev.url || '';
       if (ev.storageUrl && !displayUrl) {
+        console.log(`[SSE pág.${ev.pageNum}] ✓ otimizado — imagem via Supabase Storage (sem Vercel FOT)`);
         try { displayUrl = await _storageUrlToDataUrl(ev.storageUrl); }
         catch (e) { console.warn('[handleEvent] fetch storageUrl falhou:', e); }
+      } else if (ev.dataUrl) {
+        console.warn(`[SSE pág.${ev.pageNum}] ⚠ fallback — imagem via SSE base64 (usando Vercel FOT)`);
       }
       // Aplica header/footer programático
       try {
