@@ -19,7 +19,6 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const sb     = sbForRequest(req);
   const action = req.query.action;
 
   if (action === 'ping') return res.json({ ok: true, version: 'v4-folders', ts: Date.now(), method: req.method, bodyType: typeof req.body, bodyKeys: Object.keys(req.body || {}) });
@@ -27,13 +26,14 @@ module.exports = async function handler(req, res) {
   // Quick action echo outside try (diagnostic)
   if (action === 'echo') return res.json({ action, method: req.method, body: req.body, headers: { ct: req.headers['content-type'], auth: req.headers.authorization ? 'present' : 'absent' } });
 
-  // Resolve authenticated user_id from the JWT
-  async function getUserId() {
-    const { data } = await sb.auth.getUser();
-    return data?.user?.id || null;
-  }
-
   try {
+    const sb = sbForRequest(req);
+
+    // Resolve authenticated user_id from the JWT
+    async function getUserId() {
+      const { data } = await sb.auth.getUser();
+      return data?.user?.id || null;
+    }
     // ── Images ───────────────────────────────────────────────────────────────
 
     if (action === 'save-image') {
@@ -365,7 +365,11 @@ module.exports = async function handler(req, res) {
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
-    console.error('[db]', e);
-    return res.status(500).json({ error: e.message });
+    console.error('[db]', action, e);
+    const msg = (typeof e?.message === 'string' && e.message)
+      || (typeof e === 'string' && e)
+      || String(e)
+      || 'Erro interno no servidor';
+    return res.status(500).json({ error: msg });
   }
 };

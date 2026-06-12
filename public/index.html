@@ -6704,11 +6704,19 @@ async function _clientUploadToStorage(dataUrl, filename, overridePath = null) {
 // Wrapper for authFetch that throws a meaningful error when the server returns
 // a non-2xx status or a non-JSON body (e.g. Vercel plain-text "A server error").
 async function _apiJson(res) {
+  const text = await res.text().catch(() => '');
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Erro HTTP ${res.status}`);
+    let errMsg;
+    try {
+      const err = JSON.parse(text);
+      errMsg = (err.error && String(err.error)) || (err.message && String(err.message)) || null;
+    } catch {
+      console.error(`[api] resposta não-JSON (HTTP ${res.status}):`, text.slice(0, 300));
+    }
+    throw new Error(errMsg || `Erro HTTP ${res.status}`);
   }
-  return res.json().catch(() => { throw new Error(`Resposta inválida do servidor`); });
+  try { return JSON.parse(text); }
+  catch { throw new Error('Resposta inválida do servidor'); }
 }
 
 // Fetches an image from a URL and returns it as a data: URL for canvas operations.
