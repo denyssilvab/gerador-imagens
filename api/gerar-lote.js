@@ -193,11 +193,10 @@ export default async function handler(req) {
     });
   }
 
-  // Resolve user token + id once so each image can be uploaded server-side.
-  // If this fails (no auth, Supabase down, etc.) we fall back to sending dataUrl via SSE.
+  // Extract user token — userId is resolved inside the stream so the HTTP
+  // response starts immediately without blocking on the Supabase auth call.
   const authHeader = req.headers.get('Authorization') || '';
   const userToken  = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const userId     = await getSupabaseUserId(userToken);
 
   const encoder = new TextEncoder();
   const reqSignal = req.signal;
@@ -207,6 +206,10 @@ export default async function handler(req) {
       const send = (data) => {
         try { controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`)); } catch (_) {}
       };
+
+      // Resolve userId once here so all generatePage calls can share it.
+      // If this fails we just skip the server-side upload (graceful degradation).
+      const userId = await getSupabaseUserId(userToken);
 
       const requestId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       send({ type: 'start', requestId, total: pages.length });
