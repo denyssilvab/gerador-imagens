@@ -1,5 +1,8 @@
 export const config = { runtime: 'edge' };
 
+const SUPABASE_URL      = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+
 // ── Util ──────────────────────────────────────────────────────────────────
 
 function toBase64(buffer) {
@@ -117,6 +120,53 @@ async function generateReplicate(apiKey, model, size, prompt, signal) {
   return urlToDataUrl(output, signal);
 }
 
+// ── Supabase server-side upload ───────────────────────────────────────────
+// Uploads a dataUrl directly from the Edge function to Supabase Storage so
+// the SSE stream can send a tiny URL instead of ~1.5 MB of base64 per image.
+
+async function getSupabaseUserId(userToken) {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !userToken) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${userToken}`, apikey: SUPABASE_ANON_KEY },
+    });
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d.id || null;
+  } catch { return null; }
+}
+
+async function uploadDataUrlToSupabase(userToken, userId, key, dataUrl) {
+  const mime     = dataUrl.split(';')[0].split(':')[1];
+  const base64   = dataUrl.split(',')[1];
+  const binary   = atob(base64);
+  const bytes    = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+  const ext         = mime === 'image/jpeg' ? 'jpg' : 'png';
+  const safeName    = key.replace(/[^a-z0-9_-]/gi, '_');
+  const storagePath = `${userId}/${safeName}_${Date.now()}.${ext}`;
+
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/images/${storagePath}`, {
+    method:  'POST',
+    headers: {
+      Authorization:  `Bearer ${userToken}`,
+      'Content-Type': mime,
+      apikey:          SUPABASE_ANON_KEY,
+      'x-upsert':     'true',
+    },
+    body: bytes.buffer,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || `Storage upload failed: HTTP ${res.status}`);
+  }
+
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/images/${storagePath}`;
+  return { publicUrl, storagePath };
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────
 
 export default async function handler(req) {
@@ -142,6 +192,12 @@ export default async function handler(req) {
       headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  // Resolve user token + id once so each image can be uploaded server-side.
+  // If this fails (no auth, Supabase down, etc.) we fall back to sending dataUrl via SSE.
+  const authHeader = req.headers.get('Authorization') || '';
+  const userToken  = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const userId     = await getSupabaseUserId(userToken);
 
   const encoder = new TextEncoder();
   const reqSignal = req.signal;
@@ -170,6 +226,20 @@ export default async function handler(req) {
               const dataUrl = provider === 'replicate'
                 ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
                 : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
+
+              // Upload raw image from server to Supabase Storage — eliminates ~1.5 MB from SSE stream.
+              // Falls back to sending dataUrl if the upload fails for any reason.
+              if (userId && userToken) {
+                try {
+                  const imgKey = `gen_p${page.num || index}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+                  const { publicUrl, storagePath } = await uploadDataUrlToSupabase(userToken, userId, imgKey, dataUrl);
+                  send({ type: 'image', index, pageNum: page.num, title: page.title,
+                         storageUrl: publicUrl, storagePath, docType: page.docType });
+                  return;
+                } catch (uploadErr) {
+                  console.warn('[gerar-lote] server upload failed, falling back to dataUrl:', uploadErr.message);
+                }
+              }
 
               send({ type: 'image', index, pageNum: page.num, title: page.title, dataUrl, docType: page.docType });
               return; // success — exit retry loop

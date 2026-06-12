@@ -6676,14 +6676,15 @@ function _getToken() { return _authSession?.access_token || null; }
 // Requires the storage bucket to have RLS policies allowing authenticated users to
 // INSERT to paths starting with their uid (see supabase/migration_storage.sql).
 // Returns the public URL on success, or null on failure.
-async function _clientUploadToStorage(dataUrl, filename) {
+async function _clientUploadToStorage(dataUrl, filename, overridePath = null) {
   if (!dataUrl?.startsWith('data:')) return null;
   const userId = _authSession?.user?.id;
   if (!userId) return null;
   try {
     const blob = await fetch(dataUrl).then(r => r.blob());
     const ext  = blob.type === 'image/jpeg' ? 'jpg' : blob.type === 'application/pdf' ? 'pdf' : 'png';
-    const path = `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
+    // overridePath: reuse path from server-uploaded raw file so the overlay overwrites it in-place.
+    const path = overridePath || `${userId}/${filename.replace(/[^a-z0-9_.-]/gi, '_')}_${Date.now()}.${ext}`;
 
     const { data, error } = await _sb.storage.from('images').upload(path, blob, {
       contentType: blob.type,
@@ -6698,6 +6699,18 @@ async function _clientUploadToStorage(dataUrl, filename) {
     toast(`Upload Storage: ${e.message || JSON.stringify(e)}`, 'err');
     return null;
   }
+}
+
+// Fetches an image from a URL and returns it as a data: URL for canvas operations.
+// Used when the server sends a Supabase Storage URL instead of base64 via SSE.
+async function _storageUrlToDataUrl(url) {
+  const blob = await fetch(url).then(r => r.blob());
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload  = () => resolve(fr.result);
+    fr.onerror = () => reject(new Error('FileReader falhou'));
+    fr.readAsDataURL(blob);
+  });
 }
 
 // Authenticated fetch helper — automatically sends the JWT
@@ -7260,10 +7273,9 @@ async function startGeneration() {
   sseController = new AbortController();
 
   try {
-    const response = await fetch('/api/gerar-lote', {
+    const response = await authFetch('/api/gerar-lote', {
       method: 'POST',
       signal: sseController.signal,
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ apiKey, provider, model, quality, size, pages }),
     });
 
@@ -7309,7 +7321,13 @@ async function handleEvent(ev) {
       if (results[domKey]?.url) { doneCount++; updateProg(); break; }
       doneCount++;
       stopCardTimer(currentGen, ev.index);
+      // Server sends storageUrl (raw image already in Supabase) instead of heavy base64 dataUrl.
+      // Fetch from Supabase CDN to get a dataUrl for the canvas overlay — no Vercel FOT.
       let displayUrl = ev.dataUrl || ev.url || '';
+      if (ev.storageUrl && !displayUrl) {
+        try { displayUrl = await _storageUrlToDataUrl(ev.storageUrl); }
+        catch (e) { console.warn('[handleEvent] fetch storageUrl falhou:', e); }
+      }
       // Aplica header/footer programático
       try {
         const pageDocType = ev.docType || docType;
@@ -7330,8 +7348,9 @@ async function handleEvent(ev) {
         sbKey,
       };
       results[domKey] = result;
-      // Upload directly from browser to Supabase Storage (bypasses Vercel 4.5 MB body limit)
-      const storageUrl = await _clientUploadToStorage(displayUrl, filename).catch(() => null);
+      // Upload overlaid image directly from browser to Supabase Storage.
+      // When server pre-uploaded the raw file (ev.storagePath), overwrite it in-place with the overlay.
+      const storageUrl = await _clientUploadToStorage(displayUrl, filename, ev.storagePath).catch(() => null);
       const saveUrl = storageUrl || displayUrl;
       if (storageUrl) results[domKey].url = storageUrl;
       const { localId: _savedId, sbId: _sbId } = await dbSave({ ...result, key: sbKey, dataUrl: saveUrl, url: saveUrl }) || {};
@@ -8058,9 +8077,8 @@ async function confirmRefazer() {
   if (pv) pv.innerHTML = `<div class="upscale-overlay"><div class="spinner"></div><span>Regenerando...</span></div>`;
 
   try {
-    const res = await fetch('/api/gerar-lote', {
+    const res = await authFetch('/api/gerar-lote', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         apiKey, provider, model, quality, size,
         pages: [{ num: pageNum, title: '', content: fullPrompt, docType: pageDocType }]
@@ -8081,13 +8099,17 @@ async function confirmRefazer() {
           const ev = JSON.parse(line.slice(6));
           if (ev.type === 'image') {
             let dataUrl = ev.dataUrl || ev.url;
+            if (ev.storageUrl && !dataUrl) {
+              try { dataUrl = await _storageUrlToDataUrl(ev.storageUrl); }
+              catch (e) { console.warn('Overlay refazer fetch falhou:', e); }
+            }
             try {
               const { header, footer } = _overlayTextsForType(pageDocType);
               dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType);
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
-            const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
+            const storageUrl  = await _clientUploadToStorage(dataUrl, filename, ev.storagePath).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
             results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType };
             if (existingKey) results[domKey].sbKey = existingKey;
@@ -8137,9 +8159,8 @@ async function retryPage(domKey) {
     : buildPrompt(rawPage);
 
   try {
-    const res = await fetch('/api/gerar-lote', {
+    const res = await authFetch('/api/gerar-lote', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         apiKey, provider, model, quality, size,
         pages: [{ num: pd.num, title: pd.title, content: retryContent, docType: pd.docType }]
@@ -8160,6 +8181,10 @@ async function retryPage(domKey) {
           const ev = JSON.parse(line.slice(6));
           if (ev.type === 'image') {
             let dataUrl = ev.dataUrl || ev.url;
+            if (ev.storageUrl && !dataUrl) {
+              try { dataUrl = await _storageUrlToDataUrl(ev.storageUrl); }
+              catch (e) { console.warn('Overlay retry fetch falhou:', e); }
+            }
             try {
               const pageDocType = ev.docType || pd.docType || docType;
               const { header, footer } = _overlayTextsForType(pageDocType);
@@ -8169,7 +8194,7 @@ async function retryPage(domKey) {
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
             const sbKey = results[domKey]?.sbKey || `img_retry_p${pd.num}_${Date.now()}`;
             const pageDocType = ev.docType || pd.docType || (docType !== 'all' ? docType : '');
-            const storageUrl  = await _clientUploadToStorage(dataUrl, filename).catch(() => null);
+            const storageUrl  = await _clientUploadToStorage(dataUrl, filename, ev.storagePath).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
             const _rFolderId = results[domKey]?.folderId ?? retryData[domKey]?.folderId ?? null;
             results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey, folderId: _rFolderId };
