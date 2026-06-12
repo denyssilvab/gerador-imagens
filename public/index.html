@@ -7328,7 +7328,7 @@ async function handleEvent(ev) {
       if (_sbId    && results[domKey]) results[domKey].sbId = _sbId;
       // Late-delete guard: clearResults() ran while this save was in-flight.
       // The image was just saved to Supabase — delete it now so it doesn't reappear.
-      if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
+      if (_pendingDeleteKeys.has(domKey)) {
         const keys = sbKey ? [sbKey] : [];
         const ids  = _sbId ? [Number(_sbId)] : [];
         if (keys.length || ids.length) {
@@ -7592,6 +7592,13 @@ function _saveHiddenHistory(set) {
   try { localStorage.setItem(_HISTORY_HIDDEN_KEY, JSON.stringify([...set])); } catch {}
 }
 let _hiddenFromHistory = _loadHiddenHistory();
+// Purge stale domKeys (gen_X_Y format) left by old clearResults — only sbKeys should persist.
+// Domkeys caused false-positive late-delete guards after page reload (currentGen resets to 0).
+for (const k of [..._hiddenFromHistory]) { if (/^gen_\d+_\d+$/.test(k)) _hiddenFromHistory.delete(k); }
+_saveHiddenHistory(_hiddenFromHistory);
+// Session-only: domKeys cleared this session — NOT persisted so currentGen reset on reload
+// doesn't cause stale gen_0_0/gen_0_1 keys to falsely trigger the late-delete guard.
+const _pendingDeleteKeys = new Set();
 // Remove stale timestamp key that was hiding too many images
 try { localStorage.removeItem('gerar_history_clear_ts'); } catch {}
 
@@ -7848,9 +7855,10 @@ async function clearResults() {
     if (sbKey) bulkKeys.push(sbKey);
     if (sbId)  bulkIds.push(sbId);
 
-    // Guard for in-flight saves: late-delete fires in handleEvent after dbSave
-    _hiddenFromHistory.add(key);
-    if (sbKey) _hiddenFromHistory.add(sbKey);
+    // Session-only guard for in-flight saves (not persisted → no cross-reload collision)
+    _pendingDeleteKeys.add(key);
+    // Persist only sbKey for retroactive delete if the network call fails this session
+    if (sbKey) { _hiddenFromHistory.add(sbKey); }
 
     delete results[key];
   });
@@ -8169,8 +8177,12 @@ async function retryPage(domKey) {
               .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
             if (_rLid)   results[domKey].localId = _rLid;
             if (_rSbId)  results[domKey].sbId    = _rSbId;
-            if (_hiddenFromHistory.has(domKey) || _hiddenFromHistory.has(sbKey)) {
-              _syncHiddenToServer(new Set([sbKey, _rSbId ? `id:${_rSbId}` : null].filter(Boolean)));
+            if (_pendingDeleteKeys.has(domKey)) {
+              authFetch('/api/db?action=bulk-delete-images', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keys: sbKey ? [sbKey] : [], ids: _rSbId ? [Number(_rSbId)] : [] }),
+              }).catch(() => {});
+              delete results[domKey];
             }
             toast(`Pág. ${pd.num} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
