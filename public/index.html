@@ -8784,7 +8784,6 @@ async function upscaleSelected(scale) {
           : null;
         _ulogDone(key, newLocalId ? `db_${newLocalId}` : null, folderName);
         _updateCombinarBtn();
-        _playNotification();
         toast(`Pág. ${r.pageNum} — upscale ${scale}× (${modelSlug}) concluído!`, 'ok');
         return;
 
@@ -8798,6 +8797,7 @@ async function upscaleSelected(scale) {
       }
     }
   })); } finally {
+    if (!signal.aborted) _playNotification();
     _upscaleAbortCtrl = null;
     const stopBtn = document.getElementById('btn-stop-upscale');
     if (stopBtn) stopBtn.style.display = 'none';
