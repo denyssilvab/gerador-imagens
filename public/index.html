@@ -8551,7 +8551,8 @@ async function retryUpscaleItem(key) {
       }
 
       _updateStatus(`Upscale ${scale}× — iniciando…`);
-      const sbToken = _getToken();
+      const { data: _s1 } = await _sb.auth.getSession();
+      const sbToken = _s1?.session?.access_token || _getToken();
       const hdrs = { 'Content-Type': 'application/json' };
       if (sbToken) hdrs['Authorization'] = `Bearer ${sbToken}`;
       const res = await fetch('/api/upscale', {
@@ -8689,7 +8690,8 @@ async function upscaleSelected(scale) {
 
         // Include Supabase JWT so the server can upload local images to Storage.
         _updateStatus(`Upscale ${scale}× — iniciando…`);
-        const sbToken = _getToken();
+        const { data: _s2 } = await _sb.auth.getSession();
+        const sbToken = _s2?.session?.access_token || _getToken();
         const upscaleHeaders = { 'Content-Type': 'application/json' };
         if (sbToken) upscaleHeaders['Authorization'] = `Bearer ${sbToken}`;
         const res = await fetch('/api/upscale', {
