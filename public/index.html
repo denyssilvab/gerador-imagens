@@ -6818,7 +6818,12 @@ async function authLogin() {
   _setBtnLoading('auth-btn-login', true);
   const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
   _setBtnLoading('auth-btn-login', false);
-  if (error) return _setAuthError('login', error.message);
+  if (error) {
+    const msg = (error.message && error.message !== '{}') ? error.message
+      : error.code ? `Erro: ${error.code}`
+      : 'Falha ao conectar com o servidor. Tente novamente.';
+    return _setAuthError('login', msg);
+  }
 }
 
 async function authRegister() {
