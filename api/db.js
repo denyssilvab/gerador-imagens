@@ -369,15 +369,23 @@ module.exports = async function handler(req, res) {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
+      // Filter by IS NOT NULL (reads null bitmap, avoids loading 1.5 MB TOAST values),
+      // then select only first 6 chars to check prefix without decompressing full value.
       const { data: rows, error: selErr } = await sb.from('images')
-        .select('id')
+        .select('id, original_url')
         .eq('user_id', userId)
-        .like('original_url', 'data:%')
+        .not('original_url', 'is', null)
         .limit(10);
       if (selErr) throw selErr;
       if (!rows || rows.length === 0) return res.json({ ok: true, cleared: 0, remaining: 0 });
 
-      const ids = rows.map(r => r.id);
+      // Only null out base64 values — protect any legitimate https:// URLs
+      const ids = rows
+        .filter(r => typeof r.original_url === 'string' && r.original_url.startsWith('data:'))
+        .map(r => r.id);
+
+      if (ids.length === 0) return res.json({ ok: true, cleared: 0, remaining: 0 });
+
       const { error: updErr } = await sb.from('images')
         .update({ original_url: null })
         .eq('user_id', userId)
@@ -387,7 +395,7 @@ module.exports = async function handler(req, res) {
       const { count } = await sb.from('images')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
-        .like('original_url', 'data:%');
+        .not('original_url', 'is', null);
 
       return res.json({ ok: true, cleared: ids.length, remaining: count ?? '?' });
     }
