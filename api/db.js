@@ -363,6 +363,18 @@ module.exports = async function handler(req, res) {
       return res.json({ ok: true });
     }
 
+    // One-time maintenance: clear base64 data stored in original_url column
+    if (action === 'cleanup-original-url') {
+      const userId = await getUserId();
+      if (!userId) return res.status(401).json({ error: 'Não autenticado' });
+      const { data, error } = await sb.from('images')
+        .update({ original_url: null })
+        .eq('user_id', userId)
+        .like('original_url', 'data:%');
+      if (error) throw error;
+      return res.json({ ok: true, cleared: data?.length ?? 0 });
+    }
+
     return res.status(400).json({ error: 'Unknown action' });
   } catch (e) {
     console.error('[db]', action, e);

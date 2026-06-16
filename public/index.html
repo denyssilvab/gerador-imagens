@@ -6998,7 +6998,9 @@ async function dbSave(rec, { silent = false } = {}) {
         pageNum:     rec.pageNum || null,
         title:       rec.title   || '',
         docType:     rec.docType || '',
-        originalUrl: rec.originalUrl || null,
+        // Never send base64 as originalUrl — only send https:// URLs to avoid
+        // storing ~1.5 MB of base64 per image in the database column.
+        originalUrl: (rec.originalUrl?.startsWith('http') ? rec.originalUrl : null),
         folderId:    rec.folderId || null,
       }),
     });
