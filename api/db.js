@@ -363,16 +363,33 @@ module.exports = async function handler(req, res) {
       return res.json({ ok: true });
     }
 
-    // One-time maintenance: clear base64 data stored in original_url column
+    // One-time maintenance: clear base64 data stored in original_url column.
+    // Processes in batches of 10 to avoid statement timeout on large datasets.
     if (action === 'cleanup-original-url') {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
-      const { data, error } = await sb.from('images')
+
+      const { data: rows, error: selErr } = await sb.from('images')
+        .select('id')
+        .eq('user_id', userId)
+        .like('original_url', 'data:%')
+        .limit(10);
+      if (selErr) throw selErr;
+      if (!rows || rows.length === 0) return res.json({ ok: true, cleared: 0, remaining: 0 });
+
+      const ids = rows.map(r => r.id);
+      const { error: updErr } = await sb.from('images')
         .update({ original_url: null })
         .eq('user_id', userId)
+        .in('id', ids);
+      if (updErr) throw updErr;
+
+      const { count } = await sb.from('images')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
         .like('original_url', 'data:%');
-      if (error) throw error;
-      return res.json({ ok: true, cleared: data?.length ?? 0 });
+
+      return res.json({ ok: true, cleared: ids.length, remaining: count ?? '?' });
     }
 
     return res.status(400).json({ error: 'Unknown action' });
