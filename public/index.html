@@ -6819,8 +6819,10 @@ async function authLogin() {
   const { error } = await _sb.auth.signInWithPassword({ email, password: pass });
   _setBtnLoading('auth-btn-login', false);
   if (error) {
+    console.error('[auth login] erro completo:', error, 'status:', error.status, 'code:', error.code, 'message:', error.message);
     const msg = (error.message && error.message !== '{}') ? error.message
       : error.code ? `Erro: ${error.code}`
+      : error.status ? `Erro HTTP ${error.status} — verifique se o projeto Supabase está ativo.`
       : 'Falha ao conectar com o servidor. Tente novamente.';
     return _setAuthError('login', msg);
   }
