@@ -8583,7 +8583,7 @@ async function retryUpscaleItem(key) {
       const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
       const outExt    = upscaledUrl.startsWith('data:image/jpeg') ? 'jpg' : 'png';
       const baseName  = (r.filename || 'image').replace(/\.[^.]+$/, '');
-      const filename  = `${baseName}_${modelSlug}_${scale}x.${outExt}`;
+      const filename  = `[UP] ${baseName}.${outExt}`;
       const modelKey  = `${upscaleModel}:${scale}x`;
       results[key] = { ...r, originalUrl: r.originalUrl || r.url, upscaledUrl, upscaleFilename: filename, upscaleApplied: scale,
         upscales: { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } } };
@@ -8735,7 +8735,7 @@ async function upscaleSelected(scale) {
         const modelSlug = upscaleModel.includes('/') ? upscaleModel.split('/').pop() : upscaleModel.replace(/^topaz:/, 'topaz-');
         const outExt  = upscaledUrl.startsWith('data:image/jpeg') ? 'jpg' : 'png';
         const baseName = (r.filename || 'image').replace(/\.[^.]+$/, '');
-        const filename = `${baseName}_${modelSlug}_${scale}x.${outExt}`;
+        const filename = `[UP] ${baseName}.${outExt}`;
         const modelKey = `${upscaleModel}:${scale}x`;
         const upscales = { ...(r.upscales || {}), [modelKey]: { url: upscaledUrl, filename, scale, model: upscaleModel } };
         results[key] = {
