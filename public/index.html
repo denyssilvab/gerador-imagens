@@ -3555,7 +3555,7 @@ function _buildContentFilename(type) {
   const lesson = document.getElementById('content-lesson')?.value || '';
   const ccss   = document.getElementById('content-ccss')?.value   || '';
   const name   = document.getElementById('content-lesson-name')?.value || '';
-  const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  const dtLabel = { lesson: 'Lesson Note', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
   const label = dtLabel[type] || type;
   const parts = [];
   parts.push(lesson ? `${label} ${lesson}` : label);
@@ -3594,7 +3594,7 @@ function refreshContentFiles() {
   if (!_sessionFiles.length) { section.style.display = 'none'; return; }
   section.style.display = '';
   _refreshConteudoFolderBadge();
-  const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  const dtLabel = { lesson: 'Lesson Note', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
   list.innerHTML = '';
   _sessionFiles.slice().reverse().forEach(f => {
     const savedBadge = f._saved
@@ -5974,7 +5974,7 @@ function _refreshCombinarPreview() {
 }
 
 function _buildCombinarFilenameForType(type) {
-  const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+  const dtLabel = { lesson: 'Lesson Note', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
 
   // Se o tipo passado não tem label, tenta inferir a partir dos próprios itens
   let effectiveType = type;
@@ -6049,7 +6049,7 @@ async function combinarExportPDF() {
     const docTypes = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
     if (docTypes.length > 1) {
       // Multiple types → one PDF per type
-      const dtLabel = { lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+      const dtLabel = { lesson: 'Lesson Note', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
       for (const type of docTypes) {
         const typeItems = combinarItems.filter(i => i.docType === type);
         const bytes = await _buildPdfBytes(typeItems, 'pdf-prog');
