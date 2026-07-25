@@ -9179,7 +9179,7 @@ function savePromptAsTxt(type) {
   const ccss     = (useContentFields ? document.getElementById('content-ccss')   : document.getElementById('ccss'))?.value   || '';
   const name     = (useContentFields ? document.getElementById('content-lesson-name') : document.getElementById('lesson-name'))?.value || '';
   const dt       = dtMap[type];
-  const dtLabel  = dt === 'lesson' ? 'Lesson' : dt === 'practice' ? 'Practice Activities' : 'Lesson Plan';
+  const dtLabel  = dt === 'lesson' ? 'Lesson Note' : dt === 'practice' ? 'Worksheet' : 'Lesson Plan';
   const parts    = [];
   parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
   if (name) parts.push(`- ${name}`);
