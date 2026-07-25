@@ -5723,12 +5723,21 @@ function refreshCombinarPage() { renderCombinarList(); }
 let combinarSelected = new Set(); // indices of selected combinar items
 let _combinarModalSel = new Set(); // keys selected in add-modal
 
+// Assembly order: complete one document type fully (in page order) before
+// moving to the next, instead of interleaving pages across types by number
+// — so the 3 types never look mixed together while previewing/exporting.
+const _COMBINAR_TYPE_ORDER = { lesson: 0, practice: 1, lessonplan: 2 };
+
 function _combinarSort(a, b) {
-  // Primary: pageNum ascending (nulls last)
+  // Primary: document type group (Lesson → Worksheet → Lesson Plan → other)
+  const ta = _COMBINAR_TYPE_ORDER[a.docType] ?? 99;
+  const tb = _COMBINAR_TYPE_ORDER[b.docType] ?? 99;
+  if (ta !== tb) return ta - tb;
+  // Secondary: pageNum ascending within the type (nulls last)
   const pa = a.pageNum ?? Infinity;
   const pb = b.pageNum ?? Infinity;
   if (pa !== pb) return pa - pb;
-  // Secondary: filename / title natural sort (handles uploaded files with no pageNum)
+  // Tertiary: filename / title natural sort (handles uploaded files with no pageNum)
   const fa = a.title || a.key || '';
   const fb = b.title || b.key || '';
   return fa.localeCompare(fb, undefined, { numeric: true, sensitivity: 'base' });
