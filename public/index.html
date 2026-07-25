@@ -3963,6 +3963,8 @@ function _autoFillGerarFields() {
     ['content-lesson',      'lesson'],
     ['content-ccss',        'ccss'],
     ['content-lesson-name', 'lesson-name'],
+    ['content-disciplina',  'disciplina'],
+    ['content-turma',       'turma'],
   ];
   map.forEach(([src, dst]) => {
     const val = document.getElementById(src)?.value;
@@ -4042,7 +4044,9 @@ function setDashVersion(v) {
   refreshDashboard();
 }
 
-const _isUpscaled = (filename) => /_([\w-]+)_[246]x\.(png|jpg)$/i.test(filename || '');
+// Matches both the current "[UP] name.png" prefix and the legacy "name_model_2x.png"
+// suffix (older upscaled files saved before that naming change).
+const _isUpscaled = (filename) => /^\[UP\] |_([\w-]+)_[246]x\.(png|jpg)$/i.test(filename || '');
 
 function toggleDashSelect(key, checked, e) {
   if (e) e.stopPropagation();
@@ -4096,10 +4100,14 @@ async function dashBulkDelete() {
   if (!folderKeys.length) {
     // File-only path (original behavior)
     if (!confirm(`Excluir ${fileKeys.length} arquivo${fileKeys.length !== 1 ? 's' : ''}?`)) return;
+    let failed = 0;
     for (const key of fileKeys) {
-      await authFetch('/api/db?action=delete-image', {
+      const sbKey = results[key]?.sbKey || key;
+      const ok = await authFetch('/api/db?action=delete-image', {
         method: 'POST', body: JSON.stringify(_deletePayload(key)),
-      }).catch(() => {});
+      }).then(r => r.ok).catch(() => false);
+      if (!ok) { failed++; continue; } // keep it visible — server never confirmed the delete
+      _idbDeleteByKey(sbKey).catch(() => {});
       delete results[key];
       const gfi = generatedFiles.findIndex(f => f.key === key);
       if (gfi !== -1) generatedFiles.splice(gfi, 1);
@@ -4107,7 +4115,9 @@ async function dashBulkDelete() {
     }
     dashSelected.clear();
     _updateDashBulkBar();
-    toast(`${fileKeys.length} arquivo${fileKeys.length !== 1 ? 's' : ''} excluído${fileKeys.length !== 1 ? 's' : ''}.`, 'ok');
+    const nOk = fileKeys.length - failed;
+    if (failed) toast(`${nOk} excluído${nOk !== 1 ? 's' : ''}, ${failed} falhou/falharam — tente novamente.`, failed === fileKeys.length ? 'err' : 'warn');
+    else toast(`${nOk} arquivo${nOk !== 1 ? 's' : ''} excluído${nOk !== 1 ? 's' : ''}.`, 'ok');
     return;
   }
 
@@ -4150,10 +4160,15 @@ async function dashBulkDelete() {
       if (p.key) bulkKeys.push(p.key);
       else if (p.id) bulkIds.push(p.id);
     }
-    await authFetch('/api/db?action=bulk-delete-images', {
+    const filesOk = await authFetch('/api/db?action=bulk-delete-images', {
       method: 'POST', body: JSON.stringify({ keys: bulkKeys, ids: bulkIds }),
-    }).catch(() => {});
+    }).then(r => r.ok).catch(() => false);
+    if (!filesOk) {
+      toast('Erro ao excluir arquivos — nada foi removido. Tente novamente.', 'err');
+      return;
+    }
     for (const key of allFilesToDelete) {
+      _idbDeleteByKey(results[key]?.sbKey || key).catch(() => {});
       delete results[key];
       const gfi = generatedFiles.findIndex(f => f.key === key);
       if (gfi !== -1) generatedFiles.splice(gfi, 1);
@@ -4902,6 +4917,29 @@ function _deletePayload(key) {
   return { key };
 }
 
+// Deletes IndexedDB records matching a stable sbKey (Phase-1 cache).
+// Without this, deleted images resurface after reload: Phase-1 loads the
+// stale IDB copy, and since the row no longer exists in Supabase at all,
+// Phase-2's dedup (which only removes IDB entries matched against a live
+// Supabase row) never gets a chance to purge it.
+async function _idbDeleteByKey(sbKey) {
+  if (!sbKey) return;
+  try {
+    const d = await openDB();
+    await new Promise((res, rej) => {
+      const store = d.transaction(DB_STORE, 'readwrite').objectStore(DB_STORE);
+      const req = store.openCursor();
+      req.onsuccess = e => {
+        const c = e.target.result;
+        if (!c) { res(); return; }
+        if (c.value.key === sbKey) c.delete();
+        c.continue();
+      };
+      req.onerror = () => rej(req.error);
+    });
+  } catch (_) {}
+}
+
 async function _idbUpdateFolderByKey(sbKey, folderId) {
   try {
     const d = await openDB();
@@ -4925,7 +4963,9 @@ async function fileCtxDelete() {
   const r = results[key];
   if (!confirm(`Excluir "${r?.customTitle || r?.title || r?.filename || 'este arquivo'}"?`)) return;
   try {
-    await authFetch('/api/db?action=delete-image', { method: 'POST', body: JSON.stringify(_deletePayload(key)) });
+    const res = await authFetch('/api/db?action=delete-image', { method: 'POST', body: JSON.stringify(_deletePayload(key)) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    _idbDeleteByKey(r?.sbKey || key).catch(() => {});
     delete results[key];
     // Remove from gerar grid too
     const card = document.getElementById(`card_${key}`) ||
@@ -6699,7 +6739,10 @@ async function _clientUploadToStorage(dataUrl, filename, overridePath = null) {
     if (error) throw error;
 
     const { data: urlData } = _sb.storage.from('images').getPublicUrl(data.path);
-    return urlData.publicUrl;
+    // Cache-bust: when overridePath reuses a path the browser already fetched
+    // (raw pre-overlay image), the CDN/browser cache would otherwise keep
+    // serving that stale response for this exact URL after the upsert.
+    return `${urlData.publicUrl}?v=${Date.now()}`;
   } catch (e) {
     console.error('[clientUpload]', e);
     toast(`Upload Storage: ${e.message || JSON.stringify(e)}`, 'err');
@@ -6737,9 +6780,13 @@ async function _storageUrlToDataUrl(url) {
   });
 }
 
-// Authenticated fetch helper — automatically sends the JWT
-function authFetch(url, opts = {}) {
-  const token = _getToken();
+// Authenticated fetch helper — automatically sends the JWT.
+// getSession() forces the SDK to auto-renew the token if it's expired/near-expiry
+// (same fix already applied to upscale — see "Fix expired JWT on upscale"), so
+// calls like delete never silently fail auth and get swallowed by a .catch(() => {}).
+async function authFetch(url, opts = {}) {
+  const { data } = await _sb.auth.getSession().catch(() => ({ data: null }));
+  const token = data?.session?.access_token || _getToken();
   const headers = { 'Content-Type': 'application/json', ...(opts.headers || {}) };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   return fetch(url, { ...opts, headers });
@@ -9102,13 +9149,13 @@ function buildFilename(docTypeOverride, ext) {
   const name   = document.getElementById('lesson-name')?.value?.trim()
               || document.getElementById('content-lesson-name')?.value?.trim() || '';
   const dt = docTypeOverride || docType;
-  const dtLabel = dt === 'lesson'     ? 'Lesson'
-               : dt === 'practice'    ? 'Practice Activities'
+  const dtLabel = dt === 'lesson'     ? 'Lesson Note'
+               : dt === 'practice'    ? 'Worksheet'
                : dt === 'lessonplan'  ? 'Lesson Plan'
                : '';
   const parts = [];
   if (dtLabel) parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
-  else if (lesson) parts.push(`Lesson ${lesson}`);
+  else if (lesson) parts.push(`Lesson Note ${lesson}`);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
   const base = parts.length ? parts.join(' ') : 'arquivo';
