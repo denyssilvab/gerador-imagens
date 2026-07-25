@@ -8993,10 +8993,6 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
         const cTop = my(20), cH = H - my(20) - my(15);
         ctx.drawImage(img, 0, cTop, W, cH);
 
-        // Limpa margem direita (x=200mm+)
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(mx(200), 0, W, H);
-
         // ── Header ─────────────────────────────────────────────────────────
         ctx.fillRect(0, 0, W, my(20)); // garante fundo branco no header
         const hY = my(5), hH = my(10);
@@ -9036,10 +9032,6 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type) {
 
         const cTop = my(20), cH = H - my(20) - my(15);
         ctx.drawImage(img, 0, cTop, W, cH);
-
-        // Limpa margem direita (x=200mm+) — 10mm de cada lado para simetria
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(mx(200), 0, W, H);
 
         // Fundo branco no header
         ctx.fillRect(0, 0, W, my(20));
