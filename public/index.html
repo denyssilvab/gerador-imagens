@@ -2372,8 +2372,10 @@
 <div class="modal-bg" id="refazer-modal">
   <div class="modal">
     <h3>Refazer — Página <span id="refazer-num"></span></h3>
-    <p style="font-size:12px;color:var(--muted);">Cole o prompt modificado para esta página. As especificações de layout e cabeçalho serão aplicadas automaticamente.</p>
-    <textarea id="refazer-prompt" rows="12" style="font-family:monospace;font-size:12px;" placeholder="Descreva o conteúdo desta página..."></textarea>
+    <p style="font-size:12px;color:var(--muted);">Conteúdo original desta página (edite se precisar). As especificações de layout e cabeçalho serão aplicadas automaticamente.</p>
+    <textarea id="refazer-prompt" rows="10" style="font-family:monospace;font-size:12px;" placeholder="Descreva o conteúdo desta página..."></textarea>
+    <label style="font-size:12px;font-weight:600;color:var(--muted);margin-top:4px;">O que você quer corrigir ou melhorar? (opcional)</label>
+    <textarea id="refazer-notes" rows="3" placeholder="Ex: a ilustração deve ter exatamente 4 maçãs e 6 laranjas, não uma cesta genérica"></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end;">
       <button class="btn btn-ghost" onclick="closeRefazer()">Cancelar</button>
       <button class="btn btn-primary" onclick="confirmRefazer()">🔄 Regenerar</button>
@@ -8234,9 +8236,15 @@ async function deleteSelected() {
 function openRefazer(domKey, pageNum) {
   refazerTarget = { domKey, pageNum };
   document.getElementById('refazer-num').textContent = pageNum;
-  document.getElementById('refazer-prompt').value = '';
+  // Pre-fill with the original page content (saved at generation time) so the
+  // user doesn't have to re-paste it — only in-session generations have this;
+  // images reloaded from a previous session have no raw content saved yet.
+  const baseContent = retryData[domKey]?._rawContent || results[domKey]?._rawContent || '';
+  document.getElementById('refazer-prompt').value = baseContent;
+  document.getElementById('refazer-notes').value = '';
   document.getElementById('refazer-modal').classList.add('open');
-  setTimeout(() => document.getElementById('refazer-prompt').focus(), 100);
+  const focusId = baseContent ? 'refazer-notes' : 'refazer-prompt';
+  setTimeout(() => document.getElementById(focusId).focus(), 100);
 }
 
 function closeRefazer() {
@@ -8246,8 +8254,12 @@ function closeRefazer() {
 
 async function confirmRefazer() {
   if (!refazerTarget) return;
-  const promptText = document.getElementById('refazer-prompt').value.trim();
-  if (!promptText) { toast('Cole o prompt da página antes de regenerar.', 'warn'); return; }
+  const baseContent = document.getElementById('refazer-prompt').value.trim();
+  const notes       = document.getElementById('refazer-notes').value.trim();
+  if (!baseContent && !notes) { toast('Descreva o conteúdo da página ou o que deseja melhorar.', 'warn'); return; }
+  const promptText = notes
+    ? `${baseContent}\n\n---\nIMPROVEMENT NOTE FOR THIS REGENERATION (follow this precisely): ${notes}`
+    : baseContent;
 
   const { domKey, pageNum } = refazerTarget;
   closeRefazer();
@@ -8316,7 +8328,7 @@ async function confirmRefazer() {
             const existingKey = results[domKey]?.sbKey;
             const storageUrl  = await _clientUploadToStorage(dataUrl, filename, ev.storagePath).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
-            results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType };
+            results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType, _rawContent: promptText };
             if (existingKey) results[domKey].sbKey = existingKey;
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
             await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now() }).catch(() => {});
