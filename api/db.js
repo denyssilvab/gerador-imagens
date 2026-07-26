@@ -40,7 +40,7 @@ module.exports = async function handler(req, res) {
       const userId = await getUserId();
       if (!userId) return res.status(401).json({ error: 'Não autenticado' });
 
-      const { key, dataUrl, filename, pageNum, title, docType, originalUrl, folderId } = req.body;
+      const { key, dataUrl, filename, pageNum, title, docType, originalUrl, folderId, rawContent } = req.body;
 
       let storagePath = null;
       let publicUrl   = dataUrl;
@@ -76,6 +76,7 @@ module.exports = async function handler(req, res) {
           doc_type:     docType,
           original_url: originalUrl || null,
           folder_id:    folderId    || null,
+          raw_content:  rawContent  || null,
           // hidden_from_history intentionally omitted:
           // – on INSERT the column DEFAULT (false) applies → image is visible
           // – on UPDATE (upsert conflict) the existing value is preserved →
@@ -109,7 +110,7 @@ module.exports = async function handler(req, res) {
 
       let query = sb
         .from('images')
-        .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at')
+        .select('id, key, url, filename, page_num, title, custom_title, doc_type, folder_id, created_at, raw_content')
         .eq('user_id', userId)
         .not('hidden_from_history', 'is', true)  // returns false AND null (tables without DEFAULT)
         .order('created_at', { ascending: false }); // newest first — first page always has the latest images

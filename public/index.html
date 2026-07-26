@@ -5538,7 +5538,7 @@ function _applyLoadedImages(saved, overwrite = false, addToImgGrid = false) {
         filename: r.filename, pageNum: r.pageNum,
         title: r.customTitle || r.title || '', customTitle: r.customTitle || null,
         docType: r.docType, folderId: _eff, ts: r.ts,
-        sbId: r.id, sbKey: r.key,
+        sbId: r.id, sbKey: r.key, _rawContent: r._rawContent || null,
         // IDB entries (phase 1) must not influence folder filtering — only Supabase is authoritative
         ...(addToImgGrid ? {} : { _srcIDB: true }),
       };
@@ -5581,6 +5581,7 @@ function _mapSbImage(r) {
     docType:     r.doc_type,
     folderId:    r.folder_id || null,
     ts:          new Date(r.created_at).getTime(),
+    _rawContent: r.raw_content || null,
   };
 }
 
@@ -7187,6 +7188,7 @@ async function dbSave(rec, { silent = false } = {}) {
         // storing ~1.5 MB of base64 per image in the database column.
         originalUrl: (rec.originalUrl?.startsWith('http') ? rec.originalUrl : null),
         folderId:    rec.folderId || null,
+        rawContent:  rec._rawContent || null,
       }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -7608,6 +7610,7 @@ async function handleEvent(ev) {
         docType: ev.docType || (docType !== 'all' ? docType : undefined),
         folderId: dashFolderFilter || null, // auto-assign to active folder
         sbKey,
+        _rawContent: retryData[domKey]?._rawContent || null,
       };
       results[domKey] = result;
       // Upload overlaid image directly from browser to Supabase Storage.
@@ -7772,7 +7775,7 @@ function makePersistedCard(r) {
   const folderId = (r.key && _pendingMoves[r.key] !== undefined)
     ? _pendingMoves[r.key]
     : (r.folderId ?? null);
-  results[domKey] = { url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId, ts: r.ts || r.id, sbId: r.id, sbKey: r.key };
+  results[domKey] = { url: r.dataUrl || r.url, originalUrl: r.dataUrl || r.url, filename: r.filename, pageNum: r.pageNum, title: r.customTitle || r.title || '', customTitle: r.customTitle || null, docType: r.docType || '', folderId, ts: r.ts || r.id, sbId: r.id, sbKey: r.key, _rawContent: r._rawContent || null };
   const d = document.createElement('div');
   d.className = 'icard';
   d.id = `card_${domKey}`;
@@ -8392,7 +8395,7 @@ async function confirmRefazer() {
             results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType, _rawContent: promptText };
             if (existingKey) results[domKey].sbKey = existingKey;
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
-            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now() }).catch(() => {});
+            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now(), _rawContent: promptText }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
@@ -8480,7 +8483,7 @@ async function retryPage(domKey) {
             const storageUrl  = await _clientUploadToStorage(dataUrl, filename, ev.storagePath).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
             const _rFolderId = results[domKey]?.folderId ?? retryData[domKey]?.folderId ?? null;
-            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey, folderId: _rFolderId };
+            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, sbKey, folderId: _rFolderId, _rawContent: rawPage.content };
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pd.num}" />`;
             if (stEl) { stEl.className = 'icard-status s-done'; stEl.textContent = '✓ Pronta'; }
             if (ft) {
@@ -8492,7 +8495,7 @@ async function retryPage(domKey) {
             }
             // folderId priority: live results entry > retryData seed > null
             const _retryFolderId = results[domKey]?.folderId ?? retryData[domKey]?.folderId ?? null;
-            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, folderId: _retryFolderId })
+            const { localId: _rLid, sbId: _rSbId } = await dbSave({ key: sbKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum: pd.num, title: pd.title, docType: pageDocType, folderId: _retryFolderId, _rawContent: rawPage.content })
               .catch(() => { toast('Imagem gerada mas falhou ao salvar no servidor — não reaparecerá após refresh.', 'warn'); return {}; });
             if (_rLid)   results[domKey].localId = _rLid;
             if (_rSbId)  results[domKey].sbId    = _rSbId;
