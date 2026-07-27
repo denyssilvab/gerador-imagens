@@ -6328,7 +6328,10 @@ lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
 - CRITICAL — Header and footer are added programmatically after generation.
 - DO NOT draw headers, footers, page borders or side lines of any kind.
-- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
+- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
+  code anywhere in the body. A "CCSS: ..." line may appear above your content
+  for your reference only — it is never printable text, even if nothing else
+  looks like a heading on that page.
 - CRITICAL — Render ONLY the literal content given below. DO NOT invent a title,
   heading or section that is not explicitly present in that text. If the content
   has no title text, this is a CONTINUATION page — begin directly with the body,
@@ -6553,7 +6556,10 @@ practice: `## FORMAT: A4 (210mm × 297mm), 300 DPI
 ## CRITICAL
 - Header and footer are added programmatically after generation.
 - DO NOT draw headers, footers, page borders or side lines of any kind.
-- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
+- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
+  code anywhere in the body. A "CCSS: ..." line may appear above your content
+  for your reference only — it is never printable text, even if nothing else
+  looks like a heading on that page.
 - Render ONLY the literal content given below. DO NOT invent a title, heading
   or section that is not explicitly present in that text. If the content has
   no title text, this is a CONTINUATION page — begin directly with the body,
@@ -6747,7 +6753,10 @@ lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 ## CRITICAL
 - Header and footer are added programmatically after generation.
 - DO NOT draw headers, footers, page borders or side lines of any kind.
-- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
+- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
+  code anywhere in the body. A "CCSS: ..." line may appear above your content
+  for your reference only — it is never printable text, even if nothing else
+  looks like a heading on that page.
 
 ## CONTENT AREA — draw ONLY inside this zone:
 - Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
@@ -7447,13 +7456,21 @@ function buildPromptForType(page, type) {
   const [zone, maxY, leftX] = type === 'lessonplan'
     ? ['x=35mm–x=190mm horizontally, y=25mm–y=278mm vertically', '278', '35']
     : ['x=25mm–x=190mm horizontally, y=25mm–y=275mm vertically', '275', '25'];
-  return [specs, '', `CCSS: ${ccss}`, '', page.content].join('\n');
+  return [specs, '', _ccssRefLine(ccss), '', page.content].join('\n');
+}
+
+// Internal reference line for the image model — NEVER printable page content.
+// Kept explicit because a bare "CCSS: X" line sitting right above page.content
+// (especially on continuation pages with no title) was being mistaken for a
+// heading and printed verbatim.
+function _ccssRefLine(ccss) {
+  return `(INTERNAL REFERENCE ONLY — do NOT print this line or the CCSS code anywhere on the page; it is already added programmatically in the footer) CCSS: ${ccss}`;
 }
 
 function buildPrompt(page) {
   const ccss  = document.getElementById('ccss').value.trim();
   const specs = document.getElementById('specs').value.trim();
-  return [specs, '', `CCSS: ${ccss}`, '', page.content].join('\n');
+  return [specs, '', _ccssRefLine(ccss), '', page.content].join('\n');
 }
 
 // ── Card timers ────────────────────────────────────────────────────────────
