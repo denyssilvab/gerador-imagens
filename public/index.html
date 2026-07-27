@@ -1218,6 +1218,13 @@
     .combinar-item-label { flex: 1; font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
     .combinar-item-remove { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; padding: 2px 4px; border-radius: 4px; flex-shrink: 0; }
     .combinar-item-remove:hover { color: var(--error-fg); background: rgba(239,68,68,.1); }
+    .combinar-item-move { display: flex; flex-direction: column; flex-shrink: 0; }
+    .combinar-item-move-btn {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 9px; line-height: 1; padding: 1px 4px; border-radius: 3px;
+    }
+    .combinar-item-move-btn:hover:not(:disabled) { color: var(--text); background: var(--surface); }
+    .combinar-item-move-btn:disabled { opacity: .25; cursor: default; }
     /* Combinar add-files modal */
     .combinar-modal-bg { position: fixed; inset: 0; z-index: 800; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; }
     .combinar-modal { background: var(--surface); border-radius: 14px; padding: 20px; width: min(90vw, 700px); max-height: 82vh; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
@@ -6091,6 +6098,10 @@ function renderCombinarList() {
       <img src="${item.url}" draggable="false" />
       <span class="combinar-item-label">Pág. ${item.pageNum || (i+1)}${item.title ? ' — '+item.title : ''}</span>
       ${typeTag}
+      <span class="combinar-item-move">
+        <button class="combinar-item-move-btn" title="Mover para cima" ${i === 0 ? 'disabled' : ''} onclick="event.stopPropagation();combinarMove(${i},-1)">▲</button>
+        <button class="combinar-item-move-btn" title="Mover para baixo" ${i === combinarItems.length - 1 ? 'disabled' : ''} onclick="event.stopPropagation();combinarMove(${i},1)">▼</button>
+      </span>
       <button class="combinar-item-remove" onclick="event.stopPropagation();combinarRemove(${i})">×</button>`;
     div.addEventListener('dragstart', e => {
       combinarDragSrc = i;
@@ -6137,6 +6148,21 @@ function combinarRemove(i) {
   combinarSelected.forEach(idx => { if (idx < i) newSel.add(idx); else if (idx > i) newSel.add(idx - 1); });
   combinarSelected.clear(); newSel.forEach(x => combinarSelected.add(x));
   combinarItems.splice(i, 1);
+  renderCombinarList();
+}
+
+// Click-based reorder — doesn't depend on native HTML5 drag, which some
+// trackpads (notably macOS with "Tap to click") fail to initiate at all.
+function combinarMove(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= combinarItems.length) return;
+  [combinarItems[i], combinarItems[j]] = [combinarItems[j], combinarItems[i]];
+  // Selection is tracked by index, so swap membership along with the items
+  const iSel = combinarSelected.has(i), jSel = combinarSelected.has(j);
+  if (iSel !== jSel) {
+    iSel ? combinarSelected.delete(i) : combinarSelected.add(i);
+    jSel ? combinarSelected.delete(j) : combinarSelected.add(j);
+  }
   renderCombinarList();
 }
 
