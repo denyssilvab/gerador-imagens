@@ -3661,7 +3661,7 @@ function _buildContentFilename(type) {
   const dtLabel = { lesson: 'Lesson Notes', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
   const label = dtLabel[type] || type;
   const parts = [];
-  parts.push(lesson ? `${label} ${lesson}` : label);
+  parts.push(lesson ? `${label} ${_padLessonNum(lesson)}` : label);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
   return (parts.join(' ') || type) + '.txt';
@@ -6110,7 +6110,7 @@ function _buildCombinarFilenameForType(type) {
 
   const label = dtLabel[effectiveType] || effectiveType || 'Arquivo';
   let filename = label;
-  if (lesson)        filename += ` ${lesson}`;
+  if (lesson)        filename += ` ${_padLessonNum(lesson)}`;
   if (effectiveName) filename += ` - ${effectiveName}`;
   if (ccss)          filename += ` (${ccss})`;
   return filename + '.pdf';
@@ -9292,6 +9292,13 @@ function _overlayTextsForType(type) {
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
 // ── PDF ────────────────────────────────────────────────────────────────────
+// Zero-pads a purely numeric lesson number to 2 digits ("5" -> "05") for
+// filenames; leaves non-numeric values (or already 2+ digit numbers) as-is.
+function _padLessonNum(lesson) {
+  const s = String(lesson || '').trim();
+  return /^\d+$/.test(s) ? s.padStart(2, '0') : s;
+}
+
 function buildFilename(docTypeOverride, ext) {
   const lesson = document.getElementById('lesson')?.value?.trim()
               || document.getElementById('content-lesson')?.value?.trim() || '';
@@ -9305,8 +9312,8 @@ function buildFilename(docTypeOverride, ext) {
                : dt === 'lessonplan'  ? 'Lesson Plan'
                : '';
   const parts = [];
-  if (dtLabel) parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
-  else if (lesson) parts.push(`Lesson Notes ${lesson}`);
+  if (dtLabel) parts.push(lesson ? `${dtLabel} ${_padLessonNum(lesson)}` : dtLabel);
+  else if (lesson) parts.push(`Lesson Notes ${_padLessonNum(lesson)}`);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
   const base = parts.length ? parts.join(' ') : 'arquivo';
@@ -9332,7 +9339,7 @@ function savePromptAsTxt(type) {
   const dt       = dtMap[type];
   const dtLabel  = dt === 'lesson' ? 'Lesson Notes' : dt === 'practice' ? 'Worksheet' : 'Lesson Plan';
   const parts    = [];
-  parts.push(lesson ? `${dtLabel} ${lesson}` : dtLabel);
+  parts.push(lesson ? `${dtLabel} ${_padLessonNum(lesson)}` : dtLabel);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
   const filename = (parts.join(' ') || 'arquivo') + '.txt';
