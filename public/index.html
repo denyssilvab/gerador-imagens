@@ -8392,10 +8392,10 @@ async function confirmRefazer() {
             const existingKey = results[domKey]?.sbKey;
             const storageUrl  = await _clientUploadToStorage(dataUrl, filename, ev.storagePath).catch(() => null);
             const saveUrl     = storageUrl || dataUrl;
-            results[domKey] = { ...results[domKey], url: saveUrl, filename, docType: pageDocType, _rawContent: promptText };
+            results[domKey] = { ...results[domKey], url: saveUrl, originalUrl: saveUrl, filename, docType: pageDocType, _rawContent: promptText };
             if (existingKey) results[domKey].sbKey = existingKey;
             if (pv) pv.innerHTML = `<img src="${esc(saveUrl)}" loading="lazy" alt="Pág. ${pageNum}" />`;
-            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now(), _rawContent: promptText }).catch(() => {});
+            await dbSave({ key: existingKey, dataUrl: saveUrl, url: saveUrl, originalUrl: saveUrl, filename, pageNum, title: results[domKey]?.title || '', docType: pageDocType, folderId: results[domKey]?.folderId ?? null, ts: Date.now(), _rawContent: promptText }).catch(() => {});
             toast(`Pág. ${pageNum} regenerada!`, 'ok');
           } else if (ev.type === 'error') {
             if (pv) pv.innerHTML = `<div class="icard-error"><span class="err-ico">⚠️</span><div class="err-msg">${esc(ev.error)}</div></div>`;
