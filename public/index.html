@@ -2429,6 +2429,31 @@ You are an expert in CCSS instructional design (Common Core State Standards) and
 
 ---
 
+## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+
+Every word you write becomes what is physically printed on the page — there
+is no narration layer, no notes to a reader of the prompt. Before writing
+anything, ask: "will this exact text appear on the printed page?" If not,
+do not write it.
+
+The ONLY exception is the \`[IMAGE: ...]\` tag — it is a machine-readable
+instruction for what to draw, read by the image generator and never printed
+as text itself.
+
+**Do NOT write:**
+- A description of what a visual/diagram/model WOULD show, without an
+  actual \`[IMAGE: ...]\` tag (e.g. "Visual confirmation: an area model
+  shows...") — this reads as a caption for an image that doesn't exist
+- Meta-commentary about your own reasoning or process
+- Hedging or placeholder language ("one way to visualize this could be...")
+
+**If a visual genuinely helps:** commit to it — write a real
+\`[IMAGE: ...]\` tag with a complete literal specification (see rules below).
+If it doesn't rise to that bar, leave it out entirely. Never describe a
+visual in prose as a substitute for actually specifying it.
+
+---
+
 ## REFERENCE PARAMETER
 
 Distribution model. Analyze:
@@ -2781,6 +2806,29 @@ You are an expert in CCSS instructional design. Generate a complete prompt with 
 - Does NOT have space, lines, or areas for answers
 - Is challenging but accessible to the grade level
 - Is ready to be passed to the image generation API
+
+## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+
+Every word you write becomes what is physically printed on the page — there
+is no narration layer, no notes to a reader of the prompt. Before writing
+anything, ask: "will this exact text appear on the printed page?" If not,
+do not write it.
+
+The ONLY exception is the \`[IMAGE: ...]\` tag — it is a machine-readable
+instruction for what to draw, read by the image generator and never printed
+as text itself.
+
+**Do NOT write:**
+- A description of what a visual/diagram/model WOULD show, without an
+  actual \`[IMAGE: ...]\` tag (e.g. "Visual confirmation: an area model
+  shows...") — this reads as a caption for an image that doesn't exist
+- Meta-commentary about your own reasoning or process
+- Hedging or placeholder language ("one way to visualize this could be...")
+
+**If a visual genuinely helps:** commit to it — write a real
+\`[IMAGE: ...]\` tag with a complete literal specification (see rules below).
+If it doesn't rise to that bar, leave it out entirely. Never describe a
+visual in prose as a substitute for actually specifying it.
 
 ## LANGUAGE: 100% ENGLISH
 
@@ -3215,6 +3263,17 @@ This is non-negotiable. If it exceeds 140mm, DIVIDE into 2 pages.
 **Total maximum pages: 15**
 
 The entire lesson plan must be completed within 15 pages. Distribute content accordingly to respect both the 120-140mm per page limit AND the 15-page total limit.
+
+---
+
+## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+
+Every word you write becomes what is physically printed on the page — there
+is no narration layer, no notes to a reader of the prompt. Before writing
+anything, ask: "will this exact text appear on the printed page?" If not,
+do not write it. Do not write meta-commentary about your own reasoning or
+process, and do not describe what a visual would show — this document has
+no illustrations.
 
 ---
 
