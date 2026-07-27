@@ -1187,8 +1187,16 @@
     .combinar-pdf-page {
       width: 100%; max-width: 480px; aspect-ratio: 210/297;
       background: white; box-shadow: 0 4px 20px rgba(0,0,0,.5); border-radius: 2px; overflow: hidden; flex-shrink: 0;
+      position: relative; cursor: grab; user-select: none;
+      border: 2px solid transparent; transition: opacity .15s, border-color .15s;
     }
+    .combinar-pdf-page.dragging { opacity: .35; cursor: grabbing; }
+    .combinar-pdf-page.drag-over { border-color: var(--primary); }
     .combinar-pdf-page img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .combinar-pdf-page-num {
+      position: absolute; top: 8px; left: 8px; background: rgba(0,0,0,.65); color: #fff;
+      font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 20px; pointer-events: none;
+    }
     /* Right: pages list */
     .combinar-right { width: 290px; min-width: 290px; flex-shrink: 0; display: flex; flex-direction: column; }
     .combinar-right-header { padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -6147,7 +6155,25 @@ function _refreshCombinarPreview() {
     const div = document.createElement('div');
     div.className = 'combinar-pdf-page';
     div.title = `Pág. ${item.pageNum || (i+1)}${item.title ? ' — ' + item.title : ''}`;
-    div.innerHTML = `<img src="${item.url}" loading="lazy" />`;
+    div.draggable = true;
+    div.innerHTML = `<img src="${item.url}" loading="lazy" draggable="false" /><span class="combinar-pdf-page-num">${i+1}</span>`;
+    div.addEventListener('dragstart', e => {
+      combinarDragSrc = i;
+      div.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(i));
+    });
+    div.addEventListener('dragend',   () => { div.classList.remove('dragging'); preview.querySelectorAll('.combinar-pdf-page').forEach(d=>d.classList.remove('drag-over')); });
+    div.addEventListener('dragover',  e => { e.preventDefault(); div.classList.add('drag-over'); });
+    div.addEventListener('dragleave', () => div.classList.remove('drag-over'));
+    div.addEventListener('drop', e => {
+      e.preventDefault(); div.classList.remove('drag-over');
+      if (combinarDragSrc === null || combinarDragSrc === i) return;
+      const moved = combinarItems.splice(combinarDragSrc, 1)[0];
+      combinarItems.splice(i, 0, moved);
+      combinarDragSrc = null;
+      renderCombinarList();
+    });
     preview.appendChild(div);
   });
 }
