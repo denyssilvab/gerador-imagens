@@ -7010,170 +7010,120 @@ The title is the ONLY element on that first section — the actual topic of the 
 const SPECS_ELA_MS = {
 lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
-- CRITICAL — Header and footer are added programmatically after generation.
-- DO NOT draw headers, footers, page borders or side lines of any kind.
+## DOCUMENT SETUP
+- Content Area: x=35mm–165mm (left-right), y=20mm–278mm (top-bottom)
+- DO NOT add headers, footers, borders, page numbers, or unit/lesson labels
+- Headers and footers added programmatically only
 - DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
   code anywhere in the body. A "CCSS: ..." line may appear above your content
   for your reference only — it is never printable text, even if nothing else
   looks like a heading on that page.
-- CRITICAL — Render ONLY the literal content given below. DO NOT invent a title,
-  heading or section that is not explicitly present in that text. If the content
-  has no title text, this is a CONTINUATION page — begin directly with the body,
+- Render ONLY the literal content given below. DO NOT invent a title, heading
+  or section that is not explicitly present in that text. If the content has
+  no title text, this is a CONTINUATION page — begin directly with the body,
   do not create an opening title for it.
 
-## CONTENT AREA — draw ONLY inside this zone:
-- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
-- Spacing: max 4–6mm between sections — never overflow past y=278mm
-- CRITICAL - Use the FULL horizontal width — text must reach close to x=190mm
+---
 
-## TYPOGRAPHY
-- Body text: Clean sans-serif (Calibri, Arial, or similar)
-- Titles: 20pt Bold #092964
-- Subtitles: 20pt Bold #0251af
+## TYPOGRAPHY (FIXED — NON-NEGOTIABLE)
+Font: Arial (ALWAYS)
+- Page titles: 24pt Bold #092964 (Sentence case, text ONLY)
+- Section headers: 20pt Bold #ff6b35 (Sentence case)
+- Subsection headers: 18pt Bold #0251af (Sentence case)
 - Body text: 18pt Regular #000000
 - Annotations: 16pt Regular #666666
-- ALL TITLES: Sentence case — NEVER all caps
+
+Rule: If content exceeds available space, REDUCE CONTENT (never resize fonts or compress spacing)
+
+---
+
+## TEXT ALIGNMENT
+- Body text in boxes: LEFT aligned
+- Large text blocks outside boxes: JUSTIFIED alignment
+- EXCEPTION: If justified alignment creates excessive spacing between words (>4mm gaps), revert to LEFT alignment
+- Avoid rivers (large gaps) in justified text — prioritize LEFT when spacing becomes awkward
+
+---
 
 ## COLOR PALETTE
-Primary:
-- Deep Blue (#0C366E)
-- Modern Green (#89c13b)
-- Sophisticated Orange (#ff6b35)
-- Purple (#9b59b6)
-
+Primary: Deep Blue (#0C366E) | Modern Green (#89c13b) | Orange (#ff6b35) | Purple (#9b59b6)
 Neutrals: Gray tones, white background, minimal black
-AVOID: Hot pink, lime green, neon blue, rainbow combinations
+AVOID: Hot pink, lime green, neon blue, rainbows
 
-## LAYOUT PRINCIPLES:
-- Pedagogical textbook style, mix boxes and open text
-- Text aligned LEFT only
-- Rounded boxes: 5mm corners, 15mm padding
-- White space is acceptable — do NOT stretch content to fill page
-- NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
+---
+
+## LAYOUT & SPACING
+- Content distribution: 150–180mm actual content per page (70–100mm whitespace acceptable and desired)
+- Spacing between sections: 4–6mm maximum
+- Boxes: Rounded corners (5–8mm), 15mm padding
+- Never stretch, compress, or distort any text or elements
+
+---
 
 ## VISUAL STYLE
-- 60% Professional/Academic + 30% Modern Design + 10% Creative
-- Flat design (Material Design aesthetic)
-- NO cartoon illustrations, infantile elements, or bright neon colors
-- Target: "respectful but fresh" - adolescent-appropriate
+Aesthetic: Flat Design + Minimalist + Editorial Design
+- Flat: No shadows, no gradients, solid colors
+- Minimalist: Maximum whitespace, essential elements only
+- Editorial: Strong typography hierarchy, clean composition
+Reference: TED-Ed, Khan Academy, Guardian Infographics
+Target: Respectful, fresh, adolescent-appropriate
+NOT: Duolingo cute, corporate, elementary school
 
-## VISUAL ELEMENTS
+---
+
+## VISUAL ELEMENTS — CRITICAL RULE
+✓ ONLY include images/illustrations when explicitly specified with an
+  \`[IMAGE: ...]\` tag in the content — this is the same tag convention
+  used everywhere else in this system, never write "[IMAGEM]" or any
+  other variant
+✗ DO NOT add decorative icons, illustrations, or visual elements unless
+  specifically requested via that tag
+✗ NO unnecessary visual embellishments
+✗ NO clipart, decorative drawings, or supplementary graphics
+
+When an \`[IMAGE: ...]\` tag appears: include the image exactly as specified (max 80-100mm)
+When NO \`[IMAGE: ...]\` tag is present: text ONLY, no visuals
+
+---
+
+## ICON STYLE (when an [IMAGE: ...] tag is used)
+✓ Line art only (outline/stroke style)
+✓ Minimal fill, maximum use of outlines
+✓ Thin lines (1-2pt stroke weight)
+✗ Solid filled illustrations
+✗ Thick/heavy fills
+✗ Shadows or gradients on icons
+
+---
+
+## ALLOWED VISUAL ELEMENTS (ONLY with an [IMAGE: ...] tag)
 ✓ Infographics (clean, data-focused)
-✓ Flat icons (functional, not decorative)
 ✓ Side-by-side comparisons
 ✓ Simple flowcharts
 ✓ Real photographs (when relevant)
-✓ Subtle color blocks for definitions/boxes
-✗ Clipart
-✗ Busy decorations
-✗ Multiple competing visuals per page
-
-## OVERALL TONE
-- Academic but accessible. Modern but not trendy. Professional but not corporate.
-- Think: TED-Ed, Khan Academy, Guardian Infographics (style)
-- NOT: Duolingo cute, corporate PowerPoint, elementary school
+✓ Subtle color blocks / rounded boxes for definitions
+✓ Line art illustrations (outlines, no fills)
+✗ Clipart, solid filled icons, drop shadows
+✗ Illustrations without explicit purpose
 
 ---
 
-## VISUAL HIERARCHY STRATEGY
+## CRITICAL RESTRICTIONS
 
-### WHEN TO USE BOXES (Only in these 4 cases)
+### No Decorative Elements
+- PROHIBITED: Icons, symbols, emojis in any title/header
+- PROHIBITED: Decorative illustrations without an \`[IMAGE: ...]\` tag
+- PROHIBITED: Visual padding or filler graphics
+- ONLY content explicitly tagged with \`[IMAGE: ...]\` receives visual treatment
 
-**1. Formal Definitions (ALWAYS IN BOX)**
-- Formal definitions and named concepts
-- Fundamental key concepts
-- Frequency: 1-3 per lesson (maximum)
+### First Page Title
+- Display ONLY lesson title
+- Do NOT include unit number, lesson number, or CCSS code
 
-**2. Key Quotes or Rules (ALWAYS IN BOX)**
-- Key textual evidence, definitions, or derived rules
-- Highlight important result
-- Frequency: 1-2 per page, as needed
-
-**3. Structured Step-by-Step (BOX only if 4+ steps)**
-- Process with multiple structured steps
-- Each step in its own compartment
-- Steps numbered with ① ② ③ ④ (circles, not icons)
-- Frequency: maximum 1 per page
-
-**4. Concept Checks or Key Insights (BOX optional, maximum 1 per page)**
-- Quick guided reflection ("Think About It...")
-- Importance context ("Why It Matters")
-- Insight summary ("Key Takeaway")
-- Frequency: maximum 1 per page
-
----
-
-### WHAT SHOULD NOT BE IN A BOX
-
-These should be only **HEADING (bold, English) + regular text**:
-- Introductory sections
-- Narrative explanations
-- Examples (title + description)
-- Tips or "try it!" sections
-- Synthesis or conclusions
-- Practical applications
-- Steps when fewer than 4
-
----
-
-## RIGOROUS CALCULATION OF CONTENT PER PAGE
-
-### Available Space
-- **Height:** 25mm to 275mm = 250mm vertical
-- **Width:** 35mm to 190mm = 165mm horizontal
-- **Maximum spacing:** 4-6mm between sections
-- **Mandatory visual breathing room:** 15-20mm per page
-
-**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
-
----
-
-### Height Estimate per Element
-
-- Title (20pt bold): 7-8mm
-- Subtitle (18pt regular): 6-7mm
-- Body text (18pt, 1.5 spacing): 9.5mm per line
-- Paragraph (60 words, 1.5 spacing): ~50-55mm
-- Definition box: 60-80mm
-- Formula/quote box: 25-35mm
-- Complete example: 70-90mm
-- Detailed image: 80-100mm
-- Space between sections: 5-6mm
-
-CRITICAL: NEVER EXCEED THESE FONT SIZES.
-- The first letter of titles and subtitles should always be capitalized, and the rest lowercase.
-- It is forbidden to use any uppercase letters in titles, subtitles, etc.
-- It is forbidden to increase the font size of the title beyond the stipulated size.
-
----
-
-### Checklist per Page (BEFORE GENERATING)
-
-For each page, verify:
-- Is total content between 150-240mm?
-- Is there 15-20mm of visual breathing room?
-- Is the number of boxes minimal (maximum 2 per page)?
-- Is everything in English?
-- Are there no decorative icons in titles?
-- If there is an image, is it detailed (80-100mm), not an icon?
-- CRITICAL: Is the text within established limits? Is nothing exceeding margins, especially left and right?
-
-If any item fails, DIVIDE THE PAGE.
-
----
-
-## NO DECORATIVE ICONS
-
-**Prohibited:**
-- Icons for titles or subtitles
-- Decorative symbols before headings
-- Emoji-style thumbnails
-
-**Allowed:**
-- Numbers in circles: ① ② ③ ④ ⑤ (for steps)
-- Bullet points (•)
-- Borders/backgrounds of boxes
+### Content Overflow
+- Maximum 180mm content = split across 2 pages
+- Never reduce font, compress spacing, or eliminate whitespace to fit
+- Whitespace is a design element; preserve it
 
 ---
 
@@ -7213,42 +7163,13 @@ Guided practice continues
 
 ---
 
-## Title capitalization (CRITICAL)
-
-Every title, heading, and section header MUST start with a capital letter. Never use lowercase at the beginning.
-
-Correct:
-- Discovering the pattern
-- Guided practice with examples
-- Common misconception about variables
-
-Incorrect:
-- discovering the pattern
-- guided practice with examples
-- common misconception about variables
-
----
-
-## First page title format
-
-- On the first page, display ONLY the lesson title. DO NOT include the unit number, lesson number, or CCSS code below the title.
-- The lesson title appears only on page 1, never on other pages.
-
-Incorrect:
-
-Writing Algebraic Expressions
-
-Unit: Unit 3 — Expressions and Equations
-Lesson: 28
-CCSS Code: 6.EE.A.2.a
-
-[Content here]
-
-Correct:
-
-Writing Algebraic Expressions
-
-[Content here]`,
+## DESIGN PRINCIPLES
+- Clean, text-focused layout
+- Visual hierarchy through typography and spacing (not decorative elements)
+- Minimal visual clutter
+- Information flows naturally as prose
+- Images ONLY when they serve pedagogical purpose (marked with an [IMAGE: ...] tag)
+- Professional pedagogical textbook style (flat + minimalist + editorial)`,
 
 lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
