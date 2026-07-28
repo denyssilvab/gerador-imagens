@@ -1821,11 +1821,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <div class="fg">
                 <label>Disciplina</label>
-                <input id="content-disciplina" value="Mathematics" placeholder="Ex: Mathematics" style="padding:6px 8px;font-size:12px;" />
+                <select id="content-disciplina" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();saveSettings()"><option value="Mathematics">Mathematics</option><option value="English Language Arts">English Language Arts</option></select>
               </div>
               <div class="fg">
                 <label>Turma</label>
-                <input id="content-turma" value="6th Grade" placeholder="Ex: 6th Grade" style="padding:6px 8px;font-size:12px;" />
+                <select id="content-turma" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();saveSettings()"><option value="2nd Grade">2nd Grade</option><option value="3rd Grade">3rd Grade</option><option value="4th Grade">4th Grade</option><option value="5th Grade">5th Grade</option><option value="6th Grade" selected>6th Grade</option><option value="7th Grade">7th Grade</option><option value="8th Grade">8th Grade</option><option value="9th Grade">9th Grade</option><option value="10th Grade">10th Grade</option><option value="11th Grade">11th Grade</option><option value="12th Grade">12th Grade</option></select>
               </div>
             </div>
           </div>
@@ -2065,11 +2065,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <div class="fg">
                 <label>Disciplina</label>
-                <input id="disciplina" value="Mathematics" placeholder="Ex: Mathematics" style="padding:6px 8px;font-size:12px;" />
+                <select id="disciplina" style="padding:6px 8px;font-size:12px;" onchange="_refreshImgSpecsTextarea();saveSettings()"><option value="Mathematics">Mathematics</option><option value="English Language Arts">English Language Arts</option></select>
               </div>
               <div class="fg">
                 <label>Turma</label>
-                <input id="turma" value="6th Grade" placeholder="Ex: 6th Grade" style="padding:6px 8px;font-size:12px;" />
+                <select id="turma" style="padding:6px 8px;font-size:12px;" onchange="_refreshImgSpecsTextarea();saveSettings()"><option value="2nd Grade">2nd Grade</option><option value="3rd Grade">3rd Grade</option><option value="4th Grade">4th Grade</option><option value="5th Grade">5th Grade</option><option value="6th Grade" selected>6th Grade</option><option value="7th Grade">7th Grade</option><option value="8th Grade">8th Grade</option><option value="9th Grade">9th Grade</option><option value="10th Grade">10th Grade</option><option value="11th Grade">11th Grade</option><option value="12th Grade">12th Grade</option></select>
               </div>
             </div>
 
@@ -2434,9 +2434,9 @@ const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'
 const CONTENT_SPECS = {
 lesson: `# OVERVIEW
 
-You are an expert in CCSS instructional design (Common Core State Standards) and pedagogical layout. Generate a complete prompt with the full content of a mathematics lesson based on input information.
+You are an expert in CCSS instructional design (Common Core State Standards) and pedagogical layout. Generate a complete prompt with the full content of a lesson in {{SUBJECT}} based on input information.
 
-- Introduces mathematical concept clearly and solidly
+- Introduces the {{SUBJECT}} concept clearly and solidly
 - Distributes content respecting A4 margins (25-190mm H, 25-275mm V)
 - EACH PAGE has balanced content (see reference below)
 - Uses boxes strategically (not on everything)
@@ -3580,7 +3580,7 @@ Every page MUST start with this exact marker:
 - Never skip the page marker
 - The page marker is the ONLY way the system knows where to cut each page`,
 
-all: `You are an expert 6th grade mathematics educator. Generate a complete lesson package.
+all: `You are an expert {{GRADE}} {{SUBJECT}} educator. Generate a complete lesson package.
 
 Output page blocks in this exact format:
 --PAGE 1 - [TITLE]--
@@ -3594,6 +3594,31 @@ Rules:
 - All content 100% in English
 - Titles in Sentence case, no emojis`,
 };
+
+// Resolves {{SUBJECT}} / {{GRADE}} placeholders in a CONTENT_SPECS template
+// for the selected discipline/grade — same content-writing structure for
+// every discipline, only the subject/grade reference at the top changes.
+function _contentSpecFor(type, discipline, grade) {
+  const subject = (discipline || '').trim() || 'Mathematics';
+  const gradeText = (grade || '').trim() || '6th Grade';
+  const raw = CONTENT_SPECS[type] || CONTENT_SPECS.all;
+  return raw.replace(/\{\{SUBJECT\}\}/g, subject).replace(/\{\{GRADE\}\}/g, gradeText);
+}
+
+// Refreshes the editable "Especificações" textareas when discipline/grade
+// changes, so the visible spec always matches the current selection —
+// mirrors the refresh that already happens when switching doc-type tabs.
+function _refreshContentSpecsTextarea() {
+  if (contentDocType === 'all') return; // 'all' mode shows a static placeholder, not a spec
+  const el = document.getElementById('content-specs');
+  if (el) el.value = _contentSpecFor(contentDocType, document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
+}
+
+function _refreshImgSpecsTextarea() {
+  if (docType === 'all') return; // 'all' mode shows a static placeholder, not a spec
+  const el = document.getElementById('specs');
+  if (el) el.value = _getSpecsFor(docType, document.getElementById('disciplina')?.value, document.getElementById('turma')?.value);
+}
 
 // ── Gerar Conteúdo (Claude API) ────────────────────────────────────────────
 
@@ -3637,6 +3662,8 @@ async function resumeGeneration() {
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
   const baseInput = document.getElementById('claude-input')?.value.trim() || '';
   if (!baseInput) { toast('Preencha a descrição da aula.', 'warn'); return; }
+  const _cDiscipline = document.getElementById('content-disciplina')?.value;
+  const _cGrade       = document.getElementById('content-turma')?.value;
 
   const btnGen  = document.getElementById('btn-claude-gen');
   const btnStop = document.getElementById('btn-claude-stop');
@@ -3673,7 +3700,7 @@ async function resumeGeneration() {
       done++;
       _genFailedStep = 'lesson';
       _startGenTimer(label, `Gerando Lesson… (${done}/${total})`);
-      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
+      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), _contentSpecFor('lesson', _cDiscipline, _cGrade),
         (p) => { if (outLesson) outLesson.value = p; });
       const lTime = _stopPhaseTime();
       savedContent.lesson = lessonContent;
@@ -3687,7 +3714,7 @@ async function resumeGeneration() {
       done++;
       _genFailedStep = 'practice';
       _startGenTimer(label, `Gerando Activities… (${done}/${total})`);
-      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, savedContent.lesson, null), CONTENT_SPECS.practice,
+      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, savedContent.lesson, null), _contentSpecFor('practice', _cDiscipline, _cGrade),
         (p) => { if (outPractice) outPractice.value = p; });
       const pTime = _stopPhaseTime();
       savedContent.practice = practiceContent;
@@ -3701,7 +3728,7 @@ async function resumeGeneration() {
       done++;
       _genFailedStep = 'lessonplan';
       _startGenTimer(label, `Gerando Lesson Plan… (${done}/${total})`);
-      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, savedContent.lesson, savedContent.practice), CONTENT_SPECS.lessonplan,
+      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, savedContent.lesson, savedContent.practice), _contentSpecFor('lessonplan', _cDiscipline, _cGrade),
         (p) => { if (outPlan) outPlan.value = p; });
       const plTime = _stopPhaseTime();
       savedContent.lessonplan = planContent;
@@ -3853,7 +3880,7 @@ function setContentDocType(type, el) {
   document.querySelectorAll('.claude-doc-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   if (el) el.classList.add('active');
   const specs = document.getElementById('content-specs');
-  if (specs) specs.value = CONTENT_SPECS[type] || CONTENT_SPECS.all;
+  if (specs) specs.value = _contentSpecFor(type, document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
   _updateContextVisibility();
 }
 
@@ -3977,6 +4004,8 @@ async function generateContent() {
   if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
   const baseInput = document.getElementById('claude-input')?.value.trim() || '';
   if (!baseInput) { toast('Preencha a descrição da aula.', 'warn'); return; }
+  const _cDiscipline = document.getElementById('content-disciplina')?.value;
+  const _cGrade       = document.getElementById('content-turma')?.value;
 
   const btnGen  = document.getElementById('btn-claude-gen');
   const btnStop = document.getElementById('btn-claude-stop');
@@ -4015,7 +4044,7 @@ async function generateContent() {
       // 1. Lesson
       _genFailedStep = 'lesson';
       _startGenTimer(label, 'Gerando Lesson… (1/3)');
-      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), CONTENT_SPECS.lesson,
+      const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), _contentSpecFor('lesson', _cDiscipline, _cGrade),
         (partial) => { if (outLesson) outLesson.value = partial; });
       const lTime = _stopPhaseTime();
       savedContent.lesson = lessonContent;
@@ -4028,7 +4057,7 @@ async function generateContent() {
       // 2. Activities
       _genFailedStep = 'practice';
       _startGenTimer(label, 'Gerando Activities… (2/3)');
-      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), CONTENT_SPECS.practice,
+      const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), _contentSpecFor('practice', _cDiscipline, _cGrade),
         (partial) => { if (outPractice) outPractice.value = partial; });
       const pTime = _stopPhaseTime();
       savedContent.practice = practiceContent;
@@ -4041,7 +4070,7 @@ async function generateContent() {
       // 3. Lesson Plan
       _genFailedStep = 'lessonplan';
       _startGenTimer(label, 'Gerando Lesson Plan… (3/3)');
-      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), CONTENT_SPECS.lessonplan,
+      const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), _contentSpecFor('lessonplan', _cDiscipline, _cGrade),
         (partial) => { if (outPlan) outPlan.value = partial; });
       const plTime = _stopPhaseTime();
       savedContent.lessonplan = planContent;
@@ -4068,7 +4097,7 @@ async function generateContent() {
       const userInput    = buildClaudeUserPrompt(baseInput,
         contentDocType === 'practice'   ? ctxLesson   : null,
         contentDocType === 'lessonplan' ? ctxPractice : null);
-      const systemPrompt = document.getElementById('content-specs')?.value.trim() || CONTENT_SPECS[contentDocType];
+      const systemPrompt = document.getElementById('content-specs')?.value.trim() || _contentSpecFor(contentDocType, document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
 
       if (card) card.style.display = '';
       const content = await callClaudeAPI(contentDocType, userInput, systemPrompt,
@@ -4147,6 +4176,7 @@ function _autoFillGerarFields() {
     const val = document.getElementById(src)?.value;
     if (val != null && val !== '') { const el = document.getElementById(dst); if (el) el.value = val; }
   });
+  _refreshImgSpecsTextarea(); // discipline/grade may have changed — keep the visible spec in sync
   saveSettings(); // persist synced values immediately so they survive reload
 }
 
@@ -6973,6 +7003,458 @@ The title is the ONLY element on that first section — the actual topic of the 
 \`\`\``
 };
 
+// ELA (English Language Arts) middle school (6th-8th) layout — used instead
+// of SPECS for 'lesson' and 'lessonplan' when that combination is selected.
+// No ELA-specific 'practice' layout exists yet, so Worksheet keeps using the
+// Mathematics SPECS.practice regardless of discipline (see _getSpecsFor).
+const SPECS_ELA_MS = {
+lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
+
+- CRITICAL — Header and footer are added programmatically after generation.
+- DO NOT draw headers, footers, page borders or side lines of any kind.
+- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
+  code anywhere in the body. A "CCSS: ..." line may appear above your content
+  for your reference only — it is never printable text, even if nothing else
+  looks like a heading on that page.
+- CRITICAL — Render ONLY the literal content given below. DO NOT invent a title,
+  heading or section that is not explicitly present in that text. If the content
+  has no title text, this is a CONTINUATION page — begin directly with the body,
+  do not create an opening title for it.
+
+## CONTENT AREA — draw ONLY inside this zone:
+- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
+- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
+- Spacing: max 4–6mm between sections — never overflow past y=278mm
+- CRITICAL - Use the FULL horizontal width — text must reach close to x=190mm
+
+## TYPOGRAPHY
+- Body text: Clean sans-serif (Calibri, Arial, or similar)
+- Titles: 20pt Bold #092964
+- Subtitles: 20pt Bold #0251af
+- Body text: 18pt Regular #000000
+- Annotations: 16pt Regular #666666
+- ALL TITLES: Sentence case — NEVER all caps
+
+## COLOR PALETTE
+Primary:
+- Deep Blue (#0C366E)
+- Modern Green (#89c13b)
+- Sophisticated Orange (#ff6b35)
+- Purple (#9b59b6)
+
+Neutrals: Gray tones, white background, minimal black
+AVOID: Hot pink, lime green, neon blue, rainbow combinations
+
+## LAYOUT PRINCIPLES:
+- Pedagogical textbook style, mix boxes and open text
+- Text aligned LEFT only
+- Rounded boxes: 5mm corners, 15mm padding
+- White space is acceptable — do NOT stretch content to fill page
+- NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
+
+## VISUAL STYLE
+- 60% Professional/Academic + 30% Modern Design + 10% Creative
+- Flat design (Material Design aesthetic)
+- NO cartoon illustrations, infantile elements, or bright neon colors
+- Target: "respectful but fresh" - adolescent-appropriate
+
+## VISUAL ELEMENTS
+✓ Infographics (clean, data-focused)
+✓ Flat icons (functional, not decorative)
+✓ Side-by-side comparisons
+✓ Simple flowcharts
+✓ Real photographs (when relevant)
+✓ Subtle color blocks for definitions/boxes
+✗ Clipart
+✗ Busy decorations
+✗ Multiple competing visuals per page
+
+## OVERALL TONE
+- Academic but accessible. Modern but not trendy. Professional but not corporate.
+- Think: TED-Ed, Khan Academy, Guardian Infographics (style)
+- NOT: Duolingo cute, corporate PowerPoint, elementary school
+
+---
+
+## VISUAL HIERARCHY STRATEGY
+
+### WHEN TO USE BOXES (Only in these 4 cases)
+
+**1. Formal Definitions (ALWAYS IN BOX)**
+- Formal definitions and named concepts
+- Fundamental key concepts
+- Frequency: 1-3 per lesson (maximum)
+
+**2. Key Quotes or Rules (ALWAYS IN BOX)**
+- Key textual evidence, definitions, or derived rules
+- Highlight important result
+- Frequency: 1-2 per page, as needed
+
+**3. Structured Step-by-Step (BOX only if 4+ steps)**
+- Process with multiple structured steps
+- Each step in its own compartment
+- Steps numbered with ① ② ③ ④ (circles, not icons)
+- Frequency: maximum 1 per page
+
+**4. Concept Checks or Key Insights (BOX optional, maximum 1 per page)**
+- Quick guided reflection ("Think About It...")
+- Importance context ("Why It Matters")
+- Insight summary ("Key Takeaway")
+- Frequency: maximum 1 per page
+
+---
+
+### WHAT SHOULD NOT BE IN A BOX
+
+These should be only **HEADING (bold, English) + regular text**:
+- Introductory sections
+- Narrative explanations
+- Examples (title + description)
+- Tips or "try it!" sections
+- Synthesis or conclusions
+- Practical applications
+- Steps when fewer than 4
+
+---
+
+## RIGOROUS CALCULATION OF CONTENT PER PAGE
+
+### Available Space
+- **Height:** 25mm to 275mm = 250mm vertical
+- **Width:** 35mm to 190mm = 165mm horizontal
+- **Maximum spacing:** 4-6mm between sections
+- **Mandatory visual breathing room:** 15-20mm per page
+
+**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
+
+---
+
+### Height Estimate per Element
+
+- Title (20pt bold): 7-8mm
+- Subtitle (18pt regular): 6-7mm
+- Body text (18pt, 1.5 spacing): 9.5mm per line
+- Paragraph (60 words, 1.5 spacing): ~50-55mm
+- Definition box: 60-80mm
+- Formula/quote box: 25-35mm
+- Complete example: 70-90mm
+- Detailed image: 80-100mm
+- Space between sections: 5-6mm
+
+CRITICAL: NEVER EXCEED THESE FONT SIZES.
+- The first letter of titles and subtitles should always be capitalized, and the rest lowercase.
+- It is forbidden to use any uppercase letters in titles, subtitles, etc.
+- It is forbidden to increase the font size of the title beyond the stipulated size.
+
+---
+
+### Checklist per Page (BEFORE GENERATING)
+
+For each page, verify:
+- Is total content between 150-240mm?
+- Is there 15-20mm of visual breathing room?
+- Is the number of boxes minimal (maximum 2 per page)?
+- Is everything in English?
+- Are there no decorative icons in titles?
+- If there is an image, is it detailed (80-100mm), not an icon?
+- CRITICAL: Is the text within established limits? Is nothing exceeding margins, especially left and right?
+
+If any item fails, DIVIDE THE PAGE.
+
+---
+
+## NO DECORATIVE ICONS
+
+**Prohibited:**
+- Icons for titles or subtitles
+- Decorative symbols before headings
+- Emoji-style thumbnails
+
+**Allowed:**
+- Numbers in circles: ① ② ③ ④ ⑤ (for steps)
+- Bullet points (•)
+- Borders/backgrounds of boxes
+
+---
+
+## Title continuity across pages
+
+When a section's content spans multiple pages, the page break is a print
+pagination artifact only — it must be INVISIBLE to the reader. On
+continuation page(s):
+- Do NOT repeat the title
+- Do NOT add any new heading, subtitle, or label for the same section
+- Do NOT write ANY phrase that signals continuation — no "continues",
+  "continued", "(cont.)", "as we continue", "picking up where we left off",
+  or similar. This is just as much a red flag as repeating the title.
+- Simply resume the prose exactly where it left off, as if the page break
+  did not exist — the reader should never notice a section spans pages
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly — no title, no "continues", no heading of any kind]
+Content paragraph three...
+\`\`\`
+
+**Bad (do NOT do this):**
+\`\`\`
+--PAGE 5--
+Guided practice continues
+
+[WRONG — "continues" is a continuation marker, exactly like repeating the title]
+\`\`\`
+
+---
+
+## Title capitalization (CRITICAL)
+
+Every title, heading, and section header MUST start with a capital letter. Never use lowercase at the beginning.
+
+Correct:
+- Discovering the pattern
+- Guided practice with examples
+- Common misconception about variables
+
+Incorrect:
+- discovering the pattern
+- guided practice with examples
+- common misconception about variables
+
+---
+
+## First page title format
+
+- On the first page, display ONLY the lesson title. DO NOT include the unit number, lesson number, or CCSS code below the title.
+- The lesson title appears only on page 1, never on other pages.
+
+Incorrect:
+
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+
+[Content here]
+
+Correct:
+
+Writing Algebraic Expressions
+
+[Content here]`,
+
+lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
+
+## CRITICAL
+- Header and footer are added programmatically after generation.
+- DO NOT draw headers, footers, page borders or side lines of any kind.
+- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
+  code anywhere in the body. A "CCSS: ..." line may appear above your content
+  for your reference only — it is never printable text, even if nothing else
+  looks like a heading on that page.
+- Render ONLY the literal content given below. DO NOT invent a title, heading
+  or section that is not explicitly present in that text. If the content has
+  no title text, this is a CONTINUATION page — begin directly with the body,
+  do not create an opening title for it.
+
+## CONTENT AREA — draw ONLY inside this zone:
+- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
+- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
+- Spacing: max 4–6mm between sections — never overflow past y=278mm
+- Use the FULL horizontal width — text must reach close to x=190mm
+
+## TYPOGRAPHY
+- Body text: Clean sans-serif (Calibri, Arial, or similar)
+- Titles: 20pt Bold #092964
+- Subtitles: 20pt Bold #0251af
+- Body text: 18pt Regular #000000
+- Annotations: 16pt Regular #666666
+- ALL TITLES: Sentence case — NEVER all caps
+
+## COLOR PALETTE
+Primary:
+- Deep Blue (#0C366E)
+- Modern Green (#89c13b)
+- Sophisticated Orange (#ff6b35)
+- Purple (#9b59b6)
+
+Neutrals: Gray tones, white background, minimal black
+AVOID: Hot pink, lime green, neon blue, rainbow combinations
+
+## KEY DESIGN:
+- No drop shadows
+- Selective use of boxes — only for emphasis
+- All boxes/elements with rounded corners (5-8mm)
+- Professional pedagogical layout
+- Visual hierarchy through size, color and spacing
+- Information flows naturally, not forced into containers
+
+## LAYOUT PRINCIPLES:
+- Pedagogical textbook style, mix boxes and open text
+- Text aligned LEFT only
+- Rounded boxes: 5mm corners, 15mm padding
+- White space is acceptable — do NOT stretch content to fill page
+- NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
+
+## VISUAL STYLE
+- 60% Professional/Academic + 30% Modern Design + 10% Creative
+- Flat design (Material Design aesthetic)
+- NO cartoon illustrations, infantile elements, or bright neon colors
+- Target: "respectful but fresh" - adolescent-appropriate
+
+## VISUAL ELEMENTS
+✓ Infographics (clean, data-focused)
+✓ Flat icons (functional, not decorative)
+✓ Side-by-side comparisons
+✓ Simple flowcharts
+✓ Real photographs (when relevant)
+✓ Subtle color blocks for definitions/boxes
+✗ Clipart
+✗ Busy decorations
+✗ Multiple competing visuals per page
+
+## OVERALL TONE
+- Academic but accessible. Modern but not trendy. Professional but not corporate.
+- Think: TED-Ed, Khan Academy, Guardian Infographics (style)
+- NOT: Duolingo cute, corporate PowerPoint, elementary school
+
+---
+
+## ⚠️ CRITICAL RESTRICTIONS:
+
+### Icons in titles and headers
+- PROHIBITED: Any icons, symbols, or emojis in page titles (24pt)
+- PROHIBITED: Any icons, symbols, or emojis in section headers (20pt)
+- PROHIBITED: Any icons, symbols, or emojis in subsection headers (18pt)
+- Titles must be TEXT ONLY — no decorative elements before, after, or inside
+- Example wrong: "📘 Learning Objectives" or "✓ Key Concepts"
+- Example correct: "Learning objectives" or "Key concepts"
+
+### Icons for illustration (moderate use only)
+- ALLOWED: Small icons (25-40mm maximum height) to illustrate concepts
+- ALLOWED: Maximum 1-2 icons per page for visual support
+- ALLOWED: Icons in body text area between sections
+- PROHIBITED: Distorted, stretched, skewed, or warped icons
+- PROHIBITED: Icons that lose original aspect ratio or proportions
+- PROHIBITED: Icons as fillers, clusters, or decorative elements
+- All icons must maintain natural, undeformed appearance
+
+### Font size rules (NON-NEGOTIABLE)
+- Page titles MUST be exactly 24pt Bold #092964 — NEVER increase size
+- Section headers MUST be exactly 20pt Bold #ff6b35 — NEVER increase size
+- Subsection headers MUST be exactly 18pt Bold #0251af — NEVER increase size
+- If content doesn't fit at specified sizes, REDUCE CONTENT instead
+- Never stretch or enlarge fonts to fill space
+- Never compress spacing to make text fit
+- Font sizes are FIXED
+
+### Content distribution (prevent overload)
+- Maximum 150-180mm of actual content per page
+- Minimum 70-100mm white space per page (this is ACCEPTABLE and GOOD)
+- If content exceeds 180mm, SPLIT ACROSS 2 PAGES
+- Never compress information by reducing spacing between sections
+- Never reduce font sizes to fit more content
+- Never fill the entire page with text
+- White space is a design element and improves readability
+- Leave breathing room on every page — pages should feel spacious, not crowded
+
+## Title continuity across pages
+
+When a section's content spans multiple pages, the page break is a print
+pagination artifact only — it must be INVISIBLE to the reader. On
+continuation page(s):
+- Do NOT repeat the title
+- Do NOT add any new heading, subtitle, or label for the same section
+- Do NOT write ANY phrase that signals continuation — no "continues",
+  "continued", "(cont.)", "as we continue", "picking up where we left off",
+  or similar. This is just as much a red flag as repeating the title.
+- Simply resume the prose exactly where it left off, as if the page break
+  did not exist — the reader should never notice a section spans pages
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly — no title, no "continues", no heading of any kind]
+Content paragraph three...
+\`\`\`
+
+**Bad (do NOT do this):**
+\`\`\`
+--PAGE 5--
+Guided practice continues
+
+[WRONG — "continues" is a continuation marker, exactly like repeating the title]
+\`\`\`
+
+---
+
+## Title capitalization (CRITICAL)
+
+Every title, heading, and section header MUST start with a capital letter. Never use lowercase at the beginning.
+
+Correct:
+- Discovering the pattern
+- Guided practice with examples
+- Common misconception about variables
+
+Incorrect:
+- discovering the pattern
+- guided practice with examples
+- common misconception about variables
+
+---
+
+## First page title format
+
+- On the first page, display ONLY the lesson title. DO NOT include the unit number, lesson number, or CCSS code below the title.
+- The lesson title appears only on page 1, never on other pages.
+
+Incorrect:
+
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+
+[Content here]
+
+Correct:
+
+Writing Algebraic Expressions
+
+[Content here]`,
+};
+
+// Grade number parsed from a "6th Grade" style string, or 0 if unparseable.
+function _gradeNum(gradeText) {
+  return parseInt(gradeText || '', 10) || 0;
+}
+
+// Resolves which layout/design spec to use for image generation. Only
+// Lesson Notes and Lesson Plan have a dedicated ELA middle-school (6th-8th)
+// layout today; Worksheet and every other discipline/grade combination
+// fall back to the Mathematics SPECS.
+function _getSpecsFor(type, discipline, grade) {
+  const isElaMS = (discipline || '').trim() === 'English Language Arts'
+    && _gradeNum(grade) >= 6 && _gradeNum(grade) <= 8;
+  if (isElaMS && SPECS_ELA_MS[type]) return SPECS_ELA_MS[type];
+  return SPECS[type];
+}
+
 // ── IndexedDB ──────────────────────────────────────────────────────────────
 // ── Supabase client + Auth ─────────────────────────────────────────────────
 const _SB_URL  = 'https://tbewhatxrakdnzlvzqim.supabase.co';
@@ -7376,7 +7858,7 @@ let _pdfPendingKeys = [];
 // ── Init ───────────────────────────────────────────────────────────────────
 document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
 const _csEl = document.getElementById('content-specs');
-if (_csEl) _csEl.value = CONTENT_SPECS['all'];
+if (_csEl) _csEl.value = _contentSpecFor('all', document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
 updateContentTabs();
 updateTopbarChips();
 
@@ -7394,7 +7876,7 @@ function setDocType(type, el) {
     document.getElementById('specs').value = '— Modo All: cada tipo usa suas próprias especificações —';
     updateAllBadge();
   } else {
-    document.getElementById('specs').value = SPECS[type];
+    document.getElementById('specs').value = _getSpecsFor(type, document.getElementById('disciplina')?.value, document.getElementById('turma')?.value);
     // Sync: copy All-mode textarea content into the single-mode textarea
     const allContent  = document.getElementById(`prompt-${type}`)?.value || '';
     const singleEl    = document.getElementById('prompt');
@@ -7509,7 +7991,7 @@ function buildPromptForType(page, type) {
   const ccss       = document.getElementById('ccss').value.trim();
   const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
   const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
-  const specs = SPECS[type];
+  const specs = _getSpecsFor(type, disciplina, turma);
   const tagText    = type === 'lessonplan' ? `Unit ${unit} | Lesson Plan` : `Unit ${unit} | Lesson ${lesson}`;
   const footerText = `${disciplina} - ${turma} | ${ccss}`;
   const [zone, maxY, leftX] = type === 'lessonplan'
