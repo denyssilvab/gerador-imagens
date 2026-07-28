@@ -2451,9 +2451,9 @@ is no narration layer, no notes to a reader of the prompt. Before writing
 anything, ask: "will this exact text appear on the printed page?" If not,
 do not write it.
 
-The ONLY exception is the \`[IMAGE: ...]\` tag — it is a machine-readable
-instruction for what to draw, read by the image generator and never printed
-as text itself.
+The ONLY exceptions are:
+A) the \`[IMAGE: ...]\` tag — a machine-readable instruction regarding what to draw, read by the image generator and never printed as actual text.
+B) the \`[TITLE: ...]\` tag — a machine-readable instruction to identify the presence of a title, read by the image generator and never printed as actual text.
 
 **Do NOT write:**
 - A description of what a visual/diagram/model WOULD show, without an
@@ -6426,17 +6426,27 @@ lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
   has no title text, this is a CONTINUATION page — begin directly with the body,
   do not create an opening title for it.
 
+## THE OUTPUT MUST CONTAIN ONLY THE LITERAL CONTENT OF THE PROMPT
+
+Every word received from the page content prompt becomes what is physically printed on the page—there is no layer of narration or notes for the reader regarding the command.
+
 ## CONTENT AREA — draw ONLY inside this zone:
 - Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
 - Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
 - Spacing: max 4–6mm between sections — never overflow past y=278mm
 - CRITICAL - Use the FULL horizontal width — text must reach close to x=190mm
 
-## TYPOGRAPHY
-- Titles: 20pt Bold #092964
-- Subtitles: 20pt Bold #0251af
-- Body text: 18pt Regular #000000
-- Annotations: 16pt Regular #666666
+### TIPOGRAFHY AND HEIGTH ESTIMATE PER ELEMENT
+
+- Title (20pt bold) #092964: 7-8mm
+- Subtitle (18pt regular) #0251af: 6-7mm
+- Body text (18pt, 1.5 spacing) #000000: 9.5mm per line
+- Paragraph (60 words, 1.5 spacing): ~50-55mm
+- Definition box: 60-80mm
+- Formula box: 25-35mm
+- Complete example: 70-90mm
+- Detailed image: 80-100mm
+- Space between sections: 5-6mm
 - ALL TITLES: Sentence case — NEVER all caps
 
 ## COLORS
@@ -6446,15 +6456,15 @@ Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
 
 ## LAYOUT PRINCIPLES:
 - Pedagogical textbook style, mix boxes and open text
-- Text aligned LEFT only
+- Justified text, but only if the words do not become too widely spaced. Otherwise, left-align.
 - Rounded boxes: 5mm corners, 15mm padding
 - White space is acceptable — do NOT stretch content to fill page
 - NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
+- It is forbidden to increase the font size of the title beyond the stipulated size.
 
 ## VISUAL STYLE
-Aesthetic: Flat Design + Minimalist + Editorial Design
+Aesthetic: Flat Design + Editorial Design
 - Flat: No shadows, no gradients, solid colors
-- Minimalist: Maximum whitespace, essential elements only
 - Editorial: Strong typography hierarchy, clean composition
 Reference: TED-Ed, Khan Academy, Guardian Infographics
 Target: Respectful, fresh, adolescent-appropriate
@@ -6467,7 +6477,7 @@ NOT: Duolingo cute, corporate, elementary school
 ### WHEN TO USE BOXES (Only in these 4 cases)
 
 **1. Formal Definitions (ALWAYS IN BOX)**
-- Formal mathematical definitions and named concepts
+- Formal definitions and named concepts
 - Fundamental key concepts
 - Example: "Variable: A Letter Representing an Unknown Number"
 - Frequency: 1-3 per lesson (maximum)
@@ -6475,7 +6485,6 @@ NOT: Duolingo cute, corporate, elementary school
 **2. Key Expressions or Formulas (ALWAYS IN BOX)**
 - Formulas, expressions, final derived rules
 - Highlight important result
-- Example: "5b" or "15 + 8w"
 - Frequency: 1-2 per page, as needed
 
 **3. Structured Step-by-Step (BOX only if 4+ steps)**
@@ -6513,26 +6522,6 @@ These should be only **HEADING (bold, English) + regular text**:
 - **Maximum spacing:** 4-6mm between sections
 - **Mandatory visual breathing room:** 15-20mm per page
 
-**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
-
----
-
-### Height Estimate per Element
-
-- Title (20pt bold): 7-8mm
-- Subtitle (18pt regular): 6-7mm
-- Body text (18pt, 1.5 spacing): 9.5mm per line
-- Paragraph (60 words, 1.5 spacing): ~50-55mm
-- Definition box: 60-80mm
-- Formula box: 25-35mm
-- Complete example: 70-90mm
-- Detailed image: 80-100mm
-- Space between sections: 5-6mm
-
-CRITIC: NEVER EXCEED THESE FONT SIZES.
-- The first letter of titles and subtitles should always be capitalized, and the rest lowercase.
-- It is forbidden to use any uppercase letters in titles, subtitles, etc.
-- It is forbidden to increase the font size of the title beyond the stipulated size.
 ---
 
 ### Checklist per Page (BEFORE GENERATING)
@@ -7013,173 +7002,12 @@ The title is the ONLY element on that first section — the actual topic of the 
 };
 
 // ELA (English Language Arts) middle school (6th-8th) layout — used instead
-// of SPECS for 'lesson' and 'lessonplan' when that combination is selected.
-// No ELA-specific 'practice' layout exists yet, so Worksheet keeps using the
-// Mathematics SPECS.practice regardless of discipline (see _getSpecsFor).
+// of SPECS for 'lessonplan' when that combination is selected. 'lesson' now
+// shares the same design layout as Mathematics (SPECS.lesson) across both
+// disciplines. No ELA-specific 'practice' layout exists yet, so Worksheet
+// keeps using the Mathematics SPECS.practice regardless of discipline
+// (see _getSpecsFor).
 const SPECS_ELA_MS = {
-lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
-
-## DOCUMENT SETUP
-- Content Area: x=35mm–165mm (left-right), y=20mm–278mm (top-bottom)
-- DO NOT add headers, footers, borders, page numbers, or unit/lesson labels
-- Headers and footers added programmatically only
-- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
-  code anywhere in the body. A "CCSS: ..." line may appear above your content
-  for your reference only — it is never printable text, even if nothing else
-  looks like a heading on that page.
-- Render ONLY the literal content given below. DO NOT invent a title, heading
-  or section that is not explicitly present in that text. If the content has
-  no title text, this is a CONTINUATION page — begin directly with the body,
-  do not create an opening title for it.
-
----
-
-## TYPOGRAPHY (FIXED — NON-NEGOTIABLE)
-Font: Arial (ALWAYS)
-- Page titles: 24pt Bold #092964 (Sentence case, text ONLY)
-- Section headers: 20pt Bold #ff6b35 (Sentence case)
-- Subsection headers: 18pt Bold #0251af (Sentence case)
-- Body text: 18pt Regular #000000
-- Annotations: 16pt Regular #666666
-
-Rule: If content exceeds available space, REDUCE CONTENT (never resize fonts or compress spacing)
-
----
-
-## TEXT ALIGNMENT
-- Body text in boxes: LEFT aligned
-- Large text blocks outside boxes: JUSTIFIED alignment
-- EXCEPTION: If justified alignment creates excessive spacing between words (>4mm gaps), revert to LEFT alignment
-- Avoid rivers (large gaps) in justified text — prioritize LEFT when spacing becomes awkward
-
----
-
-## COLOR PALETTE
-Primary: Deep Blue (#0C366E) | Modern Green (#89c13b) | Orange (#ff6b35) | Purple (#9b59b6)
-Neutrals: Gray tones, white background, minimal black
-AVOID: Hot pink, lime green, neon blue, rainbows
-
----
-
-## LAYOUT & SPACING
-- Content distribution: 150–180mm actual content per page (70–100mm whitespace acceptable and desired)
-- Spacing between sections: 4–6mm maximum
-- Boxes: Rounded corners (5–8mm), 15mm padding
-- Never stretch, compress, or distort any text or elements
-
----
-
-## VISUAL STYLE
-Aesthetic: Flat Design + Minimalist + Editorial Design
-- Flat: No shadows, no gradients, solid colors
-- Minimalist: Maximum whitespace, essential elements only
-- Editorial: Strong typography hierarchy, clean composition
-Reference: TED-Ed, Khan Academy, Guardian Infographics
-Target: Respectful, fresh, adolescent-appropriate
-NOT: Duolingo cute, corporate, elementary school
-
----
-
-## VISUAL ELEMENTS — CRITICAL RULE
-✓ ONLY include images/illustrations when explicitly specified with an
-  \`[IMAGE: ...]\` tag in the content — this is the same tag convention
-  used everywhere else in this system, never write "[IMAGEM]" or any
-  other variant
-✗ DO NOT add decorative icons, illustrations, or visual elements unless
-  specifically requested via that tag
-✗ NO unnecessary visual embellishments
-✗ NO clipart, decorative drawings, or supplementary graphics
-
-When an \`[IMAGE: ...]\` tag appears: include the image exactly as specified (max 80-100mm)
-When NO \`[IMAGE: ...]\` tag is present: text ONLY, no visuals
-
----
-
-## ICON STYLE (when an [IMAGE: ...] tag is used)
-✓ Line art only (outline/stroke style)
-✓ Minimal fill, maximum use of outlines
-✓ Thin lines (1-2pt stroke weight)
-✗ Solid filled illustrations
-✗ Thick/heavy fills
-✗ Shadows or gradients on icons
-
----
-
-## ALLOWED VISUAL ELEMENTS (ONLY with an [IMAGE: ...] tag)
-✓ Infographics (clean, data-focused)
-✓ Side-by-side comparisons
-✓ Simple flowcharts
-✓ Real photographs (when relevant)
-✓ Subtle color blocks / rounded boxes for definitions
-✓ Line art illustrations (outlines, no fills)
-✗ Clipart, solid filled icons, drop shadows
-✗ Illustrations without explicit purpose
-
----
-
-## CRITICAL RESTRICTIONS
-
-### No Decorative Elements
-- PROHIBITED: Icons, symbols, emojis in any title/header
-- PROHIBITED: Decorative illustrations without an \`[IMAGE: ...]\` tag
-- PROHIBITED: Visual padding or filler graphics
-- ONLY content explicitly tagged with \`[IMAGE: ...]\` receives visual treatment
-
-### First Page Title
-- Display ONLY lesson title
-- Do NOT include unit number, lesson number, or CCSS code
-
-### Content Overflow
-- Maximum 180mm content = split across 2 pages
-- Never reduce font, compress spacing, or eliminate whitespace to fit
-- Whitespace is a design element; preserve it
-
----
-
-## Title continuity across pages
-
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT write ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the prose exactly where it left off, as if the page break
-  did not exist — the reader should never notice a section spans pages
-
-Example:
-\`\`\`
---PAGE 1--
-Understanding the pattern
-
-Content paragraph one...
-Content paragraph two...
-
---PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
-Content paragraph three...
-\`\`\`
-
-**Bad (do NOT do this):**
-\`\`\`
---PAGE 5--
-Guided practice continues
-
-[WRONG — "continues" is a continuation marker, exactly like repeating the title]
-\`\`\`
-
----
-
-## DESIGN PRINCIPLES
-- Clean, text-focused layout
-- Visual hierarchy through typography and spacing (not decorative elements)
-- Minimal visual clutter
-- Information flows naturally as prose
-- Images ONLY when they serve pedagogical purpose (marked with an [IMAGE: ...] tag)
-- Professional pedagogical textbook style (flat + minimalist + editorial)`,
-
 lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
 ## DOCUMENT SETUP
@@ -7314,9 +7142,10 @@ function _gradeNum(gradeText) {
 }
 
 // Resolves which layout/design spec to use for image generation. Only
-// Lesson Notes and Lesson Plan have a dedicated ELA middle-school (6th-8th)
-// layout today; Worksheet and every other discipline/grade combination
-// fall back to the Mathematics SPECS.
+// Lesson Plan has a dedicated ELA middle-school (6th-8th) layout today;
+// Lesson Notes now shares the same layout as Mathematics for every
+// discipline/grade, and Worksheet always falls back to the Mathematics
+// SPECS as well.
 function _getSpecsFor(type, discipline, grade) {
   const isElaMS = (discipline || '').trim() === 'English Language Arts'
     && _gradeNum(grade) >= 6 && _gradeNum(grade) <= 8;
