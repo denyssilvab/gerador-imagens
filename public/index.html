@@ -2434,381 +2434,268 @@ const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'
 const CONTENT_SPECS = {
 lesson: `# OVERVIEW
 
-You are an expert in CCSS instructional design (Common Core State Standards) and pedagogical layout. Generate a complete prompt with the full content of a lesson in {{SUBJECT}} based on input information.
+You are an expert in CCSS instructional design (Common Core State
+Standards) and pedagogical layout. Generate a complete lesson content
+prompt in {{SUBJECT}} based on the provided instructional information.
 
-- Introduces the {{SUBJECT}} concept clearly and solidly
-- Distributes content respecting A4 margins (25-190mm H, 25-275mm V)
-- EACH PAGE has balanced content (see reference below)
-- Uses boxes strategically (not on everything)
-- Specifies visual elements with professional quality
+The generated lesson must:
+- Introduce the {{SUBJECT}} concept clearly and rigorously.
+- Follow strong pedagogical progression.
+- Create content suitable for a 45-50 minute lesson.
+- Be usable as the foundation for practice activities, slides, and
+  lesson plans.
+- Respect A4 page distribution and visual balance.
+- Specify professional visual elements only when they improve
+  understanding.
 
 ---
 
 ## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
 
-Every word you write becomes what is physically printed on the page — there
-is no narration layer, no notes to a reader of the prompt. Before writing
-anything, ask: "will this exact text appear on the printed page?" If not,
-do not write it.
+Every word written becomes physically printed on the page.
 
-The ONLY exceptions are:
-A) the \`[IMAGE: ...]\` tag — a machine-readable instruction regarding what to draw, read by the image generator and never printed as actual text.
-B) the \`[TITLE: ...]\` tag — a machine-readable instruction to identify the presence of a title, read by the image generator and never printed as actual text.
+There is no narration layer, explanation layer, or notes to the reader.
 
-**Do NOT write:**
-- A description of what a visual/diagram/model WOULD show, without an
-  actual \`[IMAGE: ...]\` tag (e.g. "Visual confirmation: an area model
-  shows...") — this reads as a caption for an image that doesn't exist
-- Meta-commentary about your own reasoning or process
-- Hedging or placeholder language ("one way to visualize this could be...")
+Before writing anything, ask:
 
-**If a visual genuinely helps:** commit to it — write a real
-\`[IMAGE: ...]\` tag with a complete literal specification (see rules below).
-If it doesn't rise to that bar, leave it out entirely. Never describe a
-visual in prose as a substitute for actually specifying it.
+"Will this exact text appear on the printed page?"
+
+If not, do not write it.
+
+The only exceptions are machine-readable markers:
+
+\`[TITLE: ...]\`
+\`[SUBTITLE: ...]\`
+\`[IMAGE: ...]\`
+
+These markers are instructions for the layout system and are not printed
+themselves.
 
 ---
 
-## REFERENCE PARAMETER
+## TITLE AND SUBTITLE RULES
 
-Distribution model. Analyze:
+\`[TITLE: ...]\`
 
-**Content Example:**
-- 2-3 opening paragraphs (75-85 words)
-- 1 problem disparador (40-50 words)
-- Total visual: ~150-170mm height
+Use only for real educational titles that should appear on the final
+page.
 
-**This is the maximum comfortable size per page.**
+Rules:
+- The text inside the marker is the exact title.
+- Do not repeat it outside the marker.
+- Use sentence case.
+- Never add unit number, lesson number, CCSS code, or metadata.
 
-Each subsequent page should have APPROXIMATELY the same amount of content. If a section exceeds this volume, DIVIDE INTO MULTIPLE PAGES.
+\`[SUBTITLE: ...]\`
+
+Use only when a real educational subtitle improves understanding.
+
+Rules:
+- The text inside the marker is the exact subtitle.
+- Do not repeat it outside the marker.
+- Use sentence case.
+
+**IMPORTANT**
+
+Do NOT create titles or subtitles only because:
+- a new page begins;
+- a section continues;
+- more organization seems visually useful.
+
+Create titles/subtitles only when they represent genuine educational
+sections.
+
+Never create artificial headings such as:
+- Introduction
+- Overview
+- Section 1
+- Page 2
+- Continued
+
+unless they are actual printable educational content.
+
+---
+
+## IMAGE RULES
+
+Images are optional and pedagogically driven.
+
+If a visual genuinely helps, use:
+
+\`[IMAGE: Complete literal specification of exactly what must appear.]\`
+
+The image description must specify:
+- what is shown;
+- important objects;
+- relationships;
+- labels;
+- quantities;
+- visual style when relevant.
+
+Never describe a visual in normal prose as a substitute for an image
+tag.
+
+**IMPORTANT:**
+
+Images are supporting elements.
+
+The written lesson content is always primary.
+
+Never replace explanations, examples, definitions, or reasoning with
+images.
 
 ---
 
 ## LANGUAGE: 100% ENGLISH
 
-**MANDATORY:**
-- All titles in English
-- All subtitles in English
-- All content in English
-- All explanations in English
+All:
+- titles;
+- subtitles;
+- explanations;
+- examples;
+- questions;
+- activities
 
-**PROHIBITED:**
-- No words in any language other than English
-- No stage markers like "Opening", "Initial Approach", "Synthesis" in titles
+must be written in English.
 
----
-
-## RIGOROUS CALCULATION OF CONTENT PER PAGE
-
-### Available Space
-- **Height:** 25mm to 275mm = 250mm vertical
-- **Width:** 25mm to 190mm = 165mm horizontal
-- **Maximum spacing:** 4-6mm between sections
-- **Mandatory visual breathing room:** 15-20mm per page
-
-**Maximum effective content per page: ~230mm (250mm - 20mm breathing room)**
+Do not include:
+- stage labels;
+- generation notes;
+- meta commentary.
 
 ---
 
-### Height Estimate per Element
+## PAGE DISTRIBUTION
 
-- Title (20pt bold): 7-8mm
-- Subtitle (18pt regular): 6-7mm
-- Body text (18pt, 1.5 spacing): 9.5mm per line
-- Paragraph (60 words, 1.5 spacing): ~50-55mm
-- Definition box: 60-80mm
-- Formula box: 25-35mm
-- Complete example: 70-90mm
-- Detailed image: 80-100mm
-- Space between sections: 5-6mm
+Generate pages using:
 
----
+\`--PAGE X--\`
 
-### Distribution per Page (Reference)
+Content must respect A4 proportions.
 
-**"Light" page (150-180mm content):**
-- 1 title + 2 paragraphs
-- OR 1 title + small example
-- OR 1 title + definition box
+Reference distribution:
 
-**"Normal" page (180-220mm content):**
-- 1 title + 3-4 paragraphs
-- OR 1 title + 2 examples
-- OR 1 title + 1 box + 2 paragraphs
+Light page: 150-180mm content
 
-**"Dense" page (220-240mm content - maximum):**
-- 1 title + 4-5 paragraphs + small box
-- OR 1 title + 2-3 examples
-- OR structured steps (4-5 steps)
+Normal page: 180-220mm content
 
-**Never exceed 250mm.** If content > 240mm, divide into 2 pages.
+Dense page: 220-240mm maximum
+
+Never exceed 250mm.
+
+If content exceeds limits, divide into additional pages.
 
 ---
 
-### Checklist per Page (BEFORE GENERATING)
+## FUNDAMENTAL LESSON STRUCTURE
 
-For each page, verify:
-- Total content is between 150-240mm?
-- Is everything in English?
-- If there is an image, is it detailed (80-100mm), not an icon?
+Use the following pedagogical progression when appropriate:
 
-If any item fails, DIVIDE THE PAGE.
+### [1] Lesson Title and Motivation/Context
+- Introduce the concept.
+- Connect to meaningful situations.
+- Build curiosity.
 
----
-
-## FUNDAMENTAL STRUCTURE
-
-### [1] Lesson Title: Add the lesson topic here.
-### Motivation and Context
-
-**Location:** PAGE 1
-
-**Distribution:** 140-160mm
-- Title: "Motivation and Context" (only this)
-- 2-3 paragraphs (max. 75-85 words total)
-- No mandatory image
-
----
-
-### [2] Problem Disparador
-
-**Location:** PAGE 1 (continuation)
-
-**Distribution:** 40-60mm
-- Title: "The Challenge:" OR "Problem:"
-- 1-2 paragraphs (max. 50 words)
-- No mandatory box
-- Optional visual element
-
----
+### [2] Problem Challenge
+- Present a motivating problem or situation.
+- Encourage reasoning.
 
 ### [3] Intuitive Understanding
-
-**Location:** PAGE 2-3 (can occupy 1-2 pages)
-
-**Distribution:** 180-220mm per page
-- Title: "Understanding the Pattern" OR "Discovering the Rule"
-- Step-by-step discovery (8-12 lines)
-- Optional box for final key concept
-- Optional pedagogical image (80-100mm)
-
-**If content > 220mm: DIVIDE INTO 2 PAGES**
-
----
+- Develop understanding before formal procedures.
+- Use discovery and reasoning.
+- Optional pedagogical image.
 
 ### [4] Formal Method
-
-**Location:** PAGE 3-4 (can occupy 1-2 pages)
-
-**Distribution:** 200-230mm per page
-- Title: "The Standard Method" OR "Writing Expressions Step by Step"
-- Structured steps (3-5 steps = 1 page; 6+ = 2 pages)
-- Mandatory BOX for 4+ steps
-- Quick application example
-
----
+- Present procedures clearly.
+- Use structured steps when appropriate.
+- Include examples.
 
 ### [5] Key Concepts
-
-**Location:** PAGE 5-6 (can occupy 1-2 pages)
-
-**Distribution:** 60-90mm per concept
-- Title: "Key Concepts" OR "Essential Definitions"
-- Each concept in SEPARATE BOX (mandatory for formal definitions)
-- 2-3 concepts per page (maximum 3 = ~210mm)
-- 4+ concepts = 2 pages (maximum 3 concepts per page)
-
-**Calculation:**
-- 2 concepts: 2 × 75mm + 1 × 6mm = ~156mm (1 page)
-- 3 concepts: 3 × 70mm + 2 × 6mm = ~222mm (1 tight page)
-- 4 concepts: MANDATORY 2 pages (2 per page)
-
----
+- Present definitions and essential ideas.
 
 ### [6] Examples Applied
-
-**Location:** PAGE 6-8 (depends on quantity)
-
-**Distribution:** 70-90mm per example
-- Title: "Examples Applied" (once at the beginning)
-- Each example: statement + solution + result
-- No box; only HEADING + structured text
-- Optional detailed image per example (80-100mm)
-
-**Calculation:**
-- 2 examples: 2 × 85mm + 1 × 6mm = ~176mm (1 page)
-- 3 examples: 3 × 80mm + 2 × 6mm = ~252mm → DIVIDE (2 pages: 1-2 ex, 3 ex)
-- 4 examples: MANDATORY 2 pages (2 per page)
-
----
+- Include statement, reasoning, solution, and result.
 
 ### [7] Special Cases
-
-**Location:** PAGE 8-9 (after examples)
-
-**Distribution:** 100-150mm
-- Title: "Special Cases" OR "Important Considerations"
-- Optional: not every concept has special cases
-- If there are: 1-3 cases (each one is paragraph + example)
-- No mandatory box
-
----
+- Include exceptions or important considerations when relevant.
 
 ### [8] Synthesis and Application
-
-**Location:** PAGE 9-10
-
-**Distribution:** 180-220mm (can occupy 1-2 pages)
-- Title: "Synthesis and Application"
-- Brief summary (1 paragraph, ~50mm)
-- Practical applications (3-4 bullet points, ~60mm)
-- Helpful tips (2-3 points, ~50mm)
-- Final key takeaway (1 paragraph, ~30mm)
-
-**If > 220mm: DIVIDE INTO 2 PAGES**
+- Summarize.
+- Connect to applications.
+- Provide final takeaway.
 
 ---
 
-## IMAGES: WHEN AND HOW
+## IMAGE SPECIFICATIONS
 
-Images are optional and pedagogically driven — most pages need none at all;
-never force one in just to fill space. Whenever one IS included, write the
-[IMAGE: ...] description as a complete, LITERAL specification of exactly
-what must appear (exact values, labels, counts, type of visual) — never a
-generic request left open to interpretation, since the image model fills
-any gap with whatever it wants. See "Countable Quantities" below for
-illustrations that must show an exact quantity or ratio.
+Images are optional.
 
-### Contextual/Opening Images
-- **Type:** Realistic photograph
-- **Height:** 80-100mm
-- **Composition:** Medium shot, rule of thirds, clear context
-- **Lighting:** Natural daylight, warm, professional
-- **Technical description:** Candid photography, real setting, not icon-like
+Do not force images into pages.
 
-### Pedagogical Process Images
-- **Type:** Detailed illustration OR technical diagram
-- **Height:** 80-100mm
-- **Composition:** Centered, clear focal point, visual depth
-- **Detail:** Shading, color coding, professional quality
-- **Technical description:** Educational illustration, clean lines, vibrant colors, high detail
+**Contextual images:**
+- realistic photography;
+- professional educational context;
+- natural composition.
 
-### Example Context Images
-- **Type:** Realistic photograph
-- **Height:** 80-100mm
-- **Composition:** Close-up OR medium shot, recognizable situation
-- **Lighting:** Professional, clear shadows
-- **Technical description:** Real-world object photography, professional quality, visible detail
+**Pedagogical images:**
+- detailed illustration;
+- technical diagram when appropriate;
+- clear educational purpose.
 
-### Countable Quantities — Exact Representation (CRITICAL)
-Image models frequently miscount objects in open/organic scenes (a "basket
-of fruit", a "pile of coins"). When an image must show an EXACT quantity or
-ratio, NEVER describe it as a scene — describe it as a labeled grid/array:
-identical flat icons, one per row-slot (max 5 per row), each group labeled
-with its total below it (e.g. "4 apples" / "6 oranges"), and each count
-stated as digit + word ("exactly 4 (four)"). Never use containers that
-imply an approximate amount ("basket", "pile", "handful") — use "row of" /
-"array of" instead.
+**Exact quantities:** When exact counting is required, use labeled
+grids/arrays. Avoid approximate scenes such as piles or baskets.
 
 ---
 
-## EXPECTED RESULT
+## TITLE CONTINUITY ACROSS PAGES
 
-A LESSON that:
-- Divided into pages with --PAGE X--
-- 100% IN ENGLISH
-- Balanced content (150-220mm per page, maximum 240mm)
-- Each page with 15-20mm visual breathing room
-- Boxes only in 4 specific cases
-- Detailed images when used (80-100mm, not thumbnails)
-- Ready for 18pt body typography, 20pt titles
-- An American teacher understands in 15 minutes
-- Script for 45-50 minute lesson
-- Base for Practice Activities, Slides, Lesson Plan
-- Ready for A4 printing at 300 DPI
+When a section spans pages:
+- Do not repeat titles.
+- Do not add continuation markers.
+- Do not write "continued", "(cont.)", or similar phrases.
+- Continue naturally.
+
+The reader should not notice the page break.
 
 ---
 
-## Title continuity across pages
+## FIRST PAGE TITLE FORMAT
 
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT write ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the prose exactly where it left off, as if the page break
-  did not exist — the reader should never notice a section spans pages
+The first page must contain only the actual lesson title.
 
-Example:
-\`\`\`
---PAGE 1--
-Understanding the pattern
-
-Content paragraph one...
-Content paragraph two...
-
---PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
-Content paragraph three...
-
-\`\`\`
-
-**Bad (do NOT do this):**
-\`\`\`
---PAGE 5--
-Guided practice continues
-
-[WRONG — "continues" is a continuation marker, exactly like repeating the title]
-\`\`\`
-
-## First page title format
-
-On the first page, display ONLY the lesson title. The lesson title should match the actual topic being taught — DO NOT add unit number, lesson number, or CCSS code below the title.
-
-The lesson title appears only on page 1, never repeated on subsequent pages.
-
-### Pattern:
-
-\`\`\`
---PAGE 1--
-[Insert actual lesson topic here]
-
-[Content starts immediately below]
-\`\`\`
-
-### Generic examples of correct format (replace topic as needed):
-
-For a lesson about algebraic expressions:
-\`\`\`
---PAGE 1--
-Writing algebraic expressions
-
-[Content here]
-\`\`\`
-
-### What NOT to do:
-
-Do NOT include metadata below the title:
-\`\`\`
---PAGE 1--
-[Lesson topic]
-
-Unit: Unit 3
-Lesson: 28
-CCSS Code: 6.EE.A.2.a
-[This is WRONG]
-\`\`\`
-
-The title is the ONLY element on that first section — the actual topic of the lesson, nothing else.
+Do not add:
+- Unit number;
+- Lesson number;
+- CCSS code;
+- Metadata.
 
 ---
 
-## PROHIBITED: REFERENCES TO PAST LESSONS
+## PROHIBITED CONTENT
 
-- Referencing past lessons is prohibited. For example: "In previous lessons", "In the last class", "In the content of the previous class". Every lesson is independent content.`,
+Never include:
+- references to previous lessons;
+- teacher notes;
+- generation instructions;
+- explanations of your own reasoning;
+- placeholders;
+- visual descriptions outside [IMAGE].
+
+---
+
+## FINAL VALIDATION
+
+Before output verify:
+- Every written word belongs on the printed page.
+- No invented metadata.
+- No artificial titles.
+- No artificial subtitles.
+- Images use [IMAGE].
+- Titles use [TITLE].
+- Subtitles use [SUBTITLE].
+- All content is English.
+- Page divisions are balanced.
+- The lesson is pedagogically complete.`,
 
 practice: `# OVERVIEW
 
@@ -6415,228 +6302,288 @@ function syncCfg(field) {
 const SPECS = {
 lesson: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
-- CRITICAL — Header and footer are added programmatically after generation.
-- DO NOT draw headers, footers, page borders or side lines of any kind.
-- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
-  code anywhere in the body. A "CCSS: ..." line may appear above your content
-  for your reference only — it is never printable text, even if nothing else
-  looks like a heading on that page.
-- CRITICAL — Render ONLY the literal content given below. DO NOT invent a title,
-  heading or section that is not explicitly present in that text. If the content
-  has no title text, this is a CONTINUATION page — begin directly with the body,
-  do not create an opening title for it.
+CRITICAL — Header and footer are added programmatically after
+generation. DO NOT draw headers, footers, page borders or side lines of
+any kind. DO NOT include unit/lesson labels, page numbers, footer text,
+or CCSS code anywhere in the body. A "CCSS: ..." line may appear above
+your content only as reference and is never printable.
 
-## THE OUTPUT MUST CONTAIN ONLY THE LITERAL CONTENT OF THE PROMPT
+==================================================
+CONTENT PRIORITY RULE (CRITICAL)
+==================================================
 
-Every word received from the page content prompt becomes what is physically printed on the page—there is no layer of narration or notes for the reader regarding the command.
+The content prompt provides literal printable page content.
 
-## CONTENT AREA — draw ONLY inside this zone:
-- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
-- Spacing: max 4–6mm between sections — never overflow past y=278mm
-- CRITICAL - Use the FULL horizontal width — text must reach close to x=190mm
+Every word, sentence, number, formula, example, label, and paragraph
+provided by the content prompt must be rendered exactly.
 
-### TIPOGRAFHY AND HEIGTH ESTIMATE PER ELEMENT
+Do not summarize. Do not rewrite. Do not paraphrase. Do not invent
+explanations.
 
-- Title (20pt bold) #092964: 7-8mm
-- Subtitle (18pt regular) #0251af: 6-7mm
-- Body text (18pt, 1.5 spacing) #000000: 9.5mm per line
-- Paragraph (60 words, 1.5 spacing): ~50-55mm
-- Definition box: 60-80mm
-- Formula box: 25-35mm
-- Complete example: 70-90mm
-- Detailed image: 80-100mm
-- Space between sections: 5-6mm
-- ALL TITLES: Sentence case — NEVER all caps
+The written content is the primary element of the page.
 
-## COLORS
+Visual elements are supporting educational elements only.
+
+Never replace, reduce, transform, or summarize written content into an
+image.
+
+==================================================
+SPECIAL CONTENT MARKERS
+==================================================
+
+The content prompt may contain machine-readable markers.
+
+These markers are not printable text.
+
+\`[TITLE: ...]\`
+
+Defines the actual page title.
+
+Rules:
+- Render the title exactly.
+- Do not repeat it outside the marker.
+- Do not add metadata.
+- Use sentence case.
+
+\`[SUBTITLE: ...]\`
+
+Defines the actual page subtitle.
+
+Rules:
+- Render the subtitle exactly.
+- Do not repeat it outside the marker.
+- Use sentence case.
+- Use only when it represents real educational context.
+
+\`[IMAGE: ...]\`
+
+Defines a visual element to be generated and placed inside the page.
+
+Rules:
+- Never print the marker.
+- Never print the image description as normal text.
+- Never treat the image description as page content.
+- The image must support the surrounding written content.
+- The image must never replace the lesson explanation.
+
+==================================================
+OUTPUT RULE
+==================================================
+
+The final page must contain ONLY:
+
+1. The literal printable content provided in the content prompt.
+2. Visual elements requested through [IMAGE: ...].
+
+Do not invent:
+- titles;
+- subtitles;
+- examples;
+- summaries;
+- decorative text;
+- instructional notes.
+
+Do not create titles or subtitles only because a page break occurs.
+
+Titles and subtitles may appear only when they represent real
+educational sections.
+
+==================================================
+CONTENT AREA
+==================================================
+
+Draw ONLY inside this zone:
+
+Vertical: y=20mm to y=278mm
+
+Horizontal: x=35mm to x=190mm
+
+Leave everything outside this range WHITE.
+
+Use the full available horizontal width naturally.
+
+Maximum spacing: 4-6mm between sections.
+
+Mandatory breathing room: 15-20mm per page.
+
+==================================================
+TYPOGRAPHY AND HEIGHT ESTIMATE
+==================================================
+
+Title: 20pt bold #092964
+
+Subtitle: 18pt regular #0251af
+
+Body text: 18pt, 1.5 spacing, #000000
+
+Paragraph: 60 words — 50-55mm
+
+Definition box: 60-80mm
+
+Formula box: 25-35mm
+
+Complete example: 70-90mm
+
+Detailed image: 80-100mm
+
+Never stretch or distort text.
+
+==================================================
+TEXT ALIGNMENT
+==================================================
+
+Use justified text for paragraphs when it maintains natural word
+spacing.
+
+If justification creates excessive spacing between words, use left
+alignment instead.
+
+Never distort typography to force justification.
+
+==================================================
+COLORS
+==================================================
+
 Navy #0251af | Dark Blue #092964 | Green #89c13b | Light Green #a8c735
 Orange #ff6b35 | Purple #9b59b6 | Pink #c2185b
+
 Backgrounds: #dceafa #f6f8f3 #fff4e6 #f3e5f5
 
-## LAYOUT PRINCIPLES:
-- Pedagogical textbook style, mix boxes and open text
-- Justified text, but only if the words do not become too widely spaced. Otherwise, left-align.
-- Rounded boxes: 5mm corners, 15mm padding
-- White space is acceptable — do NOT stretch content to fill page
-- NEVER stretch or distort text — natural typography, letter aspect ratios unchanged
-- It is forbidden to increase the font size of the title beyond the stipulated size.
+==================================================
+LAYOUT PRINCIPLES
+==================================================
 
-## VISUAL STYLE
-Aesthetic: Flat Design + Editorial Design
-- Flat: No shadows, no gradients, solid colors
-- Editorial: Strong typography hierarchy, clean composition
-Reference: TED-Ed, Khan Academy, Guardian Infographics
-Target: Respectful, fresh, adolescent-appropriate
-NOT: Duolingo cute, corporate, elementary school
+Style: Pedagogical textbook style combining boxes and open text.
 
----
+Aesthetic: Flat Design + Editorial Design.
 
-## VISUAL HIERARCHY STRATEGY
+References: TED-Ed, Khan Academy, Guardian Infographics.
 
-### WHEN TO USE BOXES (Only in these 4 cases)
+Flat:
+- no shadows;
+- no gradients;
+- solid colors.
 
-**1. Formal Definitions (ALWAYS IN BOX)**
-- Formal definitions and named concepts
-- Fundamental key concepts
-- Example: "Variable: A Letter Representing an Unknown Number"
-- Frequency: 1-3 per lesson (maximum)
+Editorial:
+- strong typography hierarchy;
+- clean composition.
 
-**2. Key Expressions or Formulas (ALWAYS IN BOX)**
-- Formulas, expressions, final derived rules
-- Highlight important result
-- Frequency: 1-2 per page, as needed
+Target: Respectful, fresh, adolescent-appropriate.
 
-**3. Structured Step-by-Step (BOX only if 4+ steps)**
-- Process with multiple structured steps
-- Each step in its own compartment
-- Steps numbered with ① ② ③ ④ (circles, not icons)
-- Frequency: maximum 1 per page
+Avoid:
+- elementary school style;
+- corporate style;
+- excessive decoration.
 
-**4. Concept Checks or Key Insights (BOX optional, maximum 1 per page)**
-- Quick guided reflection ("Think About It...")
-- Importance context ("Why It Matters")
-- Insight summary ("Key Takeaway")
-- Frequency: maximum 1 per page
+Rounded boxes: 5mm corners. 15mm padding.
 
----
+==================================================
+WHEN TO USE BOXES
+==================================================
 
-### WHAT SHOULD NOT BE IN A BOX
+Use boxes ONLY for:
 
-These should be only **HEADING (bold, English) + regular text**:
-- Introductory sections
-- Narrative explanations
-- Examples (title + description)
-- Tips or "try it!" sections
-- Synthesis or conclusions
-- Practical applications
-- Steps when fewer than 4
+1. Formal Definitions
+- Formal definitions.
+- Named concepts.
+- Fundamental concepts.
 
----
+2. Key Expressions or Formulas
+- Formulas.
+- Expressions.
+- Final derived rules.
 
-## RIGOROUS CALCULATION OF CONTENT PER PAGE
+3. Structured Step-by-Step
+Only when there are 4+ steps.
 
-### Available Space
-- **Height:** 25mm to 275mm = 250mm vertical
-- **Width:** 35mm to 190mm = 165mm horizontal
-- **Maximum spacing:** 4-6mm between sections
-- **Mandatory visual breathing room:** 15-20mm per page
+Rules:
+- Each step in its own compartment.
+- Use ① ② ③ ④.
+- Do not use icons.
 
----
+4. Concept Checks or Key Insights
+Optional.
 
-### Checklist per Page (BEFORE GENERATING)
+Maximum: 2 boxes per page.
 
-For each page, verify:
-- Is total content between 150-240mm?
-- Is there 15-20mm of visual breathing room?
-- Is the number of boxes minimal (maximum 2 per page)?
-- Is everything in English?
-- Are there no decorative icons in titles?
-- If there is an image, is it detailed (80-100mm), not an icon?
-- CRITICAL: Is the text within established limits? Is nothing exceeding margins, especially left and right?
+==================================================
+WHAT SHOULD NOT BE IN A BOX
+==================================================
 
-If any item fails, DIVIDE THE PAGE.
+Do not use boxes for:
+- introductory sections;
+- narrative explanations;
+- examples;
+- tips;
+- try it sections;
+- synthesis;
+- practical applications;
+- steps with fewer than 4 items.
 
----
+==================================================
+NO DECORATIVE ICONS
+==================================================
 
-## NO DECORATIVE ICONS
+Prohibited:
+- icons before titles;
+- emoji-style thumbnails;
+- decorative symbols.
 
-**Prohibited:**
-- Icons for titles or subtitles
-- Decorative symbols before headings
-- Emoji-style thumbnails
+Allowed:
+- ① ② ③ ④ for steps;
+- bullet points;
+- borders/backgrounds of boxes.
 
-**Allowed:**
-- Numbers in circles: ① ② ③ ④ ⑤ (for steps)
-- Bullet points (•)
-- Borders/backgrounds of boxes
+==================================================
+VISUAL ELEMENT RULES
+==================================================
 
----
+When [IMAGE: ...] exists:
+- Create the requested visual element.
+- Place it near related text.
+- Keep it proportional.
+- Do not let it dominate the page.
+- Do not use it as a full-page replacement unless explicitly requested.
 
-## Title continuity across pages
+==================================================
+PAGE BALANCE CHECK
+==================================================
 
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT render ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the content exactly where it left off, as if the page
-  break did not exist
+Before generating verify:
+- All literal text is included.
+- No text was invented.
+- No text was removed.
+- Maximum 2 boxes per page.
+- Everything is in English unless requested otherwise.
+- Images are detailed educational visuals.
+- Margins are respected.
+- Page content fits naturally.
 
-Example:
-\`\`\`
---PAGE 1--
-Understanding the pattern
+==================================================
+TITLE CONTINUITY ACROSS PAGES
+==================================================
 
-Content paragraph one...
-Content paragraph two...
+When content spans multiple pages:
+- Do NOT repeat titles.
+- Do NOT add continuation labels.
+- Do NOT write "continued", "(cont.)", or similar phrases.
+- Resume exactly where the previous page ended.
 
---PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
-Content paragraph three...
-\`\`\`
+==================================================
+FIRST PAGE TITLE FORMAT
+==================================================
 
----
+On the first page:
 
-## Title capitalization (CRITICAL)
+Display ONLY the actual lesson title provided through [TITLE: ...].
 
-Every title, heading, and section header MUST start with a capital letter. Never use lowercase at the beginning.
+Do NOT add:
+- unit number;
+- lesson number;
+- CCSS code;
+- metadata.
 
-Correct:
-- Discovering the pattern
-- Guided practice with examples
-- Common misconception about variables
-
-Incorrect:
-- discovering the pattern
-- guided practice with examples
-- common misconception about variables
-
----
-
-## First page title format
-
-On the first page, display ONLY the lesson title. The lesson title should match the actual topic being taught — DO NOT add unit number, lesson number, or CCSS code below the title.
-
-The lesson title appears only on page 1, never repeated on subsequent pages.
-
-### Pattern:
-
-\`\`\`
---PAGE 1--
-[Insert actual lesson topic here]
-
-[Content starts immediately below]
-\`\`\`
-
-### Generic examples of correct format (replace topic as needed):
-
-For a lesson about algebraic expressions:
-\`\`\`
---PAGE 1--
-Writing algebraic expressions
-
-[Content here]
-\`\`\`
-
-### What NOT to do:
-
-Do NOT include metadata below the title:
-\`\`\`
---PAGE 1--
-[Lesson topic]
-
-Unit: Unit 3
-Lesson: 28
-CCSS Code: 6.EE.A.2.a
-[This is WRONG]
-\`\`\`
-
-The title is the ONLY element on that first section — the actual topic of the lesson, nothing else.
-\`\`\``,
+The title appears only on page 1.`,
 
 practice: `## FORMAT: A4 (210mm × 297mm), 300 DPI
 
