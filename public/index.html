@@ -10369,86 +10369,66 @@ function _ensureElaHeaderFonts() {
   return _elaFontsReady;
 }
 
-// ELA Lesson Notes header: twin-peak mountain icon, teal "Lesson Notes X" /
-// "Unit X" badge pair with an inward pinch at their seam, and a vertical
-// gradient title bar — no dotted separator line underneath.
+// ELA Lesson Notes header — drawn from the exact SVG source the design was
+// provided in (viewBox 0 0 2480 226, at true 300dpi scale where 2480px =
+// 210mm), via Path2D so every curve/corner matches the source pixel-for-
+// pixel instead of being hand-approximated. A single uniform scale factor
+// maps SVG coordinates straight into our mm-space without distortion.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
-  const hY = my(5), hH = my(10);
-  const r = mx(2);
+  const k    = mx(210 / 2480);
+  const yOff = my(0.4);
+  const X = svgX => k * svgX;
+  const Y = svgY => yOff + k * svgY;
 
-  const iconX = mx(10), iconW = mx(10);
-  const lnX   = mx(20), lnW   = mx(17);
-  const unitX = mx(37), unitW = mx(13);
-  const gradX = mx(50), gradEndX = mx(200);
-
-  // ── Icon square (tan bg, rounded only on the left) ──────────────────────
-  ctx.beginPath();
-  ctx.roundRect(iconX, hY, iconW, hH, [r, 0, 0, r]);
-  ctx.fillStyle = '#f0e1b0'; ctx.fill();
-
-  // Nested double-chevron icon: two "^" bands (each split into a left/right
-  // color half) with the tan background showing through as the gap between
-  // them, and again at the bottom tip.
-  const ix = iconX + mx(1.3), iy = hY + mx(1.6), iw = iconW - mx(2.6), ih = hH - mx(3.2);
-  const pt = (nx, ny) => [ix + nx * iw, iy + ny * ih];
-  const chTri = (p1, p2, p3, color) => {
-    ctx.fillStyle = color; ctx.beginPath();
-    ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...p3); ctx.closePath(); ctx.fill();
-  };
-
-  // Big chevron (teal/pink)
-  const a1 = pt(0.5, 0), l1 = pt(0, 0.48), r1 = pt(1, 0.48), m1 = pt(0.5, 0.48);
-  chTri(a1, l1, m1, '#52849a');
-  chTri(a1, m1, r1, '#c05a79');
-  // Cream cutout — opens the gap below the big chevron
-  chTri(pt(0.5, 0.28), pt(0.12, 0.60), pt(0.88, 0.60), '#f0e1b0');
-  // Small chevron (orange/red)
-  const a3 = pt(0.5, 0.40), l3 = pt(0.02, 0.97), r3 = pt(0.98, 0.97), m3 = pt(0.5, 0.97);
-  chTri(a3, l3, m3, '#e1b184');
-  chTri(a3, m3, r3, '#c65e62');
-  // Cream cutout — reveals the tan background at the small chevron's tip
-  chTri(pt(0.5, 0.54), pt(0.30, 1.02), pt(0.70, 1.02), '#f0e1b0');
-
-  // ── "Lesson / Notes X" block (rounded only on the right) ────────────────
-  ctx.beginPath();
-  ctx.roundRect(lnX, hY, lnW, hH, [0, r, r, 0]);
-  ctx.fillStyle = '#5dacac'; ctx.fill();
-
-  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.font = `700 ${mpt(10)}px Poppins,Arial,sans-serif`;
-  ctx.fillText('Lesson', lnX + mx(2), hY + hH * 0.44);
-  ctx.font = `500 ${mpt(9)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(`Notes ${lesson}`, lnX + mx(2), hY + hH * 0.82);
-
-  // ── "UNIT X" block (rounded only on the left — pinches against the block above) ──
-  ctx.beginPath();
-  ctx.roundRect(unitX, hY, unitW, hH, [r, 0, 0, r]);
-  ctx.fillStyle = '#5dacac'; ctx.fill();
-
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `500 ${mpt(7)}px Poppins,Arial,sans-serif`;
-  ctx.fillText('UNIT', unitX + mx(2), hY + hH * 0.32);
-  ctx.font = `800 ${mpt(19)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(String(unit), unitX + mx(1.6), hY + hH * 0.92);
-
-  // ── Title bar: vertical gradient (rounded only on the right) ────────────
   ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(gradX, hY, gradEndX - gradX, hH, [0, r, r, 0]);
-  ctx.clip();
-  const grad = ctx.createLinearGradient(0, hY, 0, hY + hH);
-  grad.addColorStop(0, '#c2dbd3');
-  grad.addColorStop(1, '#ffffff');
-  ctx.fillStyle = grad;
-  ctx.fillRect(gradX, hY, gradEndX - gradX, hH);
+  ctx.translate(0, yOff);
+  ctx.scale(k, k);
+
+  // Icon square (clipped to the SVG's rounded-left-corners mask)
+  ctx.save();
+  ctx.clip(new Path2D('M 23,12 H 190 V 194 H 23 A 15,15 0 0 1 8,179 V 27 A 15,15 0 0 1 23,12 Z'));
+  ctx.fillStyle = '#f0e1b0'; ctx.fillRect(8, 12, 182, 182);
+  ctx.fillStyle = '#52849a'; ctx.fill(new Path2D('M8,12 L96,12 L8,96 Z'));
+  ctx.fillStyle = '#c05a79'; ctx.fill(new Path2D('M103,12 L190,12 L190,96 Z'));
+  ctx.fillStyle = '#e1b184'; ctx.fill(new Path2D('M99,56 L99,148 L51,194 L8,194 L8,146 Z'));
+  ctx.fillStyle = '#c65e62'; ctx.fill(new Path2D('M99,56 L99,148 L147,194 L190,194 L190,146 Z'));
   ctx.restore();
+
+  // Teal block A ("Lesson Notes X") — rounded only on the right
+  ctx.fillStyle = '#5dacac';
+  ctx.fill(new Path2D('M 190,12 H 476 A 13,13 0 0 1 489,25 V 181 A 13,13 0 0 1 476,194 H 190 Z'));
+
+  // Gradient title panel (vertical, top #c2dbd3 → white) — rounded only on the right
+  const grad = ctx.createLinearGradient(0, 12, 0, 194);
+  grad.addColorStop(0, '#c2dbd3'); grad.addColorStop(1, '#ffffff');
+  ctx.fillStyle = grad;
+  ctx.fill(new Path2D('M 644,12 H 2463 A 13,13 0 0 1 2476,25 V 181 A 13,13 0 0 1 2463,194 H 644 Z'));
+
+  // Teal block B ("Unit X") — rounded only on the left; drawn last so its
+  // rounded edge pinches inward against block A's rounded edge at the seam
+  ctx.fillStyle = '#5dacac';
+  ctx.fill(new Path2D('M 502,12 H 649 V 194 H 502 A 13,13 0 0 1 489,181 V 25 A 13,13 0 0 1 502,12 Z'));
+
+  ctx.restore();
+
+  // ── Dynamic text, drawn in normal canvas space (outside the SVG scale) ──
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 ${mpt(11)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('Lesson', X(210), Y(96));
+  ctx.font = `500 ${mpt(10)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(`Notes ${lesson}`, X(210), Y(162));
+
+  ctx.font = `500 ${mpt(7.5)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('UNIT', X(510), Y(70));
+  ctx.font = `800 ${mpt(20)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(String(unit), X(507), Y(182));
 
   ctx.fillStyle = '#5dacac';
   ctx.textBaseline = 'middle';
-  const titleSize = mpt(15);
+  const titleSize = mpt(16);
   ctx.font = `${titleSize}px Anton,Arial,sans-serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${titleSize * 0.065}px`;
-  ctx.fillText(title, gradX + mx(4), hY + hH / 2 + titleSize * 0.05);
+  ctx.fillText(title, X(684), Y(103) + titleSize * 0.05);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 
