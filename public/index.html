@@ -3302,168 +3302,379 @@ A document that:
 
 lessonplan: `# You are a CCSS (Common Core State Standards) instructional expert and need to create a complete prompt with the content of a Lesson Plan based on the lesson and practice activities provided.
 
-## CRITICAL
+The lesson plan must be written as a professional teacher-facing instructional guide used in an American middle school classroom.
 
-**Maximum content per page: 120-140mm**
+The goal is not only to explain the content, but to provide a practical sequence that allows a teacher to deliver the lesson effectively.
 
-This is non-negotiable. If it exceeds 140mm, DIVIDE into 2 pages.
+The lesson plan should balance instructional rationale with classroom usability.
 
-**Total maximum pages: 15**
+==================================================
+CRITICAL
+==================================================
 
-The entire lesson plan must be completed within 15 pages. Distribute content accordingly to respect both the 120-140mm per page limit AND the 15-page total limit.
+Maximum content per page: 120-140mm
 
----
+This is non-negotiable.
 
-## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+If content exceeds 140mm, divide it into additional pages.
 
-Every word you write becomes what is physically printed on the page — there
-is no narration layer, no notes to a reader of the prompt. Before writing
-anything, ask: "will this exact text appear on the printed page?" If not,
-do not write it. Do not write meta-commentary about your own reasoning or
-process, and do not describe what a visual would show — this document has
-no illustrations.
+Total maximum pages: 18.
 
----
+The lesson plan should normally be completed within 15 pages.
 
-## NO NUMBERED STRUCTURES
+Use additional pages only when necessary to preserve readability, instructional clarity, and proper content distribution.
 
-Remove EVERYTHING that looks like "structure":
+Never compress important instructional guidance only to satisfy a page limit.
 
-DO NOT:
-- Step 1: Discovering the pattern
-- Problem 1: (reference PRACTICE ACTIVITIES, Q1)
-- Question 1: A ticket costs...
-- 1. Identify variables
-- Teacher actions:
-- Ask during modeling:
-- What to watch for:
+Distribute content naturally while respecting the 120-140mm per page limit and the 18-page maximum limit.
 
-DO:
-- Discovering the pattern
-- The first example (reference PRACTICE ACTIVITIES, Q1): A soccer ball costs...
-- A ticket costs...
-- Identifying variables is the first step
-- What the teacher does during this phase
-- During the lesson, listen for these responses
-- Look carefully for these student errors
+Aim for approximately 15 pages whenever possible.
 
----
+==================================================
+NO NUMBERED STRUCTURES
+==================================================
 
-## NO ALL CAPS
+Remove everything that looks like artificial structure from the generated lesson plan.
 
-**Remove ANY word entirely in uppercase:**
+This rule applies to the lesson content itself.
 
-NO: "ALWAYS:", "NEVER:", "IMPORTANT:"
-YES: "Always do this:", "Never do this:", "Important note:"
+Examples and formatting demonstrations inside this prompt are allowed.
 
----
+Exception:
 
-## NO ICONS AND NO STRUCTURES
+Structured metadata inside the single Page 1 information box is allowed.
 
-**Remove:**
-- Numbered bullets or symbols
-- "a)", "b)", "c)"
-- Structured lists
-- Column | tables
-- Hyphens that look like lists
+This exception applies only to lesson overview information such as:
 
-**If you have a list of 3 items:**
+Duration, Unit, Grade, Standard, Lesson, Objectives, and Materials.
 
-❌ WRONG:
-\`\`\`
+Do not apply this exception to the lesson body.
+
+DO NOT create:
+
+Step 1: Discovering the pattern
+
+Problem 1: (reference PRACTICE ACTIVITIES, Q1)
+
+Question 1: A ticket costs...
+
+1. Identify variables
+
 Teacher actions:
+
+Ask during modeling:
+
+What to watch for:
+
+
+DO write naturally:
+
+Discovering the pattern
+
+The first example (reference PRACTICE ACTIVITIES, Q1): A soccer ball costs...
+
+A ticket costs...
+
+Identifying variables is the first step.
+
+Use narrative section titles and connected prose.
+
+Examples:
+
+What the teacher does during this phase
+
+During the lesson, listen for these responses
+
+Look carefully for these student errors
+
+==================================================
+NO ALL CAPS
+==================================================
+
+Remove unnecessary uppercase formatting from generated lesson content.
+
+Exception:
+
+Machine-readable markers and formatting commands such as PAGE, BOX, and CCSS may remain uppercase.
+
+Do not write:
+
+ALWAYS:
+
+NEVER:
+
+IMPORTANT:
+
+Write:
+
+Always do this:
+
+Never do this:
+
+Important note:
+
+==================================================
+NO ICONS AND NO STRUCTURES
+==================================================
+
+Remove:
+
+Numbered bullets or symbols used as lesson-body structures.
+
+"a)", "b)", "c)" formatting.
+
+Structured lists.
+
+Column tables.
+
+Hyphens that create checklist-style lesson content.
+
+If the lesson contains multiple related ideas, write them as connected narrative paragraphs.
+
+Example:
+
+WRONG:
+
+Teacher actions:
+
 - Let students attempt first
 - Ask: "What's the unknown?"
 - Watch for confusion
-\`\`\`
 
-✅ CORRECT:
-\`\`\`
-The teacher lets students attempt the problem first. Then ask them what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
-\`\`\`
 
----
+CORRECT:
 
-## MAXIMUM 120-140mm PER PAGE
+The teacher lets students attempt the problem first. Then ask students what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
 
-Content must fit in ~120-140mm height.
+Simple examples inside this prompt are allowed and should not be reproduced as structures in the generated lesson plan.
 
-**Page distribution:**
+==================================================
+MAXIMUM CONTENT PER PAGE
+==================================================
 
-If you have 3 misconceptions, do not put all 3 on the same page.
+Content must fit approximately within 120-140mm height.
 
-Example CORRECT:
-\`\`\`
-PAGE X: Misconception 1 (120mm)
-PAGE Y: Misconception 2 (130mm)
-PAGE Z: Misconceptions 3 and 4 (140mm)
-\`\`\`
+If a section contains too much information:
 
-Example WRONG:
-\`\`\`
-PAGE X: Misconceptions 1, 2, 3, 4, 5 (400mm!)
-\`\`\`
+Divide it naturally across additional pages.
 
----
+Do not compress several instructional ideas into one page.
 
-## STRUCTURE:
+Example:
 
-### Page 1 — Lesson overview and metadata
+Correct:
+
+PAGE X: Misconception 1
+
+PAGE Y: Misconception 2
+
+PAGE Z: Misconceptions 3 and 4
+
+
+Incorrect:
+
+PAGE X: Misconceptions 1, 2, 3, 4, and 5
+
+==================================================
+PAGE STRUCTURE
+==================================================
+
+Page 1 — Lesson overview and metadata
 
 Page 1 contains ONLY:
-- Lesson title (main heading at top)
-- ONE SINGLE BOX containing ALL metadata and objectives
+
+Lesson title as the main heading at the top.
+
+ONE SINGLE BOX containing all metadata and objectives.
 
 [BOX: Contains Duration, Unit, Grade, Standard, Lesson number + Lesson name, Objectives, and Materials — all organized clearly within the box borders]
 
-### Example:
+The box may contain structured metadata because this is an exception to the no-structure rule.
 
-\`\`\`
+Example:
+
 --PAGE 1--
+
 Equivalent expressions
 
 [BOX BEGIN]
-Duration: 60–75 minutes
+
+Duration: 60-75 minutes
+
 Unit: Unit 3 — Expressions and Equations
+
 Grade: 6
+
 CCSS Standard: 6.EE.A.3, 6.EE.A.4
+
 Lesson: 32 — Equivalent expressions
 
 Learning objectives
+
 Students will generate equivalent expressions using the distributive property, combining like terms, and factoring. Students will also verify equivalence by substituting values and applying algebraic reasoning.
 
 Materials needed
+
 Whiteboard or projector, printed practice activity, pencils, optional colored markers for highlighting like terms.
+
 [BOX END]
-\`\`\`
 
-### Pages 2 onwards — Lesson plan content
+==================================================
+PAGES 2 ONWARDS — LESSON PLAN CONTENT
+==================================================
 
-Starting from page 2, continue with the lesson plan sections:
-- Prior knowledge (100mm)
-- Key vocabulary (110mm)
-- Warm-up activity (120mm)
-- Problem disparador (120mm)
-- Introduction — first part (120mm)
-- Direct instruction — step 1 (130mm)
-- Direct instruction — step 2 (130mm)
-- Direct instruction — step 3 (130mm)
-- Guided practice — problem 1 (120mm)
-- Guided practice — problem 2 (120mm)
-- Independent practice (120mm)
-- Closure and exit ticket (130mm)
-- Common misconception 1 + 2 (140mm max)
-- Common misconception 3 + 4 (140mm max)
-- Differentiation + connections (140mm max)
+Each instructional phase must explain the relationship between teacher actions and student thinking.
 
-Total: approximately 15 pages (including PAGE 1).
+The lesson plan should describe:
 
----
+what the teacher introduces, models, or facilitates;
 
-## HOW TO WRITE WITHOUT STRUCTURES
+what students are expected to notice, explain, practice, or produce;
 
-**Instead of:**
-\`\`\`
+what evidence shows that students understand the concept.
+
+Distribute the lesson naturally across pages according to instructional importance.
+
+Do not force every lesson into the same number of pages.
+
+Prioritize:
+
+instructional clarity;
+
+classroom usability;
+
+appropriate pacing;
+
+readability.
+
+Starting from page 2, include the relevant lesson plan sections:
+
+==================================================
+PRIOR KNOWLEDGE
+==================================================
+
+Prior knowledge (100mm)
+
+Explain what students should already understand before beginning the lesson and how this knowledge connects to the new skill.
+
+==================================================
+KEY VOCABULARY
+==================================================
+
+Key vocabulary (110mm)
+
+Introduce essential academic vocabulary students need to access the lesson content.
+
+==================================================
+WARM-UP ACTIVITY
+==================================================
+
+Warm-up activity (120mm)
+
+Describe an opening activity that activates prior knowledge and prepares students for the lesson objective.
+
+==================================================
+LESSON LAUNCH ACTIVITY
+==================================================
+
+Lesson launch activity (120mm)
+
+Introduce the central scenario, question, demonstration, or situation that creates the need for the new learning.
+
+==================================================
+INTRODUCTION AND DIRECT INSTRUCTION
+==================================================
+
+Introduction and direct instruction (130mm as needed)
+
+Explain how the teacher introduces the concept, models thinking, and builds student understanding.
+
+Include teacher explanations, examples, questioning, and student reasoning when appropriate.
+
+==================================================
+GUIDED PRACTICE WITH PRACTICE ACTIVITIES
+==================================================
+
+Guided practice with practice activities (120mm as needed)
+
+Explain how students apply the skill with teacher support using examples or the provided practice activity.
+
+Describe what students should analyze, discuss, solve, or produce.
+
+==================================================
+INDEPENDENT PRACTICE ASSIGNMENT
+==================================================
+
+Independent practice assignment (120mm)
+
+Reference the provided student practice activity.
+
+Explain:
+
+what students practice;
+
+which skills they demonstrate;
+
+what the teacher should monitor while students work.
+
+Do not recreate the worksheet questions.
+
+The lesson plan should reference the practice activity by purpose, not summarize each question.
+
+==================================================
+FORMATIVE ASSESSMENT MOMENTS
+==================================================
+
+Formative assessment moments (120mm)
+
+Identify natural moments during the lesson when the teacher can check student understanding.
+
+These checks should be integrated into the lesson flow and explain what evidence the teacher should look for.
+
+Do not create separate assessment lists or testing sections.
+
+==================================================
+CLOSURE AND EXIT TICKET
+==================================================
+
+Closure and exit ticket (130mm)
+
+Describe how the teacher closes the lesson, reinforces the main learning goal, and checks whether students can independently explain or apply the concept.
+
+==================================================
+COMMON MISCONCEPTIONS
+==================================================
+
+Common misconceptions (140mm max)
+
+Identify realistic student misunderstandings based on the skill being taught.
+
+For each misconception, explain why students may make this mistake, how the teacher should respond, and what evidence shows that the student has corrected the misunderstanding.
+
+Do not write generic mistakes.
+
+Misconceptions must be connected to the actual lesson content and expected student reasoning.
+
+==================================================
+DIFFERENTIATION AND CONNECTIONS
+==================================================
+
+Differentiation and connections (140mm max)
+
+Include practical differentiation strategies for students needing additional support and students ready for enrichment.
+
+Strategies should be realistic for an American classroom and connected to the specific skill being taught.
+
+Include meaningful connections that help students understand where this skill appears beyond the current lesson.
+
+==================================================
+HOW TO WRITE INSTRUCTIONAL NARRATIVE STYLE
+==================================================
+
+The lesson plan must be written as a professional instructional narrative, not as a script, checklist, or procedural outline.
+
+Instead of:
+
 Step 1: Discovering the pattern
 
 Teacher models with think-aloud:
@@ -3472,146 +3683,161 @@ Teacher models with think-aloud:
 Ask during modeling:
 - "What does b stand for?"
 - "What does 5 mean?"
-\`\`\`
 
-**Write:**
-\`\`\`
+Write:
+
 Discovering the pattern
 
 The teacher models with a think-aloud. "Let's look at Maya's earnings again. I notice we're always multiplying 5 by the number of bracelets. 1 bracelet: 5 × 1 = $5. 2 bracelets: 5 × 2 = $10. The number changes, but the operation stays the same."
 
 During this modeling, ask students what the letter b stands for. Ask what the number 5 represents. Listen for their explanations.
-\`\`\`
 
----
+The generated lesson should describe classroom actions naturally through connected paragraphs.
 
-## TITLES
+Avoid creating sections such as:
 
-**ALWAYS Sentence case:**
+Teacher actions:
 
-- Discovering the pattern
-- Introduction and problem disparador
-- Guided practice with real examples
-- Independent practice assignment
-- Closure with exit ticket
-- Common misconception about variables
+Student actions:
 
-**NEVER:**
-- DISCOVERING THE PATTERN
-- Discovery Pattern
-- Step 1: Discovering
+Materials:
 
----
+Assessment checklist:
 
-## Title continuity across pages
+unless they are part of the required lesson structure.
 
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT render ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the content exactly where it left off, as if the page
-  break did not exist
+==================================================
+TITLES
+==================================================
+
+Always use sentence case.
+
+Examples:
+
+Discovering the pattern
+
+Introduction and lesson launch activity
+
+Guided practice with real examples
+
+Independent practice
+
+Closure with exit ticket
+
+Common misconceptions
+
+Never use:
+
+DISCOVERING THE PATTERN
+
+Discovery Pattern
+
+Step 1: Discovering
+
+==================================================
+TITLE CONTINUITY ACROSS PAGES
+==================================================
+
+When a title starts on one page but its content continues to the next page or pages, do not repeat the title on subsequent pages.
+
+Continue the content naturally.
 
 Example:
-\`\`\`
+
 --PAGE 1--
+
 Understanding the pattern
 
 Content paragraph one...
+
 Content paragraph two...
 
+
 --PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
+
+Continue content directly without repeating "Understanding the pattern"
+
 Content paragraph three...
-\`\`\`
 
----
+==================================================
+FIRST PAGE TITLE FORMAT
+==================================================
 
-## First page title format
+On the first page, display ONLY the lesson title.
 
-On the first page, display ONLY the lesson title. The lesson title should be the actual topic of the lesson you are creating — this is NOT a fixed example.
+The lesson title must be the actual topic of the lesson being created.
 
-The lesson title appears only on page 1. Do NOT include unit number, lesson number, or CCSS code below the title — all that information goes inside the box.
+It is not a fixed example.
+
+The lesson title appears only on page 1.
+
+Do not include:
+
+unit number;
+
+lesson number;
+
+CCSS code;
+
+metadata below the title.
+
+All metadata belongs inside the single information box.
 
 Example for a lesson about algebraic expressions:
-\`\`\`
+
 --PAGE 1--
+
 Equivalent expressions
 
 [BOX with all metadata]
-\`\`\`
+
 
 Example for a different lesson topic:
-\`\`\`
+
 --PAGE 1--
+
 Understanding fractions
 
 [BOX with all metadata]
-\`\`\`
 
-The title changes based on the actual lesson content. Only the box format stays the same.
 
----
+The title changes based on the actual lesson content.
 
-## CONTENT MUST FLOW
+Only the box format stays the same.
 
-Connected, narrative paragraphs.
+==================================================
+CONTENT MUST FLOW
+==================================================
 
-**WRONG (looks like list/structure):**
-\`\`\`
+The lesson plan must use connected, narrative paragraphs.
+
+Avoid writing content as lists, checklists, or artificial structures.
+
+WRONG:
+
 Warm-up activity
 
 Display on board:
+
 If your friend Maya sells bracelets for $5 each:
+
 - How much does she earn if she sells 10?
 - How much if she sells 20?
 - How much if she sells 100?
 
 Teacher actions:
+
 - Ask students to calculate answers
 - Write answers on board
 - Ask: "How did you figure these out?"
-\`\`\`
 
-**CORRECT (narrative, fluid):**
-\`\`\`
+CORRECT:
+
 Warm-up activity
 
 Display on the board a simple question: If your friend Maya sells bracelets for $5 each, how much does she earn if she sells 10? How much if she sells 20? How much if she sells 100?
 
-Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."
-\`\`\`
-
----
-
-## MANDATORY PAGE FORMAT
-
-Every page MUST start with this exact marker:
-
-\`\`\`
---PAGE 1--
-
-[Page content here]
-
---PAGE 2--
-
-[Page content here]
-
---PAGE 3--
-
-[Page content here]
-\`\`\`
-
-**Rules:**
-- Use exactly \`--PAGE X--\` (double dashes, the word PAGE, the number, double dashes)
-- Every section of the lesson plan is a separate page
-- Never merge two sections into one page
-- Never skip the page marker
-- The page marker is the ONLY way the system knows where to cut each page`,
+Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."`,
 
 all: `You are an expert {{GRADE}} {{SUBJECT}} educator. Generate a complete lesson package.
 
@@ -7306,318 +7532,487 @@ Second answer page:
 lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 
 ## CRITICAL
+
 - Header and footer are added programmatically after generation.
 - DO NOT draw headers, footers, page borders or side lines of any kind.
-- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
-  code anywhere in the body. A "CCSS: ..." line may appear above your content
-  for your reference only — it is never printable text, even if nothing else
-  looks like a heading on that page.
+- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
-## CONTENT AREA — draw ONLY inside this zone:
-- Vertical: y=20mm (top) to y=278mm (bottom) — leave everything outside this range WHITE
-- Horizontal: x=35mm (left) to x=165mm (right) — NO content, lines or borders outside
-- Spacing: max 4–6mm between sections — never overflow past y=278mm
-- Use the FULL horizontal width — text must reach close to x=190mm
+==================================================
+CONTENT AREA
+==================================================
 
-## TYPOGRAPHY:
-- Page titles: 24pt Bold #092964
-- Section headers: 20pt Bold #ff6b35
-- Subsection headers: 18pt Bold #0251af
-- Body text: 16pt Regular #000000
-- Small annotations: 14pt Regular #666666
+Draw ONLY inside this zone:
 
-## COLORS:
-#092964 (Dark Blue) | #0251af (Navy Blue) | #ff6b35 (Orange) | #89c13b (Green)
-#e3f2fd (Light Blue) | #e8f5e9 (Light Green) | #fff4e6 (Light Orange) | #ffe6ea (Light Pink)
+Vertical:
+y=20mm (top) to y=278mm (bottom)
 
-## KEY DESIGN:
-- No drop shadows
-- Selective use of boxes — only for emphasis
-- All boxes/elements with rounded corners (5–8mm)
-- Professional pedagogical layout
-- Visual hierarchy through size, color and spacing
-- Information flows naturally, not forced into containers
+Leave everything outside this range WHITE.
 
----
+Horizontal:
+x=35mm (left) to x=190mm (right)
 
-## ⚠️ CRITICAL RESTRICTIONS:
+NO content, lines, borders, or visual elements outside this area.
 
-### Icons in titles and headers
-- PROHIBITED: Any icons, symbols, or emojis in page titles (24pt)
-- PROHIBITED: Any icons, symbols, or emojis in section headers (20pt)
-- PROHIBITED: Any icons, symbols, or emojis in subsection headers (18pt)
-- Titles must be TEXT ONLY — no decorative elements before, after, or inside
-- Example wrong: "📚 Learning Objectives" or "✓ Key Concepts"
-- Example correct: "Learning objectives" or "Key concepts"
+Spacing:
+Maximum 4-6mm between sections.
 
-### Icons for illustration (moderate use only)
-- ALLOWED: Small icons (25-40mm maximum height) to illustrate concepts
-- ALLOWED: Maximum 1-2 icons per page for visual support
-- ALLOWED: Icons in body text area between sections
-- PROHIBITED: Distorted, stretched, skewed, or warped icons
-- PROHIBITED: Icons that lose original aspect ratio or proportions
-- PROHIBITED: Icons as fillers, clusters, or decorative elements
-- All icons must maintain natural, undeformed appearance
+Never overflow past y=278mm.
 
-CRITIC: NEVER EXCEED THESE FONT SIZES.
-- The first letter of titles and subtitles should always be capitalized, and the rest lowercase.
-- It is forbidden to use any uppercase letters in titles, subtitles, etc.
-- It is forbidden to increase the font size of the title beyond the stipulated size.
+Use the available horizontal width naturally.
 
-### Font size rules (NON-NEGOTIABLE)
-- Page titles MUST be exactly 24pt Bold #092964 — NEVER increase size
-- Section headers MUST be exactly 20pt Bold #ff6b35 — NEVER increase size
-- Subsection headers MUST be exactly 18pt Bold #0251af — NEVER increase size
-- If content doesn't fit at specified sizes, REDUCE CONTENT instead
-- Never stretch or enlarge fonts to fill space
-- Never compress spacing to make text fit
-- Font sizes are FIXED
+Text blocks should extend appropriately within the content area without creating unnecessary narrow columns.
 
-### Content distribution (prevent overload)
-- Maximum 150-180mm of actual content per page
-- Minimum 70-100mm white space per page (this is ACCEPTABLE and GOOD)
-- If content exceeds 180mm, SPLIT ACROSS 2 PAGES
-- Never compress information by reducing spacing between sections
-- Never reduce font sizes to fit more content
-- Never fill the entire page with text
-- White space is a design element and improves readability
-- Leave breathing room on every page — pages should feel spacious, not crowded
+==================================================
+TYPOGRAPHY
+==================================================
 
-## Title continuity across pages
+Page titles:
+24pt Bold #092964
 
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT render ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the content exactly where it left off, as if the page
-  break did not exist
+Section headers:
+20pt Bold #ff6b35
+
+Subsection headers:
+18pt Bold #0251af
+
+Body text:
+16pt Regular #000000
+
+Small annotations:
+14pt Regular #666666
+
+==================================================
+TEXT ALIGNMENT
+==================================================
+
+Use justified alignment for long paragraphs when it maintains natural word spacing.
+
+Use left alignment when:
+- justification creates excessive gaps between words;
+- text appears in narrow sections;
+- readability is reduced.
+
+Do not change alignment randomly within the same section.
+
+Maintain consistent paragraph width and alignment throughout the lesson plan.
+
+==================================================
+COLORS
+==================================================
+
+#092964 (Dark Blue)
+
+#0251af (Navy Blue)
+
+#ff6b35 (Orange)
+
+#89c13b (Green)
+
+#e3f2fd (Light Blue)
+
+#e8f5e9 (Light Green)
+
+#fff4e6 (Light Orange)
+
+#ffe6ea (Light Pink)
+
+==================================================
+KEY DESIGN
+==================================================
+
+- No drop shadows.
+- Selective use of boxes — only for emphasis.
+
+The single Page 1 metadata box is required.
+
+Additional boxes should only be used when they improve teacher usability.
+
+All boxes and visual elements must have rounded corners:
+5-8mm.
+
+Use:
+
+- professional pedagogical layout;
+- visual hierarchy through size, color, and spacing;
+- natural information flow.
+
+Information should flow naturally, not be forced into containers.
+
+==================================================
+VISUAL SUPPORT FOR TEACHER GUIDES
+==================================================
+
+Visual elements should be used only when they improve teacher understanding of the lesson structure or instructional concept.
+
+Do not add decorative illustrations.
+
+Allowed:
+
+- simple instructional diagrams;
+- concept models;
+- process visualizations;
+- examples that clarify teaching strategies.
+
+Avoid:
+
+- character illustrations;
+- classroom scenes;
+- decorative artwork;
+- icons beside every section;
+- student-facing visual elements.
+
+Visual elements must remain secondary to the written lesson plan.
+
+Use approximately 0-2 meaningful visuals per lesson plan when appropriate.
+
+Visual elements should support teacher understanding, not make the document look like a student worksheet.
+
+==================================================
+CRITICAL VISUAL RESTRICTIONS
+==================================================
+
+Visual elements must communicate meaning, not decoration.
+
+If a visual concept requires explanation, prefer:
+
+- diagrams;
+- models;
+- simple instructional graphics.
+
+Do not use visual elements only to fill empty space.
+
+==================================================
+ICONS AND SYMBOLS
+==================================================
+
+Icons should generally not be used.
+
+Do not use:
+
+- decorative icons;
+- icons beside headings;
+- emoji-style graphics;
+- visual markers replacing text;
+- symbolic elements used only for decoration.
+
+Do not place icons in:
+
+- page titles;
+- section headers;
+- subsection headers.
+
+Titles and headers must be TEXT ONLY.
+
+Example wrong:
+
+📚 Learning objectives
+
+✓ Key concepts
+
+Example correct:
+
+Learning objectives
+
+Key concepts
+
+
+If a concept requires visual explanation, prefer:
+
+- diagrams;
+- models;
+- simple instructional graphics;
+- meaningful visual relationships.
+
+Visual elements should communicate meaning, not decoration.
+
+==================================================
+FONT SIZE RULES (NON-NEGOTIABLE)
+==================================================
+
+Page titles MUST be exactly:
+
+24pt Bold #092964
+
+Section headers MUST be exactly:
+
+20pt Bold #ff6b35
+
+Subsection headers MUST be exactly:
+
+18pt Bold #0251af
+
+Body text MUST remain:
+
+16pt Regular #000000
+
+Never increase font sizes.
+
+Never stretch or enlarge fonts to fill space.
+
+Never change font sizes to compensate for unusually short or long pages.
+
+Typography must remain consistent throughout the entire lesson plan.
+
+Never compress spacing to make text fit.
+
+Font sizes are FIXED.
+
+If content does not fit at the specified sizes:
+
+- divide content across additional pages;
+- reorganize the layout naturally.
+
+Never sacrifice typography quality to fit more content.
+
+==================================================
+CONTENT DISTRIBUTION AND WHITE SPACE
+==================================================
+
+Maximum:
+
+150-180mm of actual content per page.
+
+The available page area is larger than the target content area.
+
+Do not fill the entire page height.
+
+Preserve intentional white space.
+
+Minimum:
+
+70-100mm white space per page.
+
+This is ACCEPTABLE and GOOD.
+
+If content exceeds 180mm:
+
+SPLIT ACROSS 2 PAGES.
+
+Never:
+
+- compress information by reducing spacing between sections;
+- reduce font sizes to fit more content;
+- fill the entire page with text.
+
+White space is a design element and improves readability.
+
+Leave breathing room on every page.
+
+Pages should feel spacious, organized, and professional.
+
+==================================================
+BOX USAGE
+==================================================
+
+The single Page 1 metadata box is required.
+
+Additional boxes should only be used when they improve teacher usability.
+
+Use boxes for:
+
+- important teacher reference information;
+- key instructional reminders;
+- essential visual organization.
+
+Do not create boxes simply to separate every section.
+
+Do not force narrative content into containers.
+
+==================================================
+TITLE CONTINUITY ACROSS PAGES
+==================================================
+
+When a title starts on one page but its content continues to the next page(s):
+
+DO NOT repeat the title on subsequent pages.
+
+Simply continue the content naturally.
 
 Example:
-\`\`\`
+
 --PAGE 1--
+
 Understanding the pattern
 
 Content paragraph one...
+
 Content paragraph two...
 
+
 --PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
+
+Continue content directly without repeating:
+
+"Understanding the pattern"
+
 Content paragraph three...
-\`\`\`
 
----
+==================================================
+TITLE CAPITALIZATION (CRITICAL)
+==================================================
 
-## Title capitalization (CRITICAL)
+Every title, heading, and section header MUST start with a capital letter.
 
-Every title, heading, and section header MUST start with a capital letter. Never use lowercase at the beginning.
+Use sentence case.
 
 Correct:
+
 - Discovering the pattern
 - Guided practice with examples
-- Common misconception about variables
+- Common misconceptions
 
 Incorrect:
+
 - discovering the pattern
 - guided practice with examples
-- common misconception about variables
+- common misconceptions
 
----
+Never use all uppercase titles or headings.
 
-## First page title format
+==================================================
+FIRST PAGE TITLE FORMAT
+==================================================
 
-On the first page, display ONLY the lesson title. The lesson title should match the actual topic being taught — DO NOT add unit number, lesson number, or CCSS code below the title.
+On the first page, display ONLY the lesson title.
 
-The lesson title appears only on page 1, never repeated on subsequent pages.
+The lesson title must be the actual topic of the lesson being created.
 
-### Pattern:
+DO NOT include:
 
-\`\`\`
---PAGE 1--
-[Insert actual lesson topic here]
+- unit number;
+- lesson number;
+- CCSS code;
+- metadata below the title.
 
-[Content starts immediately below]
-\`\`\`
+All metadata belongs inside the single Page 1 information box.
 
-### Generic examples of correct format (replace topic as needed):
+The lesson title appears only on page 1.
 
-For a lesson about algebraic expressions:
-\`\`\`
---PAGE 1--
-Writing algebraic expressions
+Never repeat the lesson title on subsequent pages.
+
+
+Incorrect:
+
+Writing Algebraic Expressions
+
+Unit: Unit 3 — Expressions and Equations
+
+Lesson: 28
+
+CCSS Code: 6.EE.A.2.a
 
 [Content here]
-\`\`\`
 
-### What NOT to do:
 
-Do NOT include metadata below the title:
-\`\`\`
---PAGE 1--
-[Lesson topic]
+Correct:
 
-Unit: Unit 3
-Lesson: 28
-CCSS Code: 6.EE.A.2.a
-[This is WRONG]
-\`\`\`
+Writing Algebraic Expressions
 
-The title is the ONLY element on that first section — the actual topic of the lesson, nothing else.
-\`\`\``
+[Content here]
+
+==================================================
+PAGE 1 METADATA BOX
+==================================================
+
+Page 1 contains:
+
+- the lesson title as the main heading;
+- ONE SINGLE metadata box containing lesson information.
+
+The metadata box may contain structured information.
+
+This is the only exception to general structure restrictions.
+
+The box may include:
+
+- Duration;
+- Unit;
+- Grade;
+- CCSS Standard;
+- Lesson number and lesson name;
+- Learning objectives;
+- Materials needed.
+
+The metadata box must remain organized clearly within the rounded box boundaries.
+
+Additional boxes are not required on Page 1 unless they improve teacher usability.
+
+==================================================
+LESSON PLAN VISUAL IDENTITY
+==================================================
+
+The final result should feel like a professional teacher guide.
+
+The visual style should communicate:
+
+- organization;
+- instructional clarity;
+- academic professionalism;
+- readability.
+
+Avoid making the document look like:
+
+- a student worksheet;
+- a presentation slide;
+- a classroom poster;
+- an educational app interface.
+
+The design should support teacher use, not compete with the instructional content.
+
+==================================================
+CONTENT PRIORITY
+==================================================
+
+Written instructional content is the primary element.
+
+Visual design elements must support readability and organization.
+
+Never allow:
+
+- decorative elements;
+- boxes;
+- diagrams;
+- colors;
+- visual spacing
+
+to reduce the clarity of the lesson plan.
+
+The teacher should be able to quickly understand:
+
+- the lesson purpose;
+- the instructional sequence;
+- the student thinking process;
+- the expected learning outcome.
+
+==================================================
+FINAL PAGE QUALITY CHECK
+==================================================
+
+Before generating the final page, verify:
+
+- All content remains inside the defined content area.
+- No headers, footers, page numbers, or borders were added.
+- Typography follows the fixed font rules.
+- Titles and headers use sentence case.
+- No decorative icons appear.
+- Visuals are meaningful and secondary.
+- The Page 1 metadata box is the only required structured box.
+- Additional boxes are used only when they improve teacher usability.
+- Text alignment is consistent.
+- Paragraph widths are appropriate.
+- White space is preserved.
+- No content is artificially compressed.
+- The document feels like a professional teacher-facing guide.
+
+==================================================
+END OF LAYOUT RULES
+==================================================`
 };
 
-// ELA (English Language Arts) middle school (6th-8th) layout — used instead
-// of SPECS for 'lessonplan' when that combination is selected. 'lesson' now
-// shares the same design layout as Mathematics (SPECS.lesson) across both
-// disciplines. No ELA-specific 'practice' layout exists yet, so Worksheet
-// keeps using the Mathematics SPECS.practice regardless of discipline
-// (see _getSpecsFor).
-const SPECS_ELA_MS = {
-lessonplan: `# FORMAT: A4 (210mm × 297mm), 300 DPI
-
-## DOCUMENT SETUP
-- Content Area: x=35mm–165mm (left-right), y=20mm–278mm (top-bottom)
-- DO NOT add headers, footers, borders, page numbers, or unit/lesson labels
-- Headers and footers added programmatically only
-- DO NOT include unit/lesson labels, page numbers, footer text, or the CCSS
-  code anywhere in the body. A "CCSS: ..." line may appear above your content
-  for your reference only — it is never printable text, even if nothing else
-  looks like a heading on that page.
-- Render ONLY the literal content given below. DO NOT invent a title, heading
-  or section that is not explicitly present in that text. If the content has
-  no title text, this is a CONTINUATION page — begin directly with the body,
-  do not create an opening title for it.
-
----
-
-## TYPOGRAPHY (FIXED — NON-NEGOTIABLE)
-Font: Clean sans-serif (Calibri, Arial)
-- Page titles: 24pt Bold #092964 (Sentence case, text ONLY)
-- Section headers: 20pt Bold #ff6b35 (Sentence case)
-- Subsection headers: 18pt Bold #0251af (Sentence case)
-- Body text: 18pt Regular #000000
-- Annotations: 16pt Regular #666666
-
-Rule: If content exceeds available space, REDUCE CONTENT (never resize fonts or compress spacing)
-
----
-
-## COLOR PALETTE
-Primary: Deep Blue (#0C366E) | Modern Green (#89c13b) | Orange (#ff6b35) | Purple (#9b59b6)
-Neutrals: Gray tones, white background, minimal black
-AVOID: Hot pink, lime green, neon blue, rainbows
-
----
-
-## LAYOUT & SPACING
-- Content distribution: 150–180mm actual content per page (70–100mm whitespace acceptable and desired)
-- Spacing between sections: 4–6mm maximum
-- Boxes: Rounded corners (5–8mm), 15mm padding
-- Text alignment: LEFT only
-- Never stretch, compress, or distort any text or elements
-
----
-
-## VISUAL STYLE
-Ratio: 60% Professional/Academic + 30% Modern Design + 10% Creative
-Aesthetic: Flat design (Material Design), TED-Ed / Khan Academy / Guardian Infographics style
-Target: Respectful, fresh, adolescent-appropriate
-NOT: Duolingo cute, corporate, elementary school, clipart-heavy
-
----
-
-## ALLOWED VISUAL ELEMENTS
-✓ Infographics (clean, data-focused)
-✓ Side-by-side comparisons
-✓ Simple flowcharts
-✓ Real photographs (when relevant)
-✓ Subtle color blocks / rounded boxes for definitions
-✓ Small icons (25–40mm max) for illustration (max 1–2 per page)
-✗ Clipart, drop shadows, busy decorations
-✗ Multiple competing visuals per page
-✗ Distorted, stretched, or deformed icons
-
----
-
-## CRITICAL RESTRICTIONS
-
-### Icons
-- PROHIBITED in titles/headers (all sizes)
-- PROHIBITED as fillers, clusters, or decorative padding
-- ALLOWED: Maximum 1–2 small icons (25–40mm) per page in body area
-- All icons must maintain original aspect ratio—no distortion
-
-### First Page Title
-- Display ONLY lesson title
-- Do NOT include unit number, lesson number, or CCSS code
-
-### Content Overflow
-- Maximum 180mm content = split across 2 pages
-- Never reduce font, compress spacing, or eliminate whitespace to fit
-- Whitespace is a design element; preserve it
-
----
-
-## Title continuity across pages
-
-When a section's content spans multiple pages, the page break is a print
-pagination artifact only — it must be INVISIBLE to the reader. On
-continuation page(s):
-- Do NOT repeat the title
-- Do NOT add any new heading, subtitle, or label for the same section
-- Do NOT write ANY phrase that signals continuation — no "continues",
-  "continued", "(cont.)", "as we continue", "picking up where we left off",
-  or similar. This is just as much a red flag as repeating the title.
-- Simply resume the prose exactly where it left off, as if the page break
-  did not exist — the reader should never notice a section spans pages
-
-Example:
-\`\`\`
---PAGE 1--
-Understanding the pattern
-
-Content paragraph one...
-Content paragraph two...
-
---PAGE 2--
-[Continue content directly — no title, no "continues", no heading of any kind]
-Content paragraph three...
-\`\`\`
-
-**Bad (do NOT do this):**
-\`\`\`
---PAGE 5--
-Guided practice continues
-
-[WRONG — "continues" is a continuation marker, exactly like repeating the title]
-\`\`\`
-
----
-
-## DESIGN PRINCIPLES
-- Visual hierarchy through size, color, spacing (not forced containers)
-- Information flows naturally
-- No content outside x=35mm–165mm or y=20mm–278mm zones
-- Professional pedagogical textbook style`,
-};
-
-// Grade number parsed from a "6th Grade" style string, or 0 if unparseable.
-function _gradeNum(gradeText) {
-  return parseInt(gradeText || '', 10) || 0;
-}
-
-// Resolves which layout/design spec to use for image generation. Only
-// Lesson Plan has a dedicated ELA middle-school (6th-8th) layout today;
-// Lesson Notes now shares the same layout as Mathematics for every
-// discipline/grade, and Worksheet always falls back to the Mathematics
-// SPECS as well.
+// Resolves which layout/design spec to use for image generation. SPECS is
+// shared across every discipline/grade combination (Mathematics and ELA
+// alike) for all three doc types.
 function _getSpecsFor(type, discipline, grade) {
-  const isElaMS = (discipline || '').trim() === 'English Language Arts'
-    && _gradeNum(grade) >= 6 && _gradeNum(grade) <= 8;
-  if (isElaMS && SPECS_ELA_MS[type]) return SPECS_ELA_MS[type];
   return SPECS[type];
 }
 
