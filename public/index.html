@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Gerador de Material Pedagógico</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Poppins + Anton: used by the ELA Lesson Notes header Canvas overlay.
+       Anton is a temporary stand-in for Coolvetica (not a free/CDN font) —
+       swap once a licensed Coolvetica font file is provided. -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;700;800&family=Anton&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -8773,8 +8779,8 @@ async function handleEvent(ev) {
       // Aplica header/footer programático
       try {
         const pageDocType = ev.docType || docType;
-        const { header, footer, isElaLesson, unit } = _overlayTextsForType(pageDocType);
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, unit });
+        const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       // Stable key for this image — reused in refazer/retry so we update, not duplicate
       const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
@@ -9563,8 +9569,8 @@ async function confirmRefazer() {
               catch (e) { console.warn('Overlay refazer fetch falhou:', e); }
             }
             try {
-              const { header, footer, isElaLesson, unit } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit });
+              const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
@@ -9651,8 +9657,8 @@ async function retryPage(domKey) {
             }
             try {
               const pageDocType = ev.docType || pd.docType || docType;
-              const { header, footer, isElaLesson, unit } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit });
+              const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
@@ -10345,53 +10351,100 @@ function _dottedLine(ctx, x1, y1, x2, lw, dashLen, gapLen) {
   ctx.setLineDash([]);
 }
 
-// ELA Lesson Notes header: stacked triangle motif + unit-number badge +
-// soft gradient title bar, no dotted separator line underneath.
-function _drawElaLessonHeader(ctx, mx, my, mpt, unit, headerText) {
+// Loads the web fonts the ELA Lesson Notes header needs before the first
+// Canvas draw — Canvas text doesn't wait for @font-face like CSS does, so
+// without this the very first generation in a session would fall back to
+// the system font. Anton stands in for Coolvetica (not a free/CDN font)
+// until a licensed font file is provided.
+let _elaFontsReady = null;
+function _ensureElaHeaderFonts() {
+  if (!_elaFontsReady) {
+    _elaFontsReady = Promise.all([
+      document.fonts.load('500 16px Poppins'),
+      document.fonts.load('700 16px Poppins'),
+      document.fonts.load('800 16px Poppins'),
+      document.fonts.load('400 16px Anton'),
+    ]).catch(() => {}); // falls back to system font if the load fails
+  }
+  return _elaFontsReady;
+}
+
+// ELA Lesson Notes header: twin-peak mountain icon, teal "Lesson Notes X" /
+// "Unit X" badge pair with an inward pinch at their seam, and a vertical
+// gradient title bar — no dotted separator line underneath.
+function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
   const hY = my(5), hH = my(10);
+  const r = mx(2);
 
-  // Stacked triangles (cream → coral → teal), tucked in a 10mm square.
-  const tX = mx(10);
-  ctx.fillStyle = '#3fa9a3';
+  const iconX = mx(10), iconW = mx(10);
+  const lnX   = mx(20), lnW   = mx(17);
+  const unitX = mx(37), unitW = mx(13);
+  const gradX = mx(50), gradEndX = mx(200);
+
+  // ── Icon square (tan bg, rounded only on the left) ──────────────────────
   ctx.beginPath();
-  ctx.moveTo(tX + mx(10), hY); ctx.lineTo(tX, hY + mx(10)); ctx.lineTo(tX + mx(10), hY + mx(10));
-  ctx.closePath(); ctx.fill();
+  ctx.roundRect(iconX, hY, iconW, hH, [r, 0, 0, r]);
+  ctx.fillStyle = '#f0e1b0'; ctx.fill();
 
-  ctx.fillStyle = '#dd9284';
+  // Twin-peak mountain icon, side by side, each peak split into a shaded/lit half
+  const ix = iconX + mx(1.3), iy = hY + mx(1.6), iw = iconW - mx(2.6), ih = hH - mx(3.2);
+  const lxA = ix + iw * 0.24, lyA = iy, lxL = ix, lxR = ix + iw * 0.48, lyB = iy + ih;
+  ctx.fillStyle = '#52849a';
+  ctx.beginPath(); ctx.moveTo(lxA, lyA); ctx.lineTo(lxL, lyB); ctx.lineTo(lxA, lyB); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#c65e62';
+  ctx.beginPath(); ctx.moveTo(lxA, lyA); ctx.lineTo(lxA, lyB); ctx.lineTo(lxR, lyB); ctx.closePath(); ctx.fill();
+
+  const rxA = ix + iw * 0.74, ryA = iy + ih * 0.22, rxL = ix + iw * 0.46, rxR = ix + iw, ryB = iy + ih;
+  ctx.fillStyle = '#c05a79';
+  ctx.beginPath(); ctx.moveTo(rxA, ryA); ctx.lineTo(rxL, ryB); ctx.lineTo(rxA, ryB); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e1b184';
+  ctx.beginPath(); ctx.moveTo(rxA, ryA); ctx.lineTo(rxA, ryB); ctx.lineTo(rxR, ryB); ctx.closePath(); ctx.fill();
+
+  // ── "Lesson / Notes X" block (rounded only on the right) ────────────────
   ctx.beginPath();
-  ctx.moveTo(tX + mx(1), hY + mx(1)); ctx.lineTo(tX + mx(1), hY + mx(8)); ctx.lineTo(tX + mx(8), hY + mx(1));
-  ctx.closePath(); ctx.fill();
+  ctx.roundRect(lnX, hY, lnW, hH, [0, r, r, 0]);
+  ctx.fillStyle = '#5dacac'; ctx.fill();
 
-  ctx.fillStyle = '#f3dcb8';
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = `700 ${mpt(10)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('Lesson', lnX + mx(2), hY + hH * 0.44);
+  ctx.font = `500 ${mpt(9)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(`Notes ${lesson}`, lnX + mx(2), hY + hH * 0.82);
+
+  // ── "UNIT X" block (rounded only on the left — pinches against the block above) ──
   ctx.beginPath();
-  ctx.moveTo(tX + mx(1.5), hY + mx(1.5)); ctx.lineTo(tX + mx(1.5), hY + mx(6.5)); ctx.lineTo(tX + mx(6.5), hY + mx(1.5));
-  ctx.closePath(); ctx.fill();
+  ctx.roundRect(unitX, hY, unitW, hH, [r, 0, 0, r]);
+  ctx.fillStyle = '#5dacac'; ctx.fill();
 
-  // Unit-number badge
-  const bX = mx(22), bS = mx(10);
-  ctx.beginPath(); ctx.roundRect(bX, hY, bS, bS, mx(2.5));
-  ctx.fillStyle = '#3fa9a3'; ctx.fill();
   ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${mpt(20)}px Arial,Helvetica,sans-serif`;
-  ctx.textBaseline = 'middle'; ctx.textAlign = 'center';
-  ctx.fillText(unit, bX + bS / 2, hY + bS / 2 + mpt(1));
+  ctx.font = `500 ${mpt(7)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('UNIT', unitX + mx(2), hY + hH * 0.32);
+  ctx.font = `800 ${mpt(19)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(String(unit), unitX + mx(1.6), hY + hH * 0.92);
 
-  // Soft gradient title bar (teal → white), no dotted line beneath it
-  const gX = mx(34), gEndX = mx(200);
-  const grad = ctx.createLinearGradient(gX, 0, gEndX, 0);
-  grad.addColorStop(0, '#cfe8e5');
+  // ── Title bar: vertical gradient (rounded only on the right) ────────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(gradX, hY, gradEndX - gradX, hH, [0, r, r, 0]);
+  ctx.clip();
+  const grad = ctx.createLinearGradient(0, hY, 0, hY + hH);
+  grad.addColorStop(0, '#c2dbd3');
   grad.addColorStop(1, '#ffffff');
   ctx.fillStyle = grad;
-  ctx.fillRect(gX, hY, gEndX - gX, hH);
+  ctx.fillRect(gradX, hY, gradEndX - gradX, hH);
+  ctx.restore();
 
-  ctx.fillStyle = '#2b7a74';
-  ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
-  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  ctx.fillText(headerText, gX + mx(4), hY + hH / 2);
-  ctx.textAlign = 'left';
+  ctx.fillStyle = '#5dacac';
+  ctx.textBaseline = 'middle';
+  const titleSize = mpt(15);
+  ctx.font = `${titleSize}px Anton,Arial,sans-serif`;
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${titleSize * 0.065}px`;
+  ctx.fillText(title, gradX + mx(4), hY + hH / 2 + titleSize * 0.05);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
+  if (opts.isElaLesson) await _ensureElaHeaderFonts();
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -10461,7 +10514,9 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
 
         if (opts.isElaLesson) {
           // ── ELA Lesson Notes (6th-8th): triângulos + selo numerado + degradê, sem linha pontilhada ──
-          _drawElaLessonHeader(ctx, mx, my, mpt, opts.unit || '', headerText);
+          _drawElaLessonHeader(ctx, mx, my, mpt, {
+            unit: opts.unit || '', lesson: opts.lesson || '', title: opts.title || headerText,
+          });
         } else {
           // Verde: x=10mm, y=5mm, 30×10mm (10mm esquerdo = 10mm direito)
           const gX = mx(10), gW = mx(30);
@@ -10510,6 +10565,7 @@ function _overlayTextsForType(type) {
   const unit       = document.getElementById('unit')?.value.trim()       || '';
   const lesson     = document.getElementById('lesson')?.value.trim()     || '';
   const ccss       = document.getElementById('ccss')?.value.trim()       || '';
+  const lessonName = document.getElementById('lesson-name')?.value.trim() || '';
   const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
   const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const gradeNum   = parseInt(turma, 10) || 0;
@@ -10521,7 +10577,8 @@ function _overlayTextsForType(type) {
     : isElaLesson                      ? `Lesson Notes ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
   const footer = `${disciplina} - ${turma} | ${ccss}`;
-  return { header, footer, isElaLesson, unit };
+  const title = lessonName || header;
+  return { header, footer, isElaLesson, unit, lesson, title };
 }
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
