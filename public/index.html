@@ -10435,8 +10435,11 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title, info, top
   ctx.fillText(String(unit), centerB, midY + gapB + mpt(2));
 
   // Title + info, grouped as one left-aligned block, vertically centered
-  // with the bar (info — discipline/grade/CCSS — sits below the title,
-  // replacing what used to be printed in the footer).
+  // with the bar. Left edge lines up with the "Unit X" block's own right
+  // edge (649) rather than an offset measured from the gradient panel.
+  // Info — discipline/grade/CCSS — sits below the title, in black,
+  // replacing what used to be printed in the footer.
+  const textX = X(669);
   ctx.textAlign = 'left';
   const titleSize = mpt(15);
   const hasInfo = !!info;
@@ -10444,12 +10447,12 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title, info, top
   ctx.fillStyle = '#5dacac';
   ctx.font = `${titleSize}px Anton,Arial,sans-serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${titleSize * 0.065}px`;
-  ctx.fillText(title, X(684), titleY);
+  ctx.fillText(title, textX, titleY);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   if (hasInfo) {
-    ctx.fillStyle = '#8cc0bb';
+    ctx.fillStyle = '#000000';
     ctx.font = `500 ${mpt(8.5)}px Poppins,Arial,sans-serif`;
-    ctx.fillText(info, X(684), midY + mpt(7));
+    ctx.fillText(info, textX, midY + mpt(7));
   }
 }
 
