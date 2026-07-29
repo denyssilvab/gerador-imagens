@@ -10372,17 +10372,19 @@ function _ensureElaHeaderFonts() {
 // ELA Lesson Notes header — drawn from the exact SVG source the design was
 // provided in (viewBox 0 0 2480 226, at true 300dpi scale where 2480px =
 // 210mm), via Path2D so every curve/corner matches the source pixel-for-
-// pixel instead of being hand-approximated. A single uniform scale factor
-// maps SVG coordinates straight into our mm-space without distortion.
+// pixel instead of being hand-approximated. Height is scaled to match the
+// Mathematics header's 10mm band (kY), while width keeps the SVG's native
+// 2480→210mm horizontal scale (kX) — a deliberate non-uniform scale.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
-  const k    = mx(210 / 2480);
-  const yOff = my(0.4);
-  const X = svgX => k * svgX;
-  const Y = svgY => yOff + k * svgY;
+  const kX   = mx(210 / 2480);
+  const kY   = my(10 / 226);
+  const yOff = my(5); // same top margin as the Mathematics header's 10mm band
+  const X = svgX => kX * svgX;
+  const Y = svgY => yOff + kY * svgY;
 
   ctx.save();
   ctx.translate(0, yOff);
-  ctx.scale(k, k);
+  ctx.scale(kX, kY);
 
   // Icon square (clipped to the SVG's rounded-left-corners mask)
   ctx.save();
@@ -10412,23 +10414,31 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
   ctx.restore();
 
   // ── Dynamic text, drawn in normal canvas space (outside the SVG scale) ──
-  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.font = `700 ${mpt(11)}px Poppins,Arial,sans-serif`;
-  ctx.fillText('Lesson', X(210), Y(96));
-  ctx.font = `500 ${mpt(10)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(`Notes ${lesson}`, X(210), Y(162));
+  const midY = Y(103); // vertical center shared by both teal blocks
 
+  // Lesson / Notes X — centered (both axes) in block A, tight line spacing
+  const centerA = X((190 + 489) / 2);
+  ctx.fillStyle = '#ffffff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const gapA = mpt(5.5);
+  ctx.font = `700 ${mpt(11)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('Lesson', centerA, midY - gapA);
+  ctx.font = `500 ${mpt(10)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(`Notes ${lesson}`, centerA, midY + gapA);
+
+  // UNIT / number — centered (both axes) in block B
+  const centerB = X((489 + 649) / 2);
+  const gapB = mpt(6);
   ctx.font = `500 ${mpt(7.5)}px Poppins,Arial,sans-serif`;
-  ctx.fillText('UNIT', X(510), Y(70));
-  ctx.font = `800 ${mpt(20)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(String(unit), X(507), Y(182));
+  ctx.fillText('UNIT', centerB, midY - gapB);
+  ctx.font = `800 ${mpt(19)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(String(unit), centerB, midY + gapB + mpt(2));
 
   ctx.fillStyle = '#5dacac';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'left';
   const titleSize = mpt(16);
   ctx.font = `${titleSize}px Anton,Arial,sans-serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${titleSize * 0.065}px`;
-  ctx.fillText(title, X(684), Y(103) + titleSize * 0.05);
+  ctx.fillText(title, X(684), midY + titleSize * 0.05);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 
