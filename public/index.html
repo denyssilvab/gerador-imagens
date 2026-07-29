@@ -8780,7 +8780,7 @@ async function handleEvent(ev) {
       try {
         const pageDocType = ev.docType || docType;
         const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title, pageNum: ev.pageNum });
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       // Stable key for this image — reused in refazer/retry so we update, not duplicate
       const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
@@ -9570,7 +9570,7 @@ async function confirmRefazer() {
             }
             try {
               const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title, pageNum });
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
@@ -9658,7 +9658,7 @@ async function retryPage(domKey) {
             try {
               const pageDocType = ev.docType || pd.docType || docType;
               const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title, pageNum: pd.num });
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
@@ -10375,12 +10375,11 @@ function _ensureElaHeaderFonts() {
 // pixel instead of being hand-approximated. Scaled UNIFORMLY (no
 // distortion) so its width spans the same x=10mm..200mm range as every
 // other header's dotted line; height comes out proportional automatically.
-function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
-  const spanMM    = 190; // x=10mm to x=200mm
-  const k         = mx(spanMM / 2480);
-  const xOff      = mx(10);
-  const contentMM = 226 * (spanMM / 2480);
-  const yOff      = my((20 - contentMM) / 2); // vertically centered in the 20mm header zone
+function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title, info, topMarginMM = 7 }) {
+  const spanMM = 190; // x=10mm to x=200mm
+  const k      = mx(spanMM / 2480);
+  const xOff   = mx(10);
+  const yOff   = my(topMarginMM);
   const X = svgX => xOff + k * svgX;
   const Y = svgY => yOff + k * svgY;
 
@@ -10435,13 +10434,23 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
   ctx.font = `800 ${mpt(19)}px Poppins,Arial,sans-serif`;
   ctx.fillText(String(unit), centerB, midY + gapB + mpt(2));
 
-  ctx.fillStyle = '#5dacac';
+  // Title + info, grouped as one left-aligned block, vertically centered
+  // with the bar (info — discipline/grade/CCSS — sits below the title,
+  // replacing what used to be printed in the footer).
   ctx.textAlign = 'left';
-  const titleSize = mpt(16);
+  const titleSize = mpt(15);
+  const hasInfo = !!info;
+  const titleY = hasInfo ? midY - mpt(6.5) : midY + titleSize * 0.05;
+  ctx.fillStyle = '#5dacac';
   ctx.font = `${titleSize}px Anton,Arial,sans-serif`;
   if ('letterSpacing' in ctx) ctx.letterSpacing = `${titleSize * 0.065}px`;
-  ctx.fillText(title, X(684), midY + titleSize * 0.05);
+  ctx.fillText(title, X(684), titleY);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  if (hasInfo) {
+    ctx.fillStyle = '#8cc0bb';
+    ctx.font = `500 ${mpt(8.5)}px Poppins,Arial,sans-serif`;
+    ctx.fillText(info, X(684), midY + mpt(7));
+  }
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
@@ -10502,6 +10511,24 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
         ctx.fillText(footerText, W / 2, fY + my(7.5));
         ctx.textAlign = 'left';
 
+      } else if (opts.isElaLesson) {
+        // ── ELA Lesson Notes (6th-8th): bigger top margin above the bar
+        // (paid for by a shorter, now-empty footer), bar + grouped title/
+        // info only on page 1 — every other page is just the lesson content.
+        const isFirstPage = opts.pageNum == null || Number(opts.pageNum) === 1;
+        const headerZoneMM = 27, footerZoneMM = 8;
+        const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
+        ctx.drawImage(img, 0, cTop, W, cH);
+
+        ctx.fillRect(0, 0, W, my(headerZoneMM)); // white header zone bg
+        if (isFirstPage) {
+          _drawElaLessonHeader(ctx, mx, my, mpt, {
+            unit: opts.unit || '', lesson: opts.lesson || '', title: opts.title || headerText, info: footerText,
+          });
+        }
+        // Footer zone stays blank — no dotted line, no text (info moved into the header above)
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(footerZoneMM), W, my(footerZoneMM));
+
       } else {
         // ── Lesson (azul) / Practice (lilás) — idêntico ao Lesson Plan, só muda a cor ──
         const barColor = type === 'practice' ? '#9b59b6' : '#0251af';
@@ -10513,31 +10540,24 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
         ctx.fillRect(0, 0, W, my(20));
         const hY = my(5), hH = my(10);
 
-        if (opts.isElaLesson) {
-          // ── ELA Lesson Notes (6th-8th): triângulos + selo numerado + degradê, sem linha pontilhada ──
-          _drawElaLessonHeader(ctx, mx, my, mpt, {
-            unit: opts.unit || '', lesson: opts.lesson || '', title: opts.title || headerText,
-          });
-        } else {
-          // Verde: x=10mm, y=5mm, 30×10mm (10mm esquerdo = 10mm direito)
-          const gX = mx(10), gW = mx(30);
-          ctx.fillStyle = '#89c13b';
-          ctx.fillRect(gX, hY, gW, hH);
-          _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
+        // Verde: x=10mm, y=5mm, 30×10mm (10mm esquerdo = 10mm direito)
+        const gX = mx(10), gW = mx(30);
+        ctx.fillStyle = '#89c13b';
+        ctx.fillRect(gX, hY, gW, hH);
+        _halftone(ctx, gX, hY, gW, hH, mx(1.2), mx(4), '#a8c735');
 
-          // Barra colorida: x=41mm → x=200mm
-          ctx.fillStyle = barColor;
-          ctx.fillRect(mx(41), hY, mx(200) - mx(41), hH);
+        // Barra colorida: x=41mm → x=200mm
+        ctx.fillStyle = barColor;
+        ctx.fillRect(mx(41), hY, mx(200) - mx(41), hH);
 
-          // Texto na barra (5mm após o início da barra colorida)
-          ctx.fillStyle = '#ffffff';
-          ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
-          ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-          ctx.fillText(headerText, mx(45), hY + hH / 2);
+        // Texto na barra (5mm após o início da barra colorida)
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${mpt(16)}px Arial,Helvetica,sans-serif`;
+        ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+        ctx.fillText(headerText, mx(45), hY + hH / 2);
 
-          // Linha pontilhada: y=20mm, x=10mm→x=200mm (simétrico)
-          _dottedLine(ctx, mx(10), my(20), mx(200), lw, mx(3), mx(2));
-        }
+        // Linha pontilhada: y=20mm, x=10mm→x=200mm (simétrico)
+        _dottedLine(ctx, mx(10), my(20), mx(200), lw, mx(3), mx(2));
 
         // Footer: 15mm do fundo, linha também simétrica x=10mm→x=200mm
         const fY = H - my(15);
