@@ -10386,19 +10386,28 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
   ctx.roundRect(iconX, hY, iconW, hH, [r, 0, 0, r]);
   ctx.fillStyle = '#f0e1b0'; ctx.fill();
 
-  // Twin-peak mountain icon, side by side, each peak split into a shaded/lit half
+  // Nested double-chevron icon: two "^" bands (each split into a left/right
+  // color half) with the tan background showing through as the gap between
+  // them, and again at the bottom tip.
   const ix = iconX + mx(1.3), iy = hY + mx(1.6), iw = iconW - mx(2.6), ih = hH - mx(3.2);
-  const lxA = ix + iw * 0.24, lyA = iy, lxL = ix, lxR = ix + iw * 0.48, lyB = iy + ih;
-  ctx.fillStyle = '#52849a';
-  ctx.beginPath(); ctx.moveTo(lxA, lyA); ctx.lineTo(lxL, lyB); ctx.lineTo(lxA, lyB); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#c65e62';
-  ctx.beginPath(); ctx.moveTo(lxA, lyA); ctx.lineTo(lxA, lyB); ctx.lineTo(lxR, lyB); ctx.closePath(); ctx.fill();
+  const pt = (nx, ny) => [ix + nx * iw, iy + ny * ih];
+  const chTri = (p1, p2, p3, color) => {
+    ctx.fillStyle = color; ctx.beginPath();
+    ctx.moveTo(...p1); ctx.lineTo(...p2); ctx.lineTo(...p3); ctx.closePath(); ctx.fill();
+  };
 
-  const rxA = ix + iw * 0.74, ryA = iy + ih * 0.22, rxL = ix + iw * 0.46, rxR = ix + iw, ryB = iy + ih;
-  ctx.fillStyle = '#c05a79';
-  ctx.beginPath(); ctx.moveTo(rxA, ryA); ctx.lineTo(rxL, ryB); ctx.lineTo(rxA, ryB); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#e1b184';
-  ctx.beginPath(); ctx.moveTo(rxA, ryA); ctx.lineTo(rxA, ryB); ctx.lineTo(rxR, ryB); ctx.closePath(); ctx.fill();
+  // Big chevron (teal/pink)
+  const a1 = pt(0.5, 0), l1 = pt(0, 0.48), r1 = pt(1, 0.48), m1 = pt(0.5, 0.48);
+  chTri(a1, l1, m1, '#52849a');
+  chTri(a1, m1, r1, '#c05a79');
+  // Cream cutout — opens the gap below the big chevron
+  chTri(pt(0.5, 0.28), pt(0.12, 0.60), pt(0.88, 0.60), '#f0e1b0');
+  // Small chevron (orange/red)
+  const a3 = pt(0.5, 0.40), l3 = pt(0.02, 0.97), r3 = pt(0.98, 0.97), m3 = pt(0.5, 0.97);
+  chTri(a3, l3, m3, '#e1b184');
+  chTri(a3, m3, r3, '#c65e62');
+  // Cream cutout — reveals the tan background at the small chevron's tip
+  chTri(pt(0.5, 0.54), pt(0.30, 1.02), pt(0.70, 1.02), '#f0e1b0');
 
   // ── "Lesson / Notes X" block (rounded only on the right) ────────────────
   ctx.beginPath();
