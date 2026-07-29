@@ -10372,19 +10372,21 @@ function _ensureElaHeaderFonts() {
 // ELA Lesson Notes header — drawn from the exact SVG source the design was
 // provided in (viewBox 0 0 2480 226, at true 300dpi scale where 2480px =
 // 210mm), via Path2D so every curve/corner matches the source pixel-for-
-// pixel instead of being hand-approximated. Height is scaled to match the
-// Mathematics header's 10mm band (kY), while width keeps the SVG's native
-// 2480→210mm horizontal scale (kX) — a deliberate non-uniform scale.
+// pixel instead of being hand-approximated. Scaled UNIFORMLY (no
+// distortion) so its width spans the same x=10mm..200mm range as every
+// other header's dotted line; height comes out proportional automatically.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { unit, lesson, title }) {
-  const kX   = mx(210 / 2480);
-  const kY   = my(10 / 226);
-  const yOff = my(5); // same top margin as the Mathematics header's 10mm band
-  const X = svgX => kX * svgX;
-  const Y = svgY => yOff + kY * svgY;
+  const spanMM    = 190; // x=10mm to x=200mm
+  const k         = mx(spanMM / 2480);
+  const xOff      = mx(10);
+  const contentMM = 226 * (spanMM / 2480);
+  const yOff      = my((20 - contentMM) / 2); // vertically centered in the 20mm header zone
+  const X = svgX => xOff + k * svgX;
+  const Y = svgY => yOff + k * svgY;
 
   ctx.save();
-  ctx.translate(0, yOff);
-  ctx.scale(kX, kY);
+  ctx.translate(xOff, yOff);
+  ctx.scale(k, k);
 
   // Icon square (clipped to the SVG's rounded-left-corners mask)
   ctx.save();
