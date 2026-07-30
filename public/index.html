@@ -10377,9 +10377,9 @@ function _ensureElaHeaderFonts() {
 // the (svgY - 134) offset skips the SVG's own empty top margin so the
 // visible content starts right at topMarginMM.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
-  const spanMM = 200; // x=10mm to x=210mm — a bit wider than the dotted-line span
+  const spanMM = 200; // x=5mm to x=205mm — a bit wider than the dotted-line span
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(10);
+  const xOff   = mx(5); // nudged left from 10mm to line up closer to the body content's margin
   const yOff   = my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10400,14 +10400,19 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   ctx.fillStyle = '#c65e62'; ctx.fill(new Path2D('M245,172 L245,252 L286,292 L324,292 L324,250 Z'));
   ctx.restore();
 
+  // "Lesson Guide X" block narrowed from its original 324-717 span — the
+  // text never used that full width, so the extra room now goes to the
+  // title panel instead (right edge chosen to fit up to "GUIDE 100").
+  const guideRightEdge = 660;
+
   // Dark teal base block (peeks out ~12 SVG units below the lighter title
   // panel, drawn next, to form the "shelf" edge under the title panel)
   ctx.fillStyle = '#00aeae';
-  ctx.fillRect(324, 134, 1987, 158);
+  ctx.fillRect(324, 134, guideRightEdge - 324, 158);
 
   // Lighter title panel
   ctx.fillStyle = '#a0dede';
-  ctx.fillRect(717, 134, 1594, 146);
+  ctx.fillRect(guideRightEdge, 134, 2311 - guideRightEdge, 146);
 
   ctx.restore();
 
@@ -10419,10 +10424,22 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   ctx.font = `500 ${fpx(58)}px Poppins,Arial,sans-serif`;
   ctx.fillText(`GUIDE ${lesson}`, X(354), Y(262));
 
+  // Title — shrink-to-fit so a long lesson title can never overflow past
+  // the panel's right edge (previously a fixed font size could overrun it).
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0a0f0f';
-  ctx.font = `800 ${fpx(62)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(title, X(763), Y(231));
+  const titleStartSvg = guideRightEdge + 46;
+  const titleMaxSvg   = 2311 - 30;
+  const titleStartX = X(titleStartSvg);
+  const availW = X(titleMaxSvg) - titleStartX;
+  let titlePx = fpx(62);
+  ctx.font = `800 ${titlePx}px Poppins,Arial,sans-serif`;
+  const tw = ctx.measureText(title).width;
+  if (tw > availW) {
+    titlePx *= availW / tw;
+    ctx.font = `800 ${titlePx}px Poppins,Arial,sans-serif`;
+  }
+  ctx.fillText(title, titleStartX, Y(231));
 }
 
 // ELA Lesson Notes footer — same technique as the header, ported from the
@@ -10431,7 +10448,7 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
 function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footerZoneMM, topMarginMM = 3) {
   const spanMM = 200; // matches the header's slightly-wider span
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(10);
+  const xOff   = mx(5); // matches the header's left edge
   const yOff   = (H - my(footerZoneMM)) + my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10454,7 +10471,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
   ctx.fillText('UNIT', X(120), Y(108));
   ctx.textAlign = 'right';
   ctx.font = `900 ${fpx(62)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(String(unit), X(289), Y(119));
+  ctx.fillText(String(unit), X(282), Y(119)); // small right padding from the badge's true edge (297)
   ctx.textAlign = 'left';
 
   ctx.fillStyle = '#111111';
