@@ -10483,7 +10483,7 @@ function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM 
   ctx.fillStyle = '#da6aa1'; ctx.fill(new Path2D('M245,217 L245,292 L167,292 Z'));
   ctx.fillStyle = '#d55797'; ctx.fill(new Path2D('M245,217 L245,292 L323,292 Z'));
 
-  const rightEdge = 2324; // was 2284 (323+1961) — stretched +40, matching the Lesson Notes header
+  const rightEdge = 2360; // was 2284 (323+1961) — stretched further right than the Lesson Notes header
 
   // Dark magenta base block (peeks out as the thin "shelf" strip below the
   // lighter title panel, same technique as Lesson Notes)
@@ -10543,7 +10543,7 @@ function _drawElaLessonPlanHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM
   ctx.fillStyle = '#9675a8'; ctx.fill(new Path2D('M245,217 L245,292 L167,292 Z'));
   ctx.fillStyle = '#7e5693'; ctx.fill(new Path2D('M245,217 L245,292 L323,292 Z'));
 
-  const rightEdge = 2324; // was 2284 (323+1961) — stretched +40, matching the other ELA headers
+  const rightEdge = 2360; // was 2284 (323+1961) — stretched further right than the Lesson Notes header
 
   // Dark purple base block (peeks out as the thin "shelf" strip below the
   // lighter title panel, same technique as the other ELA headers)
@@ -10687,7 +10687,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
       } else if (opts.isElaLesson) {
         // ── ELA Lesson Notes (6th-8th): "Lesson Guide X" + title header,
         // "Unit X" + CCSS/grade footer — both on every page.
-        const headerZoneMM = 20, footerZoneMM = 13;
+        const headerZoneMM = 20, footerZoneMM = 16; // extra ~5mm margin below the footer bar, matching the header's own top margin
         const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
         ctx.drawImage(img, 0, cTop, W, cH);
 
@@ -10704,7 +10704,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
       } else if (opts.isElaWorksheet) {
         // ── ELA Worksheet (6th-8th): "Worksheet X" + title header (pink),
         // same "Unit X" + CCSS/grade footer as Lesson Notes, recolored.
-        const headerZoneMM = 20, footerZoneMM = 13;
+        const headerZoneMM = 20, footerZoneMM = 16; // extra ~5mm margin below the footer bar, matching the header's own top margin
         const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
         ctx.drawImage(img, 0, cTop, W, cH);
 
@@ -10721,7 +10721,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
       } else if (opts.isElaLessonPlan) {
         // ── ELA Lesson Plan (6th-8th): "Lesson / Plan X" + title header
         // (purple), same "Unit X" + CCSS/grade footer, recolored.
-        const headerZoneMM = 20, footerZoneMM = 13;
+        const headerZoneMM = 20, footerZoneMM = 16; // extra ~5mm margin below the footer bar, matching the header's own top margin
         const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
         ctx.drawImage(img, 0, cTop, W, cH);
 
