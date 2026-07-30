@@ -6850,6 +6850,8 @@ The page should feel like part of the same book, not a collection of independent
 TYPOGRAPHY AND HEIGHT ESTIMATE
 ==================================================
 
+{{FONT_LINE}}
+
 Title: 20pt bold #092964
 
 Subtitle: 18pt regular #0251af
@@ -7207,6 +7209,7 @@ practice: `# FORMAT: A4 (210mm × 297mm), 300 DPI
 - DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
 
 ## TYPOGRAPHY (NEVER SMALLER THAN):
+{{FONT_LINE}}
 - Section titles: 20pt Bold #092964
 - Exercise numbers: 16pt Bold #0251af
 - Instructions: 18pt Regular #000000
@@ -7571,6 +7574,8 @@ Text blocks should extend appropriately within the content area without creating
 ==================================================
 TYPOGRAPHY
 ==================================================
+
+{{FONT_LINE}}
 
 Page titles:
 24pt Bold #092964
@@ -8017,9 +8022,15 @@ END OF LAYOUT RULES
 
 // Resolves which layout/design spec to use for image generation. SPECS is
 // shared across every discipline/grade combination (Mathematics and ELA
-// alike) for all three doc types.
+// alike) for all three doc types — the only per-discipline difference is
+// the {{FONT_LINE}} token in each TYPOGRAPHY section, which requests a
+// serif font (Merriweather) for ELA and is stripped out entirely for Math.
 function _getSpecsFor(type, discipline, grade) {
-  return SPECS[type];
+  const raw = SPECS[type];
+  if (!raw.includes('{{FONT_LINE}}')) return raw;
+  const isEla = (discipline || '').trim() === 'English Language Arts';
+  const fontLine = !isEla ? '' : type === 'practice' ? '- Font: Merriweather, serif' : 'Font: Merriweather, serif';
+  return raw.replace('{{FONT_LINE}}', fontLine);
 }
 
 // ── IndexedDB ──────────────────────────────────────────────────────────────
