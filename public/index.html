@@ -10377,7 +10377,7 @@ function _ensureElaHeaderFonts() {
 // the (svgY - 134) offset skips the SVG's own empty top margin so the
 // visible content starts right at topMarginMM.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
-  const spanMM = 190; // x=10mm to x=200mm
+  const spanMM = 200; // x=10mm to x=210mm — a bit wider than the dotted-line span
   const k      = mx(spanMM / 2480);
   const xOff   = mx(10);
   const yOff   = my(topMarginMM);
@@ -10412,12 +10412,12 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   ctx.restore();
 
   // ── Text, drawn in normal canvas space (outside the SVG scale) ──
-  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 ${fpx(58)}px Poppins,Arial,sans-serif`;
-  ctx.fillText('LESSON', X(521), Y(205));
+  ctx.fillText('LESSON', X(354), Y(205));
   ctx.font = `500 ${fpx(58)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(`GUIDE ${lesson}`, X(521), Y(262));
+  ctx.fillText(`GUIDE ${lesson}`, X(354), Y(262));
 
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0a0f0f';
@@ -10429,7 +10429,7 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
 // exact SVG source (viewBox 0 0 2480 202). Sits inside a footerZoneMM-tall
 // band reserved at the bottom of the page.
 function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footerZoneMM, topMarginMM = 3) {
-  const spanMM = 190;
+  const spanMM = 200; // matches the header's slightly-wider span
   const k      = mx(spanMM / 2480);
   const xOff   = mx(10);
   const yOff   = (H - my(footerZoneMM)) + my(topMarginMM);
@@ -10448,12 +10448,14 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
 
   ctx.restore();
 
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = '#ffffff'; ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left';
   ctx.font = `800 ${fpx(34)}px Poppins,Arial,sans-serif`;
   ctx.fillText('UNIT', X(120), Y(108));
+  ctx.textAlign = 'right';
   ctx.font = `900 ${fpx(62)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(String(unit), X(216), Y(119));
+  ctx.fillText(String(unit), X(289), Y(119));
+  ctx.textAlign = 'left';
 
   ctx.fillStyle = '#111111';
   ctx.font = `800 ${fpx(35)}px Poppins,Arial,sans-serif`;
