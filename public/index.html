@@ -10377,9 +10377,14 @@ function _ensureElaHeaderFonts() {
 // the (svgY - 134) offset skips the SVG's own empty top margin so the
 // visible content starts right at topMarginMM.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
-  const spanMM = 190; // x=10mm to x=200mm — same span as the Mathematics header's dotted line
+  // Full 210mm page width, matching the SVG's own native scale (2480 units
+  // = 210mm) — its content already has ~14mm margins baked in on both
+  // sides (icon starts at svgX=165, footer's line ends at svgX=2311), so
+  // this reaches much closer to the page edges than the old 10mm-inset,
+  // 190mm-wide guess without needing an extra crop.
+  const spanMM = 210;
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(10);
+  const xOff   = 0;
   const yOff   = my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10446,9 +10451,9 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
 // exact SVG source (viewBox 0 0 2480 202). Sits inside a footerZoneMM-tall
 // band reserved at the bottom of the page.
 function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footerZoneMM, topMarginMM = 3) {
-  const spanMM = 190; // x=10mm to x=200mm — same span as the header (and Mathematics)
+  const spanMM = 210; // full page width — matches the header's native SVG scale
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(10);
+  const xOff   = 0;
   const yOff   = (H - my(footerZoneMM)) + my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
