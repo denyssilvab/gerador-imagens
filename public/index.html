@@ -8780,8 +8780,8 @@ async function handleEvent(ev) {
       // Aplica header/footer programático
       try {
         const pageDocType = ev.docType || docType;
-        const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
+        const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       // Stable key for this image — reused in refazer/retry so we update, not duplicate
       const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
@@ -9570,8 +9570,8 @@ async function confirmRefazer() {
               catch (e) { console.warn('Overlay refazer fetch falhou:', e); }
             }
             try {
-              const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
@@ -9658,8 +9658,8 @@ async function retryPage(domKey) {
             }
             try {
               const pageDocType = ev.docType || pd.docType || docType;
-              const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
@@ -10516,6 +10516,69 @@ function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM 
   ctx.fillText(title, titleStartX, Y(230));
 }
 
+// ELA Lesson Plan header — same technique as _drawElaWorksheetHeader (same
+// SVG shape/geometry family, viewBox 0 0 2480 440, no rounded icon
+// corners), but with the two-line "LESSON" / "PLAN X" label used by
+// _drawElaLessonHeader instead of a single "WORKSHEET X" line, and a black
+// (not white) title — the source SVG's own title color is overridden per
+// the user's explicit request.
+function _drawElaLessonPlanHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
+  const spanMM = 210;
+  const k      = mx(spanMM / 2480);
+  const xOff   = -63 * k; // icon starts at svgX=167, same as the Worksheet header
+  const yOff   = my(topMarginMM);
+  const fpx = s => s * k;
+  const X = svgX => xOff + k * svgX;
+  const Y = svgY => yOff + k * (svgY - 136);
+
+  ctx.save();
+  ctx.translate(xOff, yOff);
+  ctx.scale(k, k);
+  ctx.translate(0, -136);
+
+  // Icon square (no rounding — matches the source exactly)
+  ctx.fillStyle = '#e9e4ef'; ctx.fillRect(167, 136, 156, 156);
+  ctx.fillStyle = '#cbbdd7'; ctx.fill(new Path2D('M167,136 L245,136 L245,150 L167,228 Z'));
+  ctx.fillStyle = '#633c7e'; ctx.fill(new Path2D('M245,136 L323,136 L323,225 L245,150 Z'));
+  ctx.fillStyle = '#9675a8'; ctx.fill(new Path2D('M245,217 L245,292 L167,292 Z'));
+  ctx.fillStyle = '#7e5693'; ctx.fill(new Path2D('M245,217 L245,292 L323,292 Z'));
+
+  const rightEdge = 2324; // was 2284 (323+1961) — stretched +40, matching the other ELA headers
+
+  // Dark purple base block (peeks out as the thin "shelf" strip below the
+  // lighter title panel, same technique as the other ELA headers)
+  ctx.fillStyle = '#633c7e';
+  ctx.fillRect(323, 136, rightEdge - 323, 156);
+
+  // Lighter title panel
+  ctx.fillStyle = '#bfb2ca';
+  ctx.fillRect(712, 136, rightEdge - 712, 143);
+
+  ctx.restore();
+
+  // ── Text, drawn in normal canvas space (outside the SVG scale) ──
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `800 ${fpx(58)}px Poppins,Arial,sans-serif`;
+  ctx.fillText('LESSON', X(354), Y(207));
+  ctx.font = `500 ${fpx(58)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(`PLAN ${lesson}`, X(354), Y(264));
+
+  // Title — black per the user's request (source SVG had it white), with
+  // the same shrink-to-fit safety net as the other ELA headers.
+  ctx.fillStyle = '#0a0f0f';
+  const titleStartX = X(763);
+  const availW = X(rightEdge - 30) - titleStartX;
+  let titlePx = fpx(42); // ~1pt smaller than the SVG's nominal 46, as extra safety margin
+  ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
+  const tw = ctx.measureText(title).width;
+  if (tw > availW) {
+    titlePx *= availW / tw;
+    ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
+  }
+  ctx.fillText(title, titleStartX, Y(230));
+}
+
 // ELA Lesson Notes footer — same technique as the header, ported from the
 // exact SVG source (viewBox 0 0 2480 202). Sits inside a footerZoneMM-tall
 // band reserved at the bottom of the page.
@@ -10564,7 +10627,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText, color = 
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
-  if (opts.isElaLesson || opts.isElaWorksheet) await _ensureElaHeaderFonts();
+  if (opts.isElaLesson || opts.isElaWorksheet || opts.isElaLessonPlan) await _ensureElaHeaderFonts();
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -10582,7 +10645,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, W, H);
 
-      if (type === 'lessonplan') {
+      if (type === 'lessonplan' && !opts.isElaLessonPlan) {
         // ── Escala a imagem da IA para caber EXATAMENTE na zona de conteúdo ──
         // Header: 20mm | Footer: 15mm → conteúdo: 262mm dos 297mm totais
         const cTop = my(20), cH = H - my(20) - my(15);
@@ -10655,6 +10718,23 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
           unit: opts.unit || '', ccssGradeText: footerText, color: '#d9117d',
         }, footerZoneMM);
 
+      } else if (opts.isElaLessonPlan) {
+        // ── ELA Lesson Plan (6th-8th): "Lesson / Plan X" + title header
+        // (purple), same "Unit X" + CCSS/grade footer, recolored.
+        const headerZoneMM = 20, footerZoneMM = 13;
+        const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
+        ctx.drawImage(img, 0, cTop, W, cH);
+
+        ctx.fillRect(0, 0, W, my(headerZoneMM)); // white header zone bg
+        _drawElaLessonPlanHeader(ctx, mx, my, mpt, {
+          lesson: opts.lesson || '', title: opts.title || headerText,
+        });
+
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(footerZoneMM), W, my(footerZoneMM));
+        _drawElaLessonFooter(ctx, mx, my, W, H, {
+          unit: opts.unit || '', ccssGradeText: footerText, color: '#633c7e',
+        }, footerZoneMM);
+
       } else {
         // ── Lesson (azul) / Practice (lilás) — idêntico ao Lesson Plan, só muda a cor ──
         const barColor = type === 'practice' ? '#9b59b6' : '#0251af';
@@ -10716,21 +10796,24 @@ function _overlayTextsForType(type) {
   const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
   const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const gradeNum   = parseInt(turma, 10) || 0;
-  // ELA Lesson Notes / Worksheet (6th-8th) use dedicated header designs
-  // ("Lesson Guide" / "Worksheet") sharing the same "Unit X / CCSS - Grade"
-  // footer design — see applyHeaderFooter's elaLesson/elaWorksheet branches.
+  // ELA Lesson Notes / Worksheet / Lesson Plan (6th-8th) use dedicated
+  // header designs ("Lesson Guide" / "Worksheet" / "Lesson Plan") sharing
+  // the same "Unit X / discipline / CCSS / Grade" footer design — see
+  // applyHeaderFooter's elaLesson/elaWorksheet/elaLessonPlan branches.
   const isElaMS = disciplina === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
-  const isElaLesson    = type === 'lesson'   && isElaMS;
-  const isElaWorksheet = type === 'practice' && isElaMS;
-  const header = type === 'lessonplan' ? `Unit ${unit} | Lesson Plan ${lesson}`
-    : isElaLesson                      ? `Lesson Guide ${lesson}`
-    : isElaWorksheet                   ? `Worksheet ${lesson}`
+  const isElaLesson     = type === 'lesson'     && isElaMS;
+  const isElaWorksheet  = type === 'practice'   && isElaMS;
+  const isElaLessonPlan = type === 'lessonplan' && isElaMS;
+  const header = isElaLessonPlan  ? `Lesson Plan ${lesson}`
+    : type === 'lessonplan'       ? `Unit ${unit} | Lesson Plan ${lesson}`
+    : isElaLesson                 ? `Lesson Guide ${lesson}`
+    : isElaWorksheet              ? `Worksheet ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
-  const footer = (isElaLesson || isElaWorksheet)
+  const footer = (isElaLesson || isElaWorksheet || isElaLessonPlan)
     ? `${disciplina.toUpperCase()} / CCSS ${ccss} / ${turma.replace(/Grade$/i, 'GRADE')}`
     : `${disciplina} - ${turma} | ${ccss}`;
   const title = lessonName || header;
-  return { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title };
+  return { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title };
 }
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
