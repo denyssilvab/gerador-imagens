@@ -10377,9 +10377,9 @@ function _ensureElaHeaderFonts() {
 // the (svgY - 134) offset skips the SVG's own empty top margin so the
 // visible content starts right at topMarginMM.
 function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
-  const spanMM = 200; // x=5mm to x=205mm — a bit wider than the dotted-line span
+  const spanMM = 190; // x=10mm to x=200mm — same span as the Mathematics header's dotted line
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(5); // nudged left from 10mm to line up closer to the body content's margin
+  const xOff   = mx(10);
   const yOff   = my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10446,9 +10446,9 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
 // exact SVG source (viewBox 0 0 2480 202). Sits inside a footerZoneMM-tall
 // band reserved at the bottom of the page.
 function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footerZoneMM, topMarginMM = 3) {
-  const spanMM = 200; // matches the header's slightly-wider span
+  const spanMM = 190; // x=10mm to x=200mm — same span as the header (and Mathematics)
   const k      = mx(spanMM / 2480);
-  const xOff   = mx(5); // matches the header's left edge
+  const xOff   = mx(10);
   const yOff   = (H - my(footerZoneMM)) + my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10474,9 +10474,19 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
   ctx.fillText(String(unit), X(282), Y(119)); // small right padding from the badge's true edge (297)
   ctx.textAlign = 'left';
 
+  // Shrink-to-fit — this line now carries discipline + CCSS + grade, so it
+  // can run long; never let it overflow past the footer's right edge.
   ctx.fillStyle = '#111111';
-  ctx.font = `800 ${fpx(35)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(ccssGradeText, X(326), Y(109));
+  const infoStartX = X(326);
+  const infoMaxW = X(2460) - infoStartX;
+  let infoPx = fpx(35);
+  ctx.font = `800 ${infoPx}px Poppins,Arial,sans-serif`;
+  const iw = ctx.measureText(ccssGradeText).width;
+  if (iw > infoMaxW) {
+    infoPx *= infoMaxW / iw;
+    ctx.font = `800 ${infoPx}px Poppins,Arial,sans-serif`;
+  }
+  ctx.fillText(ccssGradeText, infoStartX, Y(109));
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
@@ -10624,7 +10634,7 @@ function _overlayTextsForType(type) {
     : isElaLesson                      ? `Lesson Guide ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
   const footer = isElaLesson
-    ? `CCSS ${ccss} – ${turma.toUpperCase()}`
+    ? `${disciplina.toUpperCase()} / CCSS ${ccss} / ${turma.replace(/Grade$/i, 'GRADE')}`
     : `${disciplina} - ${turma} | ${ccss}`;
   const title = lessonName || header;
   return { header, footer, isElaLesson, unit, lesson, title };
