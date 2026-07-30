@@ -8780,8 +8780,8 @@ async function handleEvent(ev) {
       // Aplica header/footer programático
       try {
         const pageDocType = ev.docType || docType;
-        const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+        const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       // Stable key for this image — reused in refazer/retry so we update, not duplicate
       const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
@@ -9570,8 +9570,8 @@ async function confirmRefazer() {
               catch (e) { console.warn('Overlay refazer fetch falhou:', e); }
             }
             try {
-              const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
@@ -9658,8 +9658,8 @@ async function retryPage(domKey) {
             }
             try {
               const pageDocType = ev.docType || pd.docType || docType;
-              const { header, footer, isElaLesson, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, unit, lesson, title });
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
@@ -10457,10 +10457,69 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   ctx.fillText(title, titleStartX, Y(231));
 }
 
+// ELA Worksheet header — same technique as _drawElaLessonHeader, ported
+// from its own exact SVG source (viewBox 0 0 2480 440). No rounded corners
+// on the icon this time (the source SVG has no clip path for it).
+function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
+  const spanMM = 210;
+  const k      = mx(spanMM / 2480);
+  // Icon starts at svgX=167 here (vs 165 for Lesson Notes) — shift by 63
+  // SVG units so it still lines up with the shared footer's badge at 104.
+  const xOff   = -63 * k;
+  const yOff   = my(topMarginMM);
+  const fpx = s => s * k;
+  const X = svgX => xOff + k * svgX;
+  const Y = svgY => yOff + k * (svgY - 136);
+
+  ctx.save();
+  ctx.translate(xOff, yOff);
+  ctx.scale(k, k);
+  ctx.translate(0, -136);
+
+  // Icon square (no rounding — matches the source exactly)
+  ctx.fillStyle = '#f5e4ee'; ctx.fillRect(167, 136, 156, 156);
+  ctx.fillStyle = '#eab6d1'; ctx.fill(new Path2D('M167,136 L245,136 L245,150 L167,228 Z'));
+  ctx.fillStyle = '#d9117d'; ctx.fill(new Path2D('M245,136 L323,136 L323,225 L245,150 Z'));
+  ctx.fillStyle = '#da6aa1'; ctx.fill(new Path2D('M245,217 L245,292 L167,292 Z'));
+  ctx.fillStyle = '#d55797'; ctx.fill(new Path2D('M245,217 L245,292 L323,292 Z'));
+
+  const rightEdge = 2324; // was 2284 (323+1961) — stretched +40, matching the Lesson Notes header
+
+  // Dark magenta base block (peeks out as the thin "shelf" strip below the
+  // lighter title panel, same technique as Lesson Notes)
+  ctx.fillStyle = '#d9117d';
+  ctx.fillRect(323, 136, rightEdge - 323, 156);
+
+  // Lighter title panel
+  ctx.fillStyle = '#f6b9cf';
+  ctx.fillRect(712, 136, rightEdge - 712, 143);
+
+  ctx.restore();
+
+  // ── Text, drawn in normal canvas space (outside the SVG scale) ──
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `800 ${fpx(40)}px Poppins,Arial,sans-serif`;
+  ctx.fillText(`WORKSHEET ${lesson}`, X(354), Y(230));
+
+  // Title — shrink-to-fit so a long title can never overflow past the panel
+  ctx.fillStyle = '#111111';
+  const titleStartX = X(763);
+  const availW = X(rightEdge - 30) - titleStartX;
+  let titlePx = fpx(42); // ~1pt smaller than the SVG's nominal 46, as extra safety margin
+  ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
+  const tw = ctx.measureText(title).width;
+  if (tw > availW) {
+    titlePx *= availW / tw;
+    ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
+  }
+  ctx.fillText(title, titleStartX, Y(230));
+}
+
 // ELA Lesson Notes footer — same technique as the header, ported from the
 // exact SVG source (viewBox 0 0 2480 202). Sits inside a footerZoneMM-tall
 // band reserved at the bottom of the page.
-function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footerZoneMM, topMarginMM = 3) {
+function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText, color = '#00aeae' }, footerZoneMM, topMarginMM = 3) {
   const spanMM = 210; // full page width — matches the header's native SVG scale
   const k      = mx(spanMM / 2480);
   const xOff   = 0;
@@ -10474,7 +10533,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
   ctx.scale(k, k);
   ctx.translate(0, -45);
 
-  ctx.fillStyle = '#00aeae';
+  ctx.fillStyle = color;
   ctx.fillRect(104, 45, 2247, 12); // thin top line spanning the footer (was 2207, stretched to match the header)
   ctx.fillRect(104, 45, 193, 90);  // "UNIT X" badge
 
@@ -10505,7 +10564,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
-  if (opts.isElaLesson) await _ensureElaHeaderFonts();
+  if (opts.isElaLesson || opts.isElaWorksheet) await _ensureElaHeaderFonts();
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -10579,6 +10638,23 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
           unit: opts.unit || '', ccssGradeText: footerText,
         }, footerZoneMM);
 
+      } else if (opts.isElaWorksheet) {
+        // ── ELA Worksheet (6th-8th): "Worksheet X" + title header (pink),
+        // same "Unit X" + CCSS/grade footer as Lesson Notes, recolored.
+        const headerZoneMM = 20, footerZoneMM = 13;
+        const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
+        ctx.drawImage(img, 0, cTop, W, cH);
+
+        ctx.fillRect(0, 0, W, my(headerZoneMM)); // white header zone bg
+        _drawElaWorksheetHeader(ctx, mx, my, mpt, {
+          lesson: opts.lesson || '', title: opts.title || headerText,
+        });
+
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(footerZoneMM), W, my(footerZoneMM));
+        _drawElaLessonFooter(ctx, mx, my, W, H, {
+          unit: opts.unit || '', ccssGradeText: footerText, color: '#d9117d',
+        }, footerZoneMM);
+
       } else {
         // ── Lesson (azul) / Practice (lilás) — idêntico ao Lesson Plan, só muda a cor ──
         const barColor = type === 'practice' ? '#9b59b6' : '#0251af';
@@ -10640,19 +10716,21 @@ function _overlayTextsForType(type) {
   const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
   const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const gradeNum   = parseInt(turma, 10) || 0;
-  // ELA Lesson Notes (6th-8th) uses a dedicated "Lesson Guide" header +
-  // "Unit X / CCSS - Grade" footer design — see applyHeaderFooter's
-  // elaLesson branch.
-  const isElaLesson = type === 'lesson' && disciplina === 'English Language Arts'
-    && gradeNum >= 6 && gradeNum <= 8;
+  // ELA Lesson Notes / Worksheet (6th-8th) use dedicated header designs
+  // ("Lesson Guide" / "Worksheet") sharing the same "Unit X / CCSS - Grade"
+  // footer design — see applyHeaderFooter's elaLesson/elaWorksheet branches.
+  const isElaMS = disciplina === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
+  const isElaLesson    = type === 'lesson'   && isElaMS;
+  const isElaWorksheet = type === 'practice' && isElaMS;
   const header = type === 'lessonplan' ? `Unit ${unit} | Lesson Plan ${lesson}`
     : isElaLesson                      ? `Lesson Guide ${lesson}`
+    : isElaWorksheet                   ? `Worksheet ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
-  const footer = isElaLesson
+  const footer = (isElaLesson || isElaWorksheet)
     ? `${disciplina.toUpperCase()} / CCSS ${ccss} / ${turma.replace(/Grade$/i, 'GRADE')}`
     : `${disciplina} - ${turma} | ${ccss}`;
   const title = lessonName || header;
-  return { header, footer, isElaLesson, unit, lesson, title };
+  return { header, footer, isElaLesson, isElaWorksheet, unit, lesson, title };
 }
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
