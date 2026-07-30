@@ -8007,7 +8007,704 @@ Before generating the final page, verify:
 
 ==================================================
 END OF LAYOUT RULES
-==================================================`
+==================================================`,
+
+// Dedicated Worksheet layout spec for ELA, middle school (6th-8th) only.
+// Math and all other grade bands keep using SPECS.practice above.
+practice_ela_ms: `# FORMAT: A4 (210mm × 297mm), 300 DPI
+
+==================================================
+DOCUMENT STRUCTURE
+==================================================
+
+The worksheet is a single continuous printable document.
+
+Headers and footers are added programmatically after generation.
+
+The printable page body must never recreate document headers or page identification.
+
+Do NOT generate:
+
+- document titles;
+- worksheet titles;
+- lesson titles;
+- lesson topics;
+- unit numbers;
+- lesson numbers;
+- CCSS codes;
+- page numbers;
+- headers;
+- footers;
+- borders;
+- side decorations.
+
+Begin the worksheet immediately with:
+
+- the first instructions;
+- the first reading passage;
+- the first exercise;
+- the first question;
+
+whichever is appropriate.
+
+==================================================
+DOCUMENT CONTINUITY (CRITICAL)
+==================================================
+
+Treat every generated page as part of one continuous worksheet.
+
+A page break NEVER starts a new document.
+
+After a page break:
+
+- continue numbering naturally;
+- continue the current section naturally;
+- continue the current exercise naturally;
+- never recreate document titles;
+- never recreate worksheet headings;
+- never restart the worksheet.
+
+The external document header already identifies the worksheet.
+
+Therefore, no internal document title should ever be generated.
+
+==================================================
+HEADER AND FOOTER
+==================================================
+
+Header and footer are inserted externally.
+
+DO NOT draw:
+
+- headers;
+- footers;
+- page borders;
+- decorative frames;
+- vertical side lines;
+- horizontal separators intended as headers;
+- page identification.
+
+The printable content begins below the external header area.
+
+==================================================
+CONTENT AREA
+==================================================
+
+Draw ONLY inside the printable content area.
+
+Recommended printable area:
+
+Top: 25 mm
+Bottom: 272 mm
+Left: 20 mm
+Right: 190 mm
+
+Never position text, tables, diagrams or illustrations outside this area.
+
+All content must remain completely inside the printable region.
+
+==================================================
+HORIZONTAL SPACE UTILIZATION
+==================================================
+
+Use the full printable width naturally.
+
+Avoid unnecessary unused horizontal space.
+
+Every paragraph should extend naturally toward the right margin.
+
+Never create premature line breaks that waste horizontal space.
+
+Maintain consistent visual margins across every page.
+
+==================================================
+TYPOGRAPHY
+==================================================
+
+{{FONT_LINE}}
+- Section titles: 20 pt Bold #092964
+- Exercise numbers: 16 pt Bold #0251AF
+- Instructions: 18 pt Regular #000000
+
+All titles:
+
+- Sentence case only.
+- Never ALL CAPS.
+- Never Title Case.
+- Capitalize only the first word and proper nouns.
+
+==================================================
+TYPOGRAPHY INTEGRITY
+==================================================
+
+Typography must always preserve its original proportions.
+
+Never:
+
+- stretch fonts horizontally;
+- compress fonts horizontally;
+- stretch vertically;
+- distort letter proportions;
+- artificially expand tracking;
+- artificially compress tracking.
+
+Font proportions must always remain natural.
+
+==================================================
+CRITICAL — FONT SIZE MUST REMAIN FIXED
+==================================================
+
+If page content does not completely fill the page:
+
+LEAVE EMPTY SPACE AFTER THE CONTENT.
+
+Do NOT compensate by enlarging typography or spacing.
+
+NEVER:
+
+- increase body text above 18 pt;
+- enlarge titles beyond their specified size;
+- increase paragraph spacing;
+- increase spacing between exercises;
+- increase spacing between answer choices;
+- increase margins;
+- stretch text;
+- distribute whitespace artificially.
+
+ALWAYS:
+
+- body text remains 18 pt;
+- line spacing remains natural;
+- spacing between questions remains approximately 10-15 mm;
+- spacing between alternatives remains unchanged (1.0);
+- margins remain consistent;
+- blank space stays at the bottom of the page when necessary.
+
+Blank space at the end of a page is completely acceptable.
+
+==================================================
+TITLE CAPITALIZATION
+==================================================
+
+Every heading must begin with a capital letter.
+
+Correct:
+
+Discovering the pattern
+Finding textual evidence
+Comparing fractions
+
+Incorrect:
+
+discovering the pattern
+finding textual evidence
+COMPARING FRACTIONS
+
+==================================================
+NO RESPONSE SPACES
+==================================================
+
+Worksheets must never include dedicated writing spaces.
+
+Never generate:
+
+- blank answer lines;
+- dotted lines;
+- underscores;
+- empty parentheses;
+- empty brackets;
+- response boxes;
+- writing fields;
+- "Answer here";
+- checkboxes;
+- blank tables intended for student responses.
+
+Students answer separately.
+
+==================================================
+CONTENT DISTRIBUTION
+==================================================
+
+Approximate printable height: 247 mm
+
+Typical layout estimates:
+
+- Very short question (1-2 lines): ~30-40 mm
+- Medium question (3-5 lines): ~55-75 mm
+- Long question: ~90-130 mm
+- Question with illustration, table or diagram: ~120-170 mm
+
+These values are guidelines for page balance.
+
+==================================================
+PAGE BALANCE
+==================================================
+
+Balance content naturally across pages.
+
+Never overload a page.
+
+Never compress content to avoid page breaks.
+
+If the next exercise cannot fit comfortably:
+
+Move it entirely to the next page.
+
+Preserve comfortable reading rhythm throughout the worksheet.
+
+If necessary, continue onto additional pages.
+
+Never remove content simply to fit on fewer pages.
+
+==================================================
+ILLUSTRATIONS AND VISUAL SUPPORT
+==================================================
+
+Illustrations are instructional resources.
+
+They exist to improve understanding, clarify concepts, provide context, and support learning.
+
+Illustrations must never be treated as decorative elements.
+
+Do not generate images simply to fill empty space.
+
+Do not add images to every exercise.
+
+Use illustrations only when they provide genuine educational value.
+
+Illustrations should feel like an integral part of the educational page, not independent graphic elements placed on top of the layout.
+
+Every illustration should help students understand the activity before they begin answering it.
+
+The visual should support reasoning, never replace it.
+
+==================================================
+WHEN TO USE ILLUSTRATIONS
+==================================================
+
+Include illustrations whenever they meaningfully improve comprehension.
+
+Examples include:
+
+- helping students visualize a character, setting, event or situation;
+- establishing context before reading;
+- representing scientific processes;
+- showing historical events or artifacts;
+- illustrating geographical locations or environments;
+- explaining mathematical models;
+- presenting diagrams required to solve a problem;
+- displaying graphs, tables or data;
+- clarifying abstract concepts;
+- supporting scenario-based questions.
+
+Illustrations should always contribute to learning.
+
+==================================================
+READING ACTIVITIES
+==================================================
+
+For reading-based activities:
+
+Illustrations may:
+
+- establish the setting;
+- introduce characters;
+- communicate mood or atmosphere;
+- provide environmental context;
+- reinforce narrative comprehension.
+
+Never reveal the correct answer through the illustration.
+
+Students must still rely on careful reading and textual evidence.
+
+The illustration should support close reading rather than replace it.
+
+==================================================
+MATHEMATICS
+==================================================
+
+For mathematics:
+
+Use illustrations whenever visual information is part of the mathematical reasoning.
+
+Examples include:
+
+- geometric figures;
+- measurement diagrams;
+- coordinate planes;
+- number lines;
+- graphs;
+- tables;
+- models;
+- fractions;
+- area models;
+- visual representations.
+
+Do not create decorative mathematical illustrations.
+
+==================================================
+SCIENCE
+==================================================
+
+For science:
+
+Illustrations may include:
+
+- scientific diagrams;
+- labeled structures;
+- life cycles;
+- scientific models;
+- experiments;
+- physical processes;
+- Earth science;
+- weather;
+- astronomy;
+- ecosystems;
+- human body systems.
+
+Scientific visuals should prioritize clarity over decoration.
+
+==================================================
+SOCIAL STUDIES
+==================================================
+
+For social studies and humanities:
+
+Illustrations may include:
+
+- maps;
+- timelines;
+- historical scenes;
+- artifacts;
+- cultural objects;
+- geographic features;
+- historical buildings;
+- important locations.
+
+Visuals should provide context without replacing written information.
+
+==================================================
+VISUAL FREQUENCY
+==================================================
+
+Do not force illustrations into every worksheet.
+
+A worksheet may contain:
+
+- no illustrations;
+- one illustration;
+- several illustrations;
+
+depending entirely on instructional needs.
+
+As a general guideline:
+
+approximately one meaningful illustration every two to four pages is appropriate when the content benefits from visual support.
+
+Multiple questions may reference the same illustration.
+
+Never generate illustrations simply because empty space exists.
+
+==================================================
+EDITORIAL IMAGE STYLE
+==================================================
+
+Illustrations should resemble those found in modern educational textbooks published by major academic publishers.
+
+The overall appearance should feel editorial rather than decorative.
+
+Avoid presentation-template aesthetics.
+
+Avoid worksheet-template aesthetics.
+
+Avoid poster-style graphics.
+
+Visuals should integrate naturally with the surrounding content.
+
+Students should perceive the page as a professionally designed textbook page.
+
+==================================================
+IMAGE PRESENTATION VARIETY
+==================================================
+
+Do not present every illustration using the same format.
+
+Choose the presentation style that best supports the content.
+
+Possible formats include:
+
+- rectangular illustrations;
+- panoramic scenes;
+- transparent-background illustrations;
+- organic cutout illustrations;
+- irregular editorial crops;
+- layered compositions;
+- labeled diagrams;
+- scientific illustrations;
+- educational charts;
+- maps;
+- timelines;
+- cross-sections;
+- explanatory graphics.
+
+Visual variety should emerge naturally throughout the worksheet.
+
+Avoid repeating the same presentation style on every page.
+
+==================================================
+IMAGE INTEGRATION
+==================================================
+
+Illustrations should feel integrated into the page layout.
+
+Images should never appear as isolated pictures pasted into empty areas.
+
+The surrounding layout should naturally accommodate each illustration.
+
+Whenever appropriate:
+
+- wrap text naturally;
+- align illustrations with the text column;
+- balance text and visuals;
+- maintain consistent white space.
+
+Illustrations should become part of the page composition.
+
+==================================================
+AVOID
+==================================================
+
+Never generate:
+
+- clipart;
+- stickers;
+- emojis;
+- decorative icons;
+- isolated symbols;
+- generic stock-style graphics;
+- decorative thumbnails;
+- oversized decorative artwork;
+- visuals with no instructional purpose.
+
+Educational value always takes priority over decoration.
+
+==================================================
+IMAGE SIZE AND PAGE BOUNDARIES
+==================================================
+
+All illustrations must remain completely inside the printable content area.
+
+Never allow illustrations to:
+
+- exceed page margins;
+- touch page edges;
+- overlap text;
+- interfere with exercise numbering;
+- reduce readability;
+- create inconsistent spacing.
+
+Maintain:
+
+- consistent alignment;
+- balanced white space;
+- proportional sizing.
+
+If available space becomes limited:
+
+- reduce illustration size;
+- reposition the illustration;
+- reorganize surrounding content.
+
+Never crop essential educational information simply to force an illustration into available space.
+
+==================================================
+FINAL IMAGE VALIDATION
+==================================================
+
+Before finalizing each page, verify that every illustration:
+
+- serves a genuine instructional purpose;
+- improves student understanding;
+- integrates naturally with the page;
+- respects page margins;
+- does not interfere with readability;
+- follows the editorial style used throughout the worksheet;
+- contributes to a consistent, professional educational publication.
+
+==================================================
+TITLE CONTINUITY ACROSS PAGES
+==================================================
+
+When content continues onto the next page, do not repeat headings or section titles.
+
+Continue naturally from the previous page.
+
+Correct:
+
+PAGE 1
+
+Read the passage carefully.
+
+1.
+2.
+3.
+
+PAGE 2
+
+4.
+5.
+6.
+
+Incorrect:
+
+PAGE 2
+
+Read the passage carefully
+
+4.
+5.
+6.
+
+Never restart a section simply because a page break occurred.
+
+==================================================
+ANSWER KEY
+==================================================
+
+The Answer Key is a single continuous document.
+
+Display the title:
+
+Answer Key
+
+ONLY once, on the first page of the answer section.
+
+Every following answer page continues immediately with the next numbered answer.
+
+Correct:
+
+PAGE 8
+
+Answer Key
+
+1.
+2.
+3.
+
+PAGE 9
+
+4.
+5.
+6.
+
+PAGE 10
+
+7.
+8.
+9.
+
+Never repeat:
+
+- Answer Key
+- section titles
+- continuation labels
+- document headings
+- page titles
+
+Never write:
+
+Answer Key (continued)
+Answers
+Page 2
+Part 2
+Section 2
+
+or similar labels.
+
+==================================================
+PAGE FLOW
+==================================================
+
+Exercises should flow naturally from one page to the next.
+
+A page break never represents the beginning of a new worksheet.
+
+Continue:
+
+- numbering;
+- instructions;
+- passages;
+- diagrams;
+- image references;
+- exercises;
+
+without interruption.
+
+Maintain logical reading order across every page.
+
+==================================================
+LAYOUT CONSISTENCY
+==================================================
+
+Every page should appear as part of the same publication.
+
+Maintain consistent:
+
+- typography;
+- margins;
+- alignment;
+- spacing;
+- illustration style;
+- exercise formatting;
+- instructional appearance.
+
+Never allow one page to appear visually different from another without instructional reason.
+
+==================================================
+FINAL PAGE VALIDATION
+==================================================
+
+Before completing the worksheet, verify that:
+
+- every element remains inside the printable area;
+- typography follows the specified sizes;
+- fonts retain their original proportions;
+- spacing remains consistent;
+- margins remain consistent;
+- illustrations stay inside page boundaries;
+- illustrations improve learning;
+- text is never overlapped by images;
+- unnecessary blank areas are avoided whenever content naturally exists;
+- blank space only appears when page content genuinely ends;
+- page breaks occur naturally;
+- exercises remain in logical order;
+- numbering is continuous;
+- document continuity is preserved;
+- Answer Key title appears only once;
+- no worksheet title appears inside the printable page body;
+- headers and footers have not been recreated.
+
+==================================================
+OVERALL DESIGN GOAL
+==================================================
+
+The final document should resemble a professionally published middle school educational workbook.
+
+The overall appearance should be clean, modern, highly readable, and academically appropriate.
+
+Every design decision should prioritize:
+
+- instructional clarity;
+- student readability;
+- visual consistency;
+- balanced page composition;
+- professional educational publishing standards.
+
+The worksheet should feel like it belongs to the same editorial collection as the accompanying Student Lesson Guide and Teacher Lesson Plan.
+
+The final result must never resemble a presentation, worksheet template, or decorative classroom handout.
+
+Instead, it should reflect the quality, consistency, and visual language of a professionally designed educational publication.`
 };
 
 // Resolves which layout/design spec to use for image generation. SPECS is
@@ -8015,10 +8712,14 @@ END OF LAYOUT RULES
 // alike) for all three doc types — the only per-discipline difference is
 // the {{FONT_LINE}} token in each TYPOGRAPHY section, which requests a
 // serif font (Merriweather) for ELA and is stripped out entirely for Math.
+// ELA Worksheets in middle school (6th-8th) use a dedicated layout spec
+// (practice_ela_ms) instead of the shared one.
 function _getSpecsFor(type, discipline, grade) {
-  const raw = SPECS[type];
-  if (!raw.includes('{{FONT_LINE}}')) return raw;
   const isEla = (discipline || '').trim() === 'English Language Arts';
+  const gradeNum = parseInt(grade, 10) || 0;
+  const useElaWorksheetSpec = type === 'practice' && isEla && gradeNum >= 6 && gradeNum <= 8;
+  const raw = useElaWorksheetSpec ? SPECS.practice_ela_ms : SPECS[type];
+  if (!raw.includes('{{FONT_LINE}}')) return raw;
   const fontLine = !isEla ? '' : type === 'practice' ? '- Font: Merriweather, serif' : 'Font: Merriweather, serif';
   return raw.replace('{{FONT_LINE}}', fontLine);
 }
