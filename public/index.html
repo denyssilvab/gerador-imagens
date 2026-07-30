@@ -3306,544 +3306,669 @@ A document that:
 - Ready for A4 printing at 300 DPI
 - Complements the corresponding LESSON`,
 
-lessonplan: `# You are a CCSS (Common Core State Standards) instructional expert and need to create a complete prompt with the content of a Lesson Plan based on the lesson and practice activities provided.
+lessonplan: `# You are a CCSS (Common Core State Standards) instructional expert and need to create a complete Lesson Plan based on the provided Student Lesson Guide and Practice Activities.
 
 The lesson plan must be written as a professional teacher-facing instructional guide used in an American middle school classroom.
 
-The goal is not only to explain the content, but to provide a practical sequence that allows a teacher to deliver the lesson effectively.
+Its purpose is to help a teacher successfully deliver the lesson in a real classroom.
 
-The lesson plan should balance instructional rationale with classroom usability.
+The lesson plan should prioritize instructional usability over theoretical explanation.
+
+Assume the teacher already possesses general teaching knowledge.
+
+Explain only what is necessary to teach this specific lesson effectively.
+
+The lesson plan should complement the Student Lesson Guide rather than rewrite it.
+
+Whenever appropriate, reference examples, passages, activities and instructional materials developed in the accompanying Student Lesson Guide and Practice Activities instead of recreating or extensively retelling them.
+
+==================================================
+WRITING STYLE (CRITICAL)
+==================================================
+
+Write as a professional instructional manual.
+
+The lesson plan should be practical, concise and immediately usable during lesson preparation.
+
+Avoid writing like:
+
+- a teacher-training textbook;
+- an educational theory article;
+- a pedagogical essay;
+- a research paper.
+
+Instead, write like a high-quality curriculum guide published by a major educational publisher.
+
+Every paragraph should help the teacher answer one practical question:
+
+"What should I do during this phase of the lesson?"
+
+Focus on:
+
+- instructional decisions;
+- teacher facilitation;
+- expected student thinking;
+- evidence of understanding;
+- likely misconceptions;
+- classroom implementation.
+
+Avoid explaining obvious teaching practices unless they are specific to this lesson.
+
+==================================================
+CONTENT DENSITY
+==================================================
+
+Write enough detail for classroom implementation without unnecessary repetition.
+
+Avoid explaining the same concept multiple times across different sections.
+
+Each instructional phase should introduce new information.
+
+Do not restate earlier explanations unless doing so is instructionally necessary.
+
+Prefer concise instructional guidance over lengthy educational rationale.
+
+Whenever possible:
+
+replace explanation with actionable guidance.
+
+Example:
+
+Instead of spending an entire paragraph explaining why students may struggle,
+
+briefly explain what the teacher should look for and how to respond.
 
 ==================================================
 CRITICAL
 ==================================================
 
-Maximum content per page: 120-140mm
+Maximum content per page:
 
-This is non-negotiable.
+120-140 mm
 
-If content exceeds 140mm, divide it into additional pages.
+This limit is non-negotiable.
 
-Total maximum pages: 18.
+If a section exceeds the available space,
 
-The lesson plan should normally be completed within 15 pages.
+continue naturally onto the next page.
 
-Use additional pages only when necessary to preserve readability, instructional clarity, and proper content distribution.
+Never compress important instructional guidance simply to reduce page count.
 
-Never compress important instructional guidance only to satisfy a page limit.
+Maximum pages:
 
-Distribute content naturally while respecting the 120-140mm per page limit and the 18-page maximum limit.
+18
 
-Aim for approximately 15 pages whenever possible.
+Preferred length:
+
+approximately 12-15 pages.
+
+Only exceed this when genuinely necessary.
 
 ==================================================
 NO NUMBERED STRUCTURES
 ==================================================
 
-Remove everything that looks like artificial structure from the generated lesson plan.
+Remove everything that looks like an artificial instructional structure.
 
-This rule applies to the lesson content itself.
+This rule applies only to the lesson body.
 
-Examples and formatting demonstrations inside this prompt are allowed.
+Formatting demonstrations inside this prompt are allowed.
 
 Exception:
 
-Structured metadata inside the single Page 1 information box is allowed.
+The metadata box on Page 1.
 
-This exception applies only to lesson overview information such as:
+Inside this single information box,
 
-Duration, Unit, Grade, Standard, Lesson, Objectives, and Materials.
+structured metadata is allowed for:
 
-Do not apply this exception to the lesson body.
+- Duration
+- Unit
+- Grade
+- Standard
+- Lesson
+- Objectives
+- Materials
 
-DO NOT create:
+Do not use numbered instructional structures elsewhere.
 
-Step 1: Discovering the pattern
+Avoid writing:
 
-Problem 1: (reference PRACTICE ACTIVITIES, Q1)
+Step 1
 
-Question 1: A ticket costs...
+Teacher actions
 
-1. Identify variables
+Student actions
 
-Teacher actions:
+Question 1
 
-Ask during modeling:
+Problem 1
 
-What to watch for:
+Checklist
 
+Observation list
 
-DO write naturally:
-
-Discovering the pattern
-
-The first example (reference PRACTICE ACTIVITIES, Q1): A soccer ball costs...
-
-A ticket costs...
-
-Identifying variables is the first step.
-
-Use narrative section titles and connected prose.
-
-Examples:
-
-What the teacher does during this phase
-
-During the lesson, listen for these responses
-
-Look carefully for these student errors
+Instead, use connected instructional prose with natural section titles.
 
 ==================================================
 NO ALL CAPS
 ==================================================
 
-Remove unnecessary uppercase formatting from generated lesson content.
+Avoid unnecessary uppercase formatting.
 
-Exception:
+Machine-readable markers such as:
 
-Machine-readable markers and formatting commands such as PAGE, BOX, and CCSS may remain uppercase.
+PAGE
 
-Do not write:
+BOX
 
-ALWAYS:
+CCSS
 
-NEVER:
+may remain uppercase.
 
-IMPORTANT:
-
-Write:
-
-Always do this:
-
-Never do this:
-
-Important note:
+Do not create instructional headings using ALL CAPS.
 
 ==================================================
-NO ICONS AND NO STRUCTURES
+NO ARTIFICIAL STRUCTURES
 ==================================================
 
-Remove:
+Avoid transforming the lesson into checklists or procedural scripts.
 
-Numbered bullets or symbols used as lesson-body structures.
+Do not write long bullet lists.
 
-"a)", "b)", "c)" formatting.
+Do not create tables.
 
-Structured lists.
+Do not create teacher checklists.
 
-Column tables.
+Do not create student checklists.
 
-Hyphens that create checklist-style lesson content.
+Do not separate every paragraph into:
 
-If the lesson contains multiple related ideas, write them as connected narrative paragraphs.
+Teacher:
 
-Example:
+Students:
 
-WRONG:
+Observe:
 
-Teacher actions:
+Instead, integrate these naturally into connected instructional paragraphs.
 
-- Let students attempt first
-- Ask: "What's the unknown?"
-- Watch for confusion
-
-
-CORRECT:
-
-The teacher lets students attempt the problem first. Then ask students what the unknown is in the problem. Watch carefully for signs of confusion about what the variable represents.
-
-Simple examples inside this prompt are allowed and should not be reproduced as structures in the generated lesson plan.
+The lesson should read like a professional curriculum guide rather than a script.
 
 ==================================================
 MAXIMUM CONTENT PER PAGE
 ==================================================
 
-Content must fit approximately within 120-140mm height.
+Content should occupy approximately 120-140 mm of printable page height.
 
-If a section contains too much information:
+If a section exceeds this space, continue it naturally on the next page.
 
-Divide it naturally across additional pages.
+Do not compress important instructional guidance to fit a page.
 
-Do not compress several instructional ideas into one page.
+Likewise, do not expand a section merely to fill available space.
 
-Example:
-
-Correct:
-
-PAGE X: Misconception 1
-
-PAGE Y: Misconception 2
-
-PAGE Z: Misconceptions 3 and 4
-
-
-Incorrect:
-
-PAGE X: Misconceptions 1, 2, 3, 4, and 5
+Each page should contain one coherent portion of the lesson.
 
 ==================================================
 PAGE STRUCTURE
 ==================================================
 
-Page 1 — Lesson overview and metadata
+Page 1 - Lesson overview
 
 Page 1 contains ONLY:
 
-Lesson title as the main heading at the top.
+- Lesson title
 
-ONE SINGLE BOX containing all metadata and objectives.
+- One single information box containing:
 
-[BOX: Contains Duration, Unit, Grade, Standard, Lesson number + Lesson name, Objectives, and Materials — all organized clearly within the box borders]
+Duration
 
-The box may contain structured metadata because this is an exception to the no-structure rule.
+Unit
 
-Example:
+Grade
 
---PAGE 1--
+CCSS Standard
 
-Equivalent expressions
-
-[BOX BEGIN]
-
-Duration: 60-75 minutes
-
-Unit: Unit 3 — Expressions and Equations
-
-Grade: 6
-
-CCSS Standard: 6.EE.A.3, 6.EE.A.4
-
-Lesson: 32 — Equivalent expressions
+Lesson number and lesson title
 
 Learning objectives
 
-Students will generate equivalent expressions using the distributive property, combining like terms, and factoring. Students will also verify equivalence by substituting values and applying algebraic reasoning.
-
 Materials needed
 
-Whiteboard or projector, printed practice activity, pencils, optional colored markers for highlighting like terms.
-
-[BOX END]
+No additional instructional content appears on Page 1.
 
 ==================================================
-PAGES 2 ONWARDS — LESSON PLAN CONTENT
+PAGES 2 ONWARDS - LESSON PLAN CONTENT
 ==================================================
 
-Each instructional phase must explain the relationship between teacher actions and student thinking.
+Beginning on Page 2, organize the lesson into logical instructional phases.
 
-The lesson plan should describe:
+Each phase should explain:
 
-what the teacher introduces, models, or facilitates;
+- what the teacher introduces, models or facilitates;
 
-what students are expected to notice, explain, practice, or produce;
+- what students are expected to think, notice or demonstrate;
 
-what evidence shows that students understand the concept.
+- what evidence indicates successful understanding.
 
-Distribute the lesson naturally across pages according to instructional importance.
+Describe instructional decisions rather than narrating every classroom event.
 
-Do not force every lesson into the same number of pages.
+Focus on helping the teacher conduct the lesson efficiently.
 
-Prioritize:
+Do not explain every possible classroom interaction.
 
-instructional clarity;
+Do not predict student dialogue unless it is instructionally valuable.
 
-classroom usability;
+Do not repeatedly justify why an activity is useful.
 
-appropriate pacing;
-
-readability.
-
-Starting from page 2, include the relevant lesson plan sections:
+Assume the teacher understands basic classroom management and instructional practice.
 
 ==================================================
 PRIOR KNOWLEDGE
 ==================================================
 
-Prior knowledge (100mm)
+Approximately one page.
 
-Explain what students should already understand before beginning the lesson and how this knowledge connects to the new skill.
+Briefly explain:
+
+- what students should already know;
+
+- why that knowledge connects to today's lesson.
+
+Do not provide an extended review of previous grades or curriculum history.
+
+Keep this section concise and directly connected to the lesson objective.
 
 ==================================================
 KEY VOCABULARY
 ==================================================
 
-Key vocabulary (110mm)
+Approximately one page.
 
-Introduce essential academic vocabulary students need to access the lesson content.
+Introduce only the academic vocabulary essential for understanding the lesson.
+
+Define each term clearly.
+
+Explain only distinctions that are necessary for the lesson.
+
+Avoid lengthy conceptual discussions.
 
 ==================================================
 WARM-UP ACTIVITY
 ==================================================
 
-Warm-up activity (120mm)
+Approximately one page.
 
-Describe an opening activity that activates prior knowledge and prepares students for the lesson objective.
+Describe an engaging opening activity that activates prior knowledge.
+
+Explain:
+
+- what students do;
+
+- what the teacher observes;
+
+- how the activity prepares students for new learning.
+
+Avoid lengthy descriptions of expected classroom conversations.
 
 ==================================================
 LESSON LAUNCH ACTIVITY
 ==================================================
 
-Lesson launch activity (120mm)
+Approximately one page.
 
-Introduce the central scenario, question, demonstration, or situation that creates the need for the new learning.
+Introduce the central problem, scenario, demonstration or guiding question.
+
+Keep this section focused on creating purpose for learning.
+
+Avoid retelling lesson content that will be explained later during instruction.
 
 ==================================================
 INTRODUCTION AND DIRECT INSTRUCTION
 ==================================================
 
-Introduction and direct instruction (130mm as needed)
+One or more pages as needed.
 
-Explain how the teacher introduces the concept, models thinking, and builds student understanding.
+Explain how the teacher introduces and models the new concept.
 
-Include teacher explanations, examples, questioning, and student reasoning when appropriate.
+Prioritize:
+
+- instructional modeling;
+
+- questioning techniques;
+
+- key explanations;
+
+- expected student reasoning.
+
+Avoid repeating definitions already introduced in Key Vocabulary.
+
+Avoid re-explaining concepts already established during the Lesson Launch.
+
+Reference examples from the Student Lesson Guide whenever appropriate instead of rewriting them in full.
+
+Use concise instructional narrative rather than extensive educational explanation.
 
 ==================================================
-GUIDED PRACTICE WITH PRACTICE ACTIVITIES
+GUIDED PRACTICE
 ==================================================
 
-Guided practice with practice activities (120mm as needed)
+One or more pages as needed.
 
-Explain how students apply the skill with teacher support using examples or the provided practice activity.
+Reference the accompanying Practice Activities as the primary instructional resource.
 
-Describe what students should analyze, discuss, solve, or produce.
+Describe:
+
+- how the teacher facilitates discussion;
+
+- what students analyze or practice;
+
+- what evidence demonstrates understanding.
+
+Do not explain every worksheet question individually.
+
+Instead, describe how representative activities support the lesson objectives.
+
+Only highlight specific examples when they illustrate an important instructional point or address a likely misconception.
 
 ==================================================
-INDEPENDENT PRACTICE ASSIGNMENT
+INDEPENDENT PRACTICE
 ==================================================
 
-Independent practice assignment (120mm)
+Approximately one page.
 
-Reference the provided student practice activity.
+Reference the Practice Activities as the independent learning task.
 
 Explain:
 
-what students practice;
+- what students are expected to demonstrate independently;
 
-which skills they demonstrate;
+- what the teacher should monitor while circulating;
 
-what the teacher should monitor while students work.
+- which misconceptions may still appear.
 
-Do not recreate the worksheet questions.
+Do not summarize or describe each worksheet question individually.
 
-The lesson plan should reference the practice activity by purpose, not summarize each question.
+Focus on overall learning goals rather than question-by-question commentary.
 
 ==================================================
 FORMATIVE ASSESSMENT MOMENTS
 ==================================================
 
-Formative assessment moments (120mm)
+Approximately one page.
 
-Identify natural moments during the lesson when the teacher can check student understanding.
+Identify meaningful moments throughout the lesson when the teacher can verify student understanding.
 
-These checks should be integrated into the lesson flow and explain what evidence the teacher should look for.
+These checks should occur naturally during instruction rather than as separate assessments.
 
-Do not create separate assessment lists or testing sections.
+For each checkpoint, describe:
+
+- what students should demonstrate;
+
+- what evidence indicates successful understanding;
+
+- what teacher response is appropriate if misconceptions remain.
+
+Do not create formal assessment checklists.
+
+Keep these observations practical and directly connected to the lesson objectives.
 
 ==================================================
 CLOSURE AND EXIT TICKET
 ==================================================
 
-Closure and exit ticket (130mm)
+Approximately one page.
 
-Describe how the teacher closes the lesson, reinforces the main learning goal, and checks whether students can independently explain or apply the concept.
+Describe how the teacher brings the lesson to a meaningful conclusion.
+
+Summarize the central learning goal without repeating the lesson explanation.
+
+The exit ticket should provide a quick opportunity for students to demonstrate independent understanding.
+
+Whenever appropriate, base the exit ticket on concepts, examples or skills already developed during the lesson rather than introducing entirely new material.
 
 ==================================================
 COMMON MISCONCEPTIONS
 ==================================================
 
-Common misconceptions (140mm max)
+Maximum approximately 140 mm.
 
-Identify realistic student misunderstandings based on the skill being taught.
+Identify only the most significant misconceptions directly related to this lesson.
 
-For each misconception, explain why students may make this mistake, how the teacher should respond, and what evidence shows that the student has corrected the misunderstanding.
+Quality is more important than quantity.
 
-Do not write generic mistakes.
+For each misconception, briefly explain:
 
-Misconceptions must be connected to the actual lesson content and expected student reasoning.
+- why students may make the mistake;
+
+- how the teacher can address it;
+
+- what evidence suggests the misunderstanding has been corrected.
+
+Avoid lengthy theoretical discussions.
+
+Avoid repeating misconceptions already discussed earlier in the lesson unless additional guidance is genuinely needed.
 
 ==================================================
 DIFFERENTIATION AND CONNECTIONS
 ==================================================
 
-Differentiation and connections (140mm max)
+Maximum approximately 140 mm.
 
-Include practical differentiation strategies for students needing additional support and students ready for enrichment.
+Provide realistic instructional adaptations for:
 
-Strategies should be realistic for an American classroom and connected to the specific skill being taught.
+students needing additional support;
 
-Include meaningful connections that help students understand where this skill appears beyond the current lesson.
+students ready for enrichment.
+
+Recommendations should be practical and immediately usable in a typical American middle school classroom.
+
+Then explain how the lesson connects to future learning, other subject areas, or authentic real-world applications.
+
+Keep these connections concise and instructionally meaningful.
+
+Avoid broad educational philosophy.
 
 ==================================================
-HOW TO WRITE INSTRUCTIONAL NARRATIVE STYLE
+HOW TO WRITE THE INSTRUCTIONAL NARRATIVE
 ==================================================
 
-The lesson plan must be written as a professional instructional narrative, not as a script, checklist, or procedural outline.
+Write every section as connected instructional prose.
 
-Instead of:
+The lesson plan should guide the teacher's instructional decisions rather than narrate every classroom event.
 
-Step 1: Discovering the pattern
+When describing instruction:
 
-Teacher models with think-aloud:
-"Let's look at Maya's earnings again..."
+summarize representative examples instead of explaining every example from the Student Lesson Guide.
 
-Ask during modeling:
-- "What does b stand for?"
-- "What does 5 mean?"
+Reference Practice Activities naturally without describing every worksheet question individually.
 
-Write:
+Use concise classroom language.
 
-Discovering the pattern
+Avoid unnecessary repetition of definitions, explanations or examples already presented in earlier sections.
 
-The teacher models with a think-aloud. "Let's look at Maya's earnings again. I notice we're always multiplying 5 by the number of bracelets. 1 bracelet: 5 × 1 = $5. 2 bracelets: 5 × 2 = $10. The number changes, but the operation stays the same."
-
-During this modeling, ask students what the letter b stands for. Ask what the number 5 represents. Listen for their explanations.
-
-The generated lesson should describe classroom actions naturally through connected paragraphs.
-
-Avoid creating sections such as:
-
-Teacher actions:
-
-Student actions:
-
-Materials:
-
-Assessment checklist:
-
-unless they are part of the required lesson structure.
+Each section should contribute new instructional guidance.
 
 ==================================================
 TITLES
 ==================================================
 
-Always use sentence case.
+Use sentence case for every section title.
 
 Examples:
 
-Discovering the pattern
+Prior knowledge
 
-Introduction and lesson launch activity
+Warm-up activity
 
-Guided practice with real examples
+Introduction and direct instruction
+
+Guided practice
 
 Independent practice
 
-Closure with exit ticket
+Closure and exit ticket
 
 Common misconceptions
 
 Never use:
 
-DISCOVERING THE PATTERN
+ALL CAPS
 
-Discovery Pattern
+Title Case Headlines
 
-Step 1: Discovering
+Step numbers
+
+Procedural labels
 
 ==================================================
 TITLE CONTINUITY ACROSS PAGES
 ==================================================
 
-When a title starts on one page but its content continues to the next page or pages, do not repeat the title on subsequent pages.
+If a section continues onto another page,
 
-Continue the content naturally.
+do not repeat its title.
 
-Example:
+Continue the content naturally until the section is complete.
 
---PAGE 1--
-
-Understanding the pattern
-
-Content paragraph one...
-
-Content paragraph two...
-
-
---PAGE 2--
-
-Continue content directly without repeating "Understanding the pattern"
-
-Content paragraph three...
+Only introduce a new title when beginning a new instructional phase.
 
 ==================================================
 FIRST PAGE TITLE FORMAT
 ==================================================
 
-On the first page, display ONLY the lesson title.
+Page 1 displays only:
 
-The lesson title must be the actual topic of the lesson being created.
+- the lesson title;
 
-It is not a fixed example.
+- the information box.
 
-The lesson title appears only on page 1.
+Do not display:
 
-Do not include:
-
-unit number;
+unit information;
 
 lesson number;
 
-CCSS code;
+CCSS standard;
 
-metadata below the title.
+metadata outside the box.
 
-All metadata belongs inside the single information box.
-
-Example for a lesson about algebraic expressions:
-
---PAGE 1--
-
-Equivalent expressions
-
-[BOX with all metadata]
-
-
-Example for a different lesson topic:
-
---PAGE 1--
-
-Understanding fractions
-
-[BOX with all metadata]
-
-
-The title changes based on the actual lesson content.
-
-Only the box format stays the same.
+The lesson title should always reflect the actual lesson topic.
 
 ==================================================
-CONTENT MUST FLOW
+CONTENT FLOW
 ==================================================
 
-The lesson plan must use connected, narrative paragraphs.
+The entire lesson plan should read as one cohesive professional instructional guide.
 
-Avoid writing content as lists, checklists, or artificial structures.
+Each section should build naturally from the previous one.
 
-WRONG:
+Avoid abrupt transitions.
 
-Warm-up activity
+Avoid repeating instructional explanations already provided.
 
-Display on board:
+Assume the teacher reads the document from beginning to end.
 
-If your friend Maya sells bracelets for $5 each:
+Every section should introduce new guidance that supports successful lesson delivery.
 
-- How much does she earn if she sells 10?
-- How much if she sells 20?
-- How much if she sells 100?
+==================================================
+FINAL VALIDATION
+==================================================
 
-Teacher actions:
+Before completing the lesson plan, verify that:
 
-- Ask students to calculate answers
-- Write answers on board
-- Ask: "How did you figure these out?"
+- the lesson functions as a practical teacher guide rather than a teacher-training text;
 
-CORRECT:
+- instructional guidance is concise without sacrificing clarity;
 
-Warm-up activity
+- concepts are not unnecessarily repeated across multiple sections;
 
-Display on the board a simple question: If your friend Maya sells bracelets for $5 each, how much does she earn if she sells 10? How much if she sells 20? How much if she sells 100?
+- references to the Student Lesson Guide and Practice Activities are natural and do not become question-by-question commentary;
 
-Ask students to calculate the answers and write them on the board as they respond. Once you have the answers, ask the class how they figured these out. Listen for the explanation "I multiplied 5 by the number."`,
+- every instructional phase contributes new information;
+
+- page flow is continuous;
+
+- titles are not repeated across pages;
+
+- Page 1 contains only the lesson title and the metadata box;
+
+- the lesson remains within the 18-page limit while ideally fitting between 12 and 15 pages;
+
+- the completed document is ready for professional A4 page layout at 300 DPI.
+
+==================================================
+REFERENCE INTEGRATION
+==================================================
+
+The Lesson Plan is one component of a coordinated instructional package.
+
+It should work together with the accompanying Student Lesson Guide and Practice Activities.
+
+Reference these materials naturally whenever they support instruction.
+
+Do not reproduce their full content.
+
+Do not rewrite reading passages, worked examples or worksheet questions unless a brief excerpt is necessary for instructional modeling.
+
+When referring to accompanying materials, focus on instructional purpose rather than content repetition.
+
+==================================================
+PROFESSIONAL TONE
+==================================================
+
+Maintain a professional, supportive and instructional tone throughout.
+
+Write for practicing classroom teachers.
+
+Assume the reader understands general instructional methods.
+
+Avoid explaining basic teaching concepts.
+
+Avoid educational philosophy.
+
+Avoid motivational language directed toward teachers.
+
+Every paragraph should provide practical value for lesson implementation.
+
+==================================================
+EDITORIAL CONSISTENCY
+==================================================
+
+Maintain consistent writing style throughout the document.
+
+Avoid switching between narrative, script, checklist and textbook styles.
+
+Use complete paragraphs.
+
+Use smooth transitions between instructional phases.
+
+Ensure the finished Lesson Plan reads as a single professionally edited publication.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+Generate a Lesson Plan that:
+
+- serves as a practical classroom guide for teachers;
+
+- complements rather than duplicates the Student Lesson Guide and Practice Activities;
+
+- emphasizes instructional decisions over educational theory;
+
+- minimizes unnecessary repetition;
+
+- references accompanying instructional materials naturally;
+
+- provides clear guidance for classroom implementation;
+
+- maintains logical instructional progression;
+
+- remains concise while preserving instructional quality;
+
+- is ready for professional A4 page layout at 300 DPI.
+
+The finished document should resemble the teacher edition of a professionally published American middle school curriculum.`,
 
 all: `You are an expert {{GRADE}} {{SUBJECT}} educator. Generate a complete lesson package.
 
