@@ -10410,12 +10410,16 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   // title panel instead (right edge chosen to fit up to "GUIDE 100").
   const guideRightEdge = 660;
 
-  // Dark teal base block (peeks out ~12 SVG units below the lighter title
-  // panel, drawn next, to form the "shelf" edge under the title panel)
+  // Dark teal base block spans the SAME full width as the original SVG
+  // (324→2311, matching the light panel's own right edge) — it must reach
+  // under the whole light panel, not just the narrowed "Lesson Guide" text
+  // area, so its extra 12 SVG units of height still peek out as the thin
+  // "shelf" strip below the light panel across its entire width.
   ctx.fillStyle = '#00aeae';
-  ctx.fillRect(324, 134, guideRightEdge - 324, 158);
+  ctx.fillRect(324, 134, 2311 - 324, 158);
 
-  // Lighter title panel
+  // Lighter title panel (narrowed on the left vs. the original SVG to give
+  // the title more room — see guideRightEdge above)
   ctx.fillStyle = '#a0dede';
   ctx.fillRect(guideRightEdge, 134, 2311 - guideRightEdge, 146);
 
@@ -10438,11 +10442,11 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   const titleStartX = X(titleStartSvg);
   const availW = X(titleMaxSvg) - titleStartX;
   let titlePx = fpx(62);
-  ctx.font = `800 ${titlePx}px Poppins,Arial,sans-serif`;
+  ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
   const tw = ctx.measureText(title).width;
   if (tw > availW) {
     titlePx *= availW / tw;
-    ctx.font = `800 ${titlePx}px Poppins,Arial,sans-serif`;
+    ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
   }
   ctx.fillText(title, titleStartX, Y(231));
 }
@@ -10485,11 +10489,11 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
   const infoStartX = X(326);
   const infoMaxW = X(2460) - infoStartX;
   let infoPx = fpx(35);
-  ctx.font = `800 ${infoPx}px Poppins,Arial,sans-serif`;
+  ctx.font = `500 ${infoPx}px Poppins,Arial,sans-serif`;
   const iw = ctx.measureText(ccssGradeText).width;
   if (iw > infoMaxW) {
     infoPx *= infoMaxW / iw;
-    ctx.font = `800 ${infoPx}px Poppins,Arial,sans-serif`;
+    ctx.font = `500 ${infoPx}px Poppins,Arial,sans-serif`;
   }
   ctx.fillText(ccssGradeText, infoStartX, Y(109));
 }
