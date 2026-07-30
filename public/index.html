@@ -10384,7 +10384,11 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   // 190mm-wide guess without needing an extra crop.
   const spanMM = 210;
   const k      = mx(spanMM / 2480);
-  const xOff   = 0;
+  // The header's icon starts at svgX=165 while the footer's badge starts at
+  // svgX=104 — at the same xOff those land at different real x positions.
+  // Shift the header 61 SVG units further left so its icon lines up with
+  // the footer's left edge.
+  const xOff   = -61 * k;
   const yOff   = my(topMarginMM);
   const fpx = s => s * k;
   const X = svgX => xOff + k * svgX;
@@ -10441,7 +10445,7 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   const titleMaxSvg   = 2311 - 30;
   const titleStartX = X(titleStartSvg);
   const availW = X(titleMaxSvg) - titleStartX;
-  let titlePx = fpx(62);
+  let titlePx = fpx(58); // ~1pt smaller than the SVG's nominal 62, as extra safety margin
   ctx.font = `500 ${titlePx}px Poppins,Arial,sans-serif`;
   const tw = ctx.measureText(title).width;
   if (tw > availW) {
