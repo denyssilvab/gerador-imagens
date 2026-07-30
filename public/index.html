@@ -3858,15 +3858,491 @@ Rules:
 - Then Lesson Plan pages (curriculum structure)
 - All content 100% in English
 - Titles in Sentence case, no emojis`,
+
+// Dedicated content meta prompt for ELA Worksheets, middle school (6th-8th)
+// only. Math and other grade bands keep using CONTENT_SPECS.practice above.
+practice_ela_ms: `# OVERVIEW
+
+You are an expert in CCSS instructional design.
+
+Generate a complete worksheet based on an already created lesson.
+
+The worksheet should:
+
+- Reinforce the concepts taught in the lesson.
+- Include approximately 10-15 questions (or another appropriate amount based on lesson scope).
+- Use a variety of question formats.
+- Be appropriate for the target grade level.
+- Use authentic American educational contexts whenever applicable.
+- Specify illustrations ONLY when they are pedagogically essential.
+- Contain no answer spaces.
+- Be ready for page layout and image generation.
+
+## LANGUAGE
+
+Generate the entire worksheet in English.
+
+---
+
+# WHEN TO SPECIFY ILLUSTRATION IN THE TEXT
+
+Only specify an illustration when it is essential for students to understand or solve the activity.
+
+Insert the illustration request directly inside the activity using:
+
+\`\`\`
+[IMAGE: Detailed description of what should be illustrated]
+\`\`\`
+
+Include an illustration ONLY when:
+
+- the visual contains information required to answer the question;
+- the activity depends on a diagram, map, graph, table, photograph or labeled figure;
+- the question refers to "Look at...", "Study the diagram...", "Use the map...", or similar wording;
+- the visual provides essential instructional information.
+
+Do NOT include an illustration when:
+
+- the activity is fully understandable without it;
+- the image would only decorate the page;
+- the illustration would not affect the student's ability to answer correctly.
+
+---
+
+# EXAMPLES
+
+### Example — Illustration required
+
+\`\`\`
+Study the map before answering the questions.
+
+[IMAGE: Political map of the southeastern United States showing state boundaries, major cities, and rivers. High contrast, clean educational cartography, readable labels.]
+\`\`\`
+
+---
+
+### Example — Illustration required
+
+\`\`\`
+Observe the life cycle below before answering.
+
+[IMAGE: Scientific diagram showing the complete butterfly life cycle with labeled stages from egg to adult. Educational illustration with clean labels and high readability.]
+\`\`\`
+
+---
+
+### Example — No illustration
+
+\`\`\`
+Read the paragraph and identify the author's main idea.
+\`\`\`
+
+(No illustration because the text provides all necessary information.)
+
+---
+
+### Example — No illustration
+
+\`\`\`
+Explain why communities create rules and laws.
+\`\`\`
+
+(No illustration because additional visuals are unnecessary.)
+
+---
+
+# FORMAT VARIATION
+
+Use different activity formats throughout the worksheet.
+
+Possible formats include:
+
+- multiple choice;
+- short response;
+- extended response;
+- true or false;
+- matching;
+- sequencing;
+- classification;
+- evidence-based questions;
+- interpretation of tables, maps, graphs or diagrams;
+- comparison;
+- analysis;
+- vocabulary in context;
+- application scenarios.
+
+There are no fixed rules regarding:
+
+- how many questions of each type to include;
+- the order of formats;
+- whether every format must appear.
+
+Choose the formats that best support the lesson objectives.
+
+Every worksheet should feel unique rather than following a fixed template.
+
+---
+
+## Guidelines
+
+- Total questions: approximately 10-15 (or as appropriate for the lesson).
+- Select formats according to instructional goals.
+- Use any format once, multiple times, or not at all.
+- Arrange activities in a logical instructional sequence.
+
+**CRITICAL**
+
+Do NOT label activities with names such as:
+
+- Multiple Choice
+- True or False
+- Matching
+- Short Answer
+- Fill in the Blank
+
+Present each activity directly without identifying its format.
+
+---
+# DOCUMENT STRUCTURE
+
+The worksheet is a single continuous printable document.
+
+The document header is added externally during page composition.
+
+Therefore, the worksheet must NEVER generate its own document title.
+
+Do NOT generate:
+
+- Practice Activities
+- worksheet titles
+- lesson topic
+- unit number
+- lesson number
+- CCSS code
+- headers
+- page titles
+- document identification
+
+Begin the worksheet immediately with:
+
+- the first instructions;
+- the first reading passage;
+- the first activity;
+- or question 1,
+
+whichever is appropriate.
+
+Example:
+
+--PAGE 1--
+
+Read the passage carefully.
+
+1.
+2.
+3.
+
+---
+
+# DOCUMENT CONTINUITY
+
+Treat every generated page as part of one continuous worksheet.
+
+A page break NEVER starts a new document.
+
+After a page break:
+
+- continue question numbering;
+- continue passages;
+- continue instructions;
+- continue activities;
+- continue diagrams when necessary.
+
+Never recreate:
+
+- worksheet titles;
+- lesson titles;
+- document headings;
+- page headings.
+
+Continue naturally from the previous page.
+
+---
+
+## PAGE FLOW
+
+Example:
+
+\`\`\`
+--PAGE 1--
+
+Read the passage below.
+
+1.
+2.
+3.
+
+--PAGE 2--
+
+4.
+5.
+6.
+\`\`\`
+
+Never restart numbering because of a page break.
+
+---
+
+## ANSWER KEY
+
+The Answer Key is a separate section that appears after all worksheet pages.
+
+Display the heading:
+
+Answer Key
+
+ONLY on the first answer page.
+
+Example:
+
+\`\`\`
+--PAGE 8--
+
+Answer Key
+
+1.
+2.
+3.
+
+--PAGE 9--
+
+4.
+5.
+6.
+
+--PAGE 10--
+
+7.
+8.
+9.
+\`\`\`
+
+Never write:
+
+- Answer Key (continued)
+- Answers
+- Page 2
+- Part 2
+- Section 2
+
+Simply continue the numbering.
+
+---
+
+## PAGE DISTRIBUTION
+
+Distribute questions naturally across pages.
+
+Target approximately 180-240 mm of printable content per page.
+
+If page content occupies less than approximately 120 mm,
+
+leave the remaining space blank.
+
+Do NOT create unnecessary questions merely to fill the page.
+
+Do NOT compress content to avoid page breaks.
+
+Allow page breaks whenever they improve readability.
+
+---
+
+## GENERAL FORMATTING
+
+- Questions numbered consecutively.
+- Multiple-choice options formatted as:
+  - a)
+  - b)
+  - c)
+  - d)
+- Reading passages appear immediately before their related questions.
+- Tables, maps, graphs and illustrations appear immediately before the questions that reference them.
+- Maintain logical instructional flow throughout the worksheet.
+
+---
+
+# DIFFICULTY PROGRESSION
+
+The worksheet should include an appropriate progression of cognitive demand.
+
+Possible progression:
+
+**Foundational**
+
+- Recall previously learned information.
+- Identify key concepts.
+- Recognize vocabulary.
+- Observe details.
+- Demonstrate basic comprehension.
+
+**Developing**
+
+- Apply concepts in familiar situations.
+- Compare ideas.
+- Interpret information.
+- Analyze evidence.
+- Make connections between concepts.
+
+**Advanced**
+
+- Analyze complex situations.
+- Evaluate evidence.
+- Explain reasoning.
+- Solve multi-step problems.
+- Synthesize information from multiple sources.
+- Justify conclusions using appropriate evidence.
+
+The distribution of difficulty is flexible.
+
+Choose the progression that best supports the lesson objectives.
+
+---
+
+# AMERICAN EDUCATIONAL CONTEXT
+
+Whenever real-world context is used, it should reflect authentic American educational settings.
+
+Examples include:
+
+- American schools
+- Communities
+- Parks
+- Museums
+- Libraries
+- Local businesses
+- National parks
+- Government institutions
+- Historical sites
+- Everyday situations familiar to students in the United States
+
+Use:
+
+- American English
+- US Dollar ($) whenever currency is required
+- US customary units whenever measurements are appropriate
+
+Avoid:
+
+- Foreign currencies
+- Contexts that are clearly outside the United States unless instruction specifically requires them
+- Cultural references unrelated to the lesson objectives
+
+---
+
+# ILLUSTRATION SPECIFICATION
+
+Only include an illustration request when it is essential for understanding or completing the activity.
+
+Insert it directly into the activity as:
+
+\`\`\`
+[IMAGE: Detailed description]
+\`\`\`
+
+A high-quality illustration description should include:
+
+- the type of visual (photo, diagram, illustration, map, graph, table, scientific figure, historical scene, etc.);
+- exactly what should appear;
+- the educational context;
+- composition;
+- clarity requirements;
+- professional educational quality.
+
+Descriptions should provide sufficient detail for accurate image generation while remaining concise.
+
+Illustrations should always support learning rather than decorate the page.
+
+Their frequency depends entirely on instructional need.
+
+Some worksheets may contain no illustrations.
+
+Others may contain several.
+
+---
+
+# ANSWERS AND RESPONSE SPACE
+
+## Absolute prohibition
+
+Never include:
+
+- blank answer lines;
+- dotted lines;
+- underscores;
+- empty parentheses;
+- empty boxes;
+- response fields;
+- writing areas;
+- checkboxes;
+- tables intended only for student responses.
+
+Students complete their answers separately.
+
+---
+
+# ANSWER KEY
+
+Place the Answer Key after all worksheet pages.
+
+The Answer Key should:
+
+- provide complete answers;
+- include explanations whenever appropriate;
+- show calculations or reasoning when instructional value exists;
+- remain separate from the worksheet pages.
+
+Never place answers on activity pages.
+
+Display the title:
+
+Answer Key
+
+only on the first page of the answer section.
+
+Subsequent answer pages continue directly with the next numbered answer.
+
+---
+
+# EXPECTED RESULT
+
+Generate a worksheet that:
+
+- reinforces the lesson objectives;
+- contains varied activities;
+- is entirely in English;
+- uses authentic American educational contexts;
+- includes illustrations only when instructionally necessary;
+- contains no response spaces;
+- maintains logical difficulty progression;
+- provides a separate Answer Key;
+- is ready for image generation;
+- is ready for professional A4 page layout at 300 DPI;
+- begins immediately with instructional content;
+- does not generate internal worksheet titles because document identification is provided externally;
+- behaves as one continuous worksheet across every page.`,
 };
 
 // Resolves {{SUBJECT}} / {{GRADE}} placeholders in a CONTENT_SPECS template
 // for the selected discipline/grade — same content-writing structure for
 // every discipline, only the subject/grade reference at the top changes.
+// ELA Worksheets in middle school (6th-8th) use a dedicated meta prompt
+// (practice_ela_ms) instead of the shared one.
 function _contentSpecFor(type, discipline, grade) {
   const subject = (discipline || '').trim() || 'Mathematics';
   const gradeText = (grade || '').trim() || '6th Grade';
-  const raw = CONTENT_SPECS[type] || CONTENT_SPECS.all;
+  const gradeNum = parseInt(gradeText, 10) || 0;
+  const useElaWorksheetSpec = type === 'practice' && subject === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
+  const raw = useElaWorksheetSpec ? CONTENT_SPECS.practice_ela_ms : (CONTENT_SPECS[type] || CONTENT_SPECS.all);
   return raw.replace(/\{\{SUBJECT\}\}/g, subject).replace(/\{\{GRADE\}\}/g, gradeText);
 }
 
