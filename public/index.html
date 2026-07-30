@@ -10413,19 +10413,20 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   // text never used that full width, so the extra room now goes to the
   // title panel instead (right edge chosen to fit up to "GUIDE 100").
   const guideRightEdge = 660;
+  const rightEdge = 2351; // was 2311 — stretched a bit further right, still short of the page edge
 
   // Dark teal base block spans the SAME full width as the original SVG
-  // (324→2311, matching the light panel's own right edge) — it must reach
-  // under the whole light panel, not just the narrowed "Lesson Guide" text
-  // area, so its extra 12 SVG units of height still peek out as the thin
-  // "shelf" strip below the light panel across its entire width.
+  // (324→rightEdge, matching the light panel's own right edge) — it must
+  // reach under the whole light panel, not just the narrowed "Lesson
+  // Guide" text area, so its extra 12 SVG units of height still peek out
+  // as the thin "shelf" strip below the light panel across its entire width.
   ctx.fillStyle = '#00aeae';
-  ctx.fillRect(324, 134, 2311 - 324, 158);
+  ctx.fillRect(324, 134, rightEdge - 324, 158);
 
   // Lighter title panel (narrowed on the left vs. the original SVG to give
   // the title more room — see guideRightEdge above)
   ctx.fillStyle = '#a0dede';
-  ctx.fillRect(guideRightEdge, 134, 2311 - guideRightEdge, 146);
+  ctx.fillRect(guideRightEdge, 134, rightEdge - guideRightEdge, 146);
 
   ctx.restore();
 
@@ -10442,7 +10443,7 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
   ctx.textAlign = 'left';
   ctx.fillStyle = '#0a0f0f';
   const titleStartSvg = guideRightEdge + 46;
-  const titleMaxSvg   = 2311 - 30;
+  const titleMaxSvg   = rightEdge - 30;
   const titleStartX = X(titleStartSvg);
   const availW = X(titleMaxSvg) - titleStartX;
   let titlePx = fpx(58); // ~1pt smaller than the SVG's nominal 62, as extra safety margin
@@ -10473,7 +10474,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText }, footer
   ctx.translate(0, -45);
 
   ctx.fillStyle = '#00aeae';
-  ctx.fillRect(104, 45, 2207, 12); // thin top line spanning the footer
+  ctx.fillRect(104, 45, 2247, 12); // thin top line spanning the footer (was 2207, stretched to match the header)
   ctx.fillRect(104, 45, 193, 90);  // "UNIT X" badge
 
   ctx.restore();
