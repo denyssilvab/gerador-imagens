@@ -8227,8 +8227,13 @@ If content does not fit naturally:
 TEXT ALIGNMENT AND PARAGRAPH CONTROL
 ==================================================
 
-Body paragraphs always use justified alignment. This is the standard
-for every paragraph, with no exceptions or conditions.
+Body paragraphs always use left alignment, with every line extending
+close to x=190mm and no early line breaks — the last word of each
+line should approach the right margin rather than stopping short.
+This creates a clean, balanced page without the uneven word spacing
+and broken hyphenation that full justification produces.
+
+Never break a line early to waste space on the right.
 
 Never change alignment randomly within the same section.
 
@@ -8963,7 +8968,7 @@ The source uses explicit markers so the layout never has to guess what is a titl
 - [[SUB]] text  →  a subsection heading. 13 pt, SemiBold, #0251af.
 - [[CALLOUT:Label]] ... [[/CALLOUT]]  →  an editorial callout, rendered as a compact callout box titled with Label.
 
-Any text NOT wrapped in a marker is ordinary body prose — render it as justified body text.
+Any text NOT wrapped in a marker is ordinary body prose — render it as left-aligned body text, extending close to the right margin.
 
 CRITICAL:
 - Render something as a title, heading, subheading, box or callout ONLY when it is wrapped in the matching marker.
@@ -9054,7 +9059,7 @@ The lesson title normally occupies 1–3 lines, never exceeding ~15% of the prin
 TEXT ALIGNMENT AND PARAGRAPH DESIGN
 ==================================================
 
-Justify all narrative body paragraphs, consistently, on every page — alignment must not change page to page. Enable hyphenation so justified lines break cleanly and word spacing stays even; if a line would still show a distracting gap, fix it with hyphenation or minor spacing adjustments, never by switching to left alignment. Section headings, lists and callout content remain left aligned.
+All narrative body paragraphs use left alignment, consistently, on every page — alignment must not change page to page. Every line should extend close to the right margin, with no early line breaks that leave unnecessary space unused; this produces a clean, balanced page without the uneven word spacing and broken hyphenation that full justification produces. Section headings, lists and callout content also remain left aligned.
 
 Prefer paragraphs of 3–6 sentences; divide long discussions into smaller editorial units so readers never encounter large uninterrupted text walls. Paragraph divisions come from the source — render them as written, never merge or split them.
 
@@ -9145,7 +9150,7 @@ Before finalizing, verify that:
 - No interior section has an information box or table — only the [[BOX]] on Page 1 is a box.
 - No callout was added beyond what [[CALLOUT:...]] marks in the source, and all callouts share one consistent boxed style.
 - All markers were stripped and never appear on the rendered page.
-- Justified body text uses hyphenation with even word spacing — no large gaps.
+- Body text is left-aligned, with every line extending close to the right margin and no early line breaks.
 - Page breaks match the source's --PAGE X-- markers exactly; no content moved between pages.
 - Headings preserve the source's exact wording and sentence case.
 - Page 1 contains only the lesson title and the metadata box; no interior page recreates lesson information.
