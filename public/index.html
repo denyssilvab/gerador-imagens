@@ -8690,64 +8690,27 @@ lessonplan: `# FORMAT: A4 (210 mm × 297 mm), 300 DPI
 SOURCE FIDELITY (ABSOLUTE — HIGHEST PRIORITY)
 ==================================================
 
-This layout system RENDERS pre-written content.
-It is a typesetting stage, not an authoring stage.
+This layout system RENDERS pre-written content. It is a typesetting stage, not an authoring stage.
 
-The complete text of the Lesson Plan is written beforehand and provided as input.
-It is already divided into pages using --PAGE X-- markers.
+The complete text of the Lesson Plan is written beforehand and provided as input, already divided into pages using --PAGE X-- markers.
 
-Render exactly the text that is provided,
-exactly as written,
-in the exact order it is given.
+Render exactly the text that is provided, exactly as written, in the exact order it is given.
 
-Never invent, add, write, rewrite, expand, shorten, summarize,
-paraphrase, reorder, merge or split any content.
+Never invent, add, write, rewrite, expand, shorten, summarize, paraphrase, reorder, merge or split any content. Never create anything not present in the source — no lesson titles, essential questions, objectives/materials/duration/unit/grade/standard text, vocabulary lists, phase names or time labels, section/subsection headings, bullet lists, tables, diagrams, callouts, or metadata boxes beyond what is provided.
 
-Never create anything that is not present in the source, including:
-- lesson titles or subtitles;
-- essential questions;
-- objectives, materials, duration, unit, grade or standard text;
-- vocabulary lists;
-- phase names, phase numbers or time labels (e.g. "Phase 1", "10 Minutes");
-- section headings or subsection headings;
-- bullet lists;
-- tables or comparison charts;
-- diagrams;
-- callouts;
-- metadata boxes or information panels.
+Never alter heading wording or capitalization — preserve the author's sentence case exactly. Do not convert headings to Title Case or ALL CAPS.
 
-If an element is not in the provided text, it must not appear in the layout.
+Render text as clean typography. Never display raw markup characters ("#", "*", "##") literally on the page.
 
-Never alter heading wording or capitalization.
-Preserve the author's sentence case exactly as written.
-Do not convert headings to Title Case or ALL CAPS.
+The content under each --PAGE X-- marker is final and complete for that page. Do not move content between pages, pull later content forward, or add filler to complete a page. If following these rules leaves empty space, leave it — empty space is always preferable to invented content.
 
-Render text as clean typography.
-Never display raw markup characters (such as "#", "*", "##") literally on the page.
-
-The content under each --PAGE X-- marker is final and complete for that page.
-Do not move content between pages.
-Do not pull later content forward onto an earlier page.
-Do not add filler to complete a page.
-
-If following these rules leaves empty space on a page,
-leave the empty space.
-Empty space is always preferable to invented content.
-
-Why this matters:
-the provided text is written as one connected sequence across pages.
-Adding, removing or moving content breaks the continuity between pages
-and makes the publication read as disconnected fragments.
+Why this matters: the provided text is written as one connected sequence across pages. Adding, removing or moving content breaks that continuity and makes the publication read as disconnected fragments.
 
 ==================================================
 MARKUP CONTRACT (HOW TO READ THE SOURCE)
 ==================================================
 
-The source uses explicit markers so the layout never has to guess
-what is a title, a heading, a subheading, a callout or a box.
-
-Render each marker as follows, and STRIP the marker itself
-(never display [[...]] or --PAGE X-- literally on the page):
+The source uses explicit markers so the layout never has to guess what is a title, heading, subheading, callout or box. Render each marker as follows, and STRIP the marker itself (never display [[...]] or --PAGE X-- literally):
 
 - --PAGE X--  →  start of a new printable page. Not shown.
 - [[TITLE]] text  →  the lesson title (Page 1 only). 18–20 pt, Bold, #092964.
@@ -8756,800 +8719,201 @@ Render each marker as follows, and STRIP the marker itself
 - [[SUB]] text  →  a subsection heading. 13 pt, SemiBold, #0251af.
 - [[CALLOUT:Label]] ... [[/CALLOUT]]  →  an editorial callout, rendered as a compact callout box titled with Label.
 
-Any text that is NOT wrapped in a marker is ordinary body prose.
-Render it as justified body text.
+Any text NOT wrapped in a marker is ordinary body prose — render it as justified body text.
 
 CRITICAL:
-- Render something as a title, section heading, subsection heading, box or callout
-  ONLY when it is wrapped in the matching marker.
-- Never promote unmarked text — for example, the opening words of a paragraph — into a heading.
-- Never create a title, heading, box or callout that is not marked in the source.
-- The markers are machine tokens. They may be uppercase, and they must never appear in the rendered output.
-- Do not reinterpret, relabel or restyle a marker. An [[SUB]] is always a subheading; a [[CALLOUT]] is always a callout; and so on.
+- Render something as a title, heading, subheading, box or callout ONLY when it is wrapped in the matching marker.
+- Never promote unmarked text — including the opening words of a paragraph — into a heading, box or callout.
+- The markers are machine tokens and must never appear in the rendered output.
+- Do not reinterpret, relabel or restyle a marker: [[SUB]] is always a subheading, [[CALLOUT]] is always a callout.
 
 ==================================================
 NEGATIVE EXAMPLES (DO NOT DO THESE)
 ==================================================
 
-These are real failures that have occurred. Each one violates Source Fidelity.
-Avoid all of them.
+These are real failures that have occurred. Avoid all of them.
 
-1. Do NOT add an information box or table at the start of an interior section.
-   Example of the error: rendering a box containing
-   "Grade Level / Unit / CCSS / Materials / Duration" above the heading
-   "Introduction and direct instruction".
-   There is exactly one box in the entire document — the [[BOX]] on Page 1.
-   No interior section has a box of any kind.
-   Never fabricate field values (grade, unit, standard, duration, materials);
-   if a value is not in the source, it does not appear.
+1. Adding an information box (e.g. "Grade / Unit / CCSS / Materials / Duration") above an interior heading like "Introduction and direct instruction". There is exactly one box in the document — the [[BOX]] on Page 1. Never fabricate field values; if a value is not in the source, it does not appear.
 
-2. Do NOT promote a paragraph's opening words into a heading.
-   Example of the error: turning the sentence
-   "This lesson establishes the foundational reading practice..."
-   into a heading reading "This lesson".
-   A heading exists only where [[SECTION]] or [[SUB]] is marked.
-   Everything else is body prose — including the first words of a paragraph.
+2. Promoting a paragraph's opening words into a heading — e.g. turning "This lesson establishes the foundational reading practice..." into a heading reading "This lesson". A heading exists only where [[SECTION]] or [[SUB]] is marked.
 
-3. Do NOT add a callout that is not in the source.
-   Example of the error: adding a "Teacher Tip" box at the end of the last page
-   when the source contains no [[CALLOUT]] there.
-   Render a callout only where [[CALLOUT:...]] appears in the source.
+3. Adding a callout not in the source — e.g. a "Teacher Tip" box at the end of the last page when no [[CALLOUT]] appears there. Render a callout only where [[CALLOUT:...]] appears.
 
-4. Do NOT display raw markers or markup characters.
-   [[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]], [[/...]], --PAGE X--,
-   and characters such as "#" or "*" must never appear on the finished page.
+4. Displaying raw markers or markup characters ([[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]], [[/...]], --PAGE X--, "#", "*") on the finished page.
 
 ==================================================
 GENERAL PHILOSOPHY
 ==================================================
 
-The Lesson Plan is a single professionally published Teacher Edition.
-The document should resemble the interior pages of an American educational publisher rather than a word-processing document.
-Graphic design should actively improve readability, navigation and instructional usability.
-The layout should feel professionally art-directed.
-Every visual decision should help teachers locate instructional guidance quickly while maintaining uninterrupted reading.
+The Lesson Plan is a single, continuously published Teacher Edition — the interior pages of an American educational publisher, not a word-processing document. Only Page 1 functions as the document introduction; every remaining page is an interior editorial page that must never resemble another cover, introduction, metadata page or title page.
 
-The publication should balance:
-- instructional narrative;
-- editorial organization;
-- visual rhythm;
-- white space.
+Prioritize readability, instructional clarity, editorial consistency and visual restraint. Typography, spacing and paragraph grouping — not oversized containers, decorative graphics or colored panels — create hierarchy. Avoid layouts resembling presentation slides, worksheets, student handouts, reports, brochures or plain text documents.
 
-Avoid layouts that resemble:
-- presentation slides;
-- worksheets;
-- student handouts;
-- reports;
-- brochures;
-- research papers;
-- plain text documents.
-
-The finished publication should resemble a commercially published Teacher Edition.
-
-==================================================
-EDITORIAL DESIGN PRINCIPLES
-==================================================
-
-The Lesson Plan should read like a professionally designed educational publication.
-Avoid treating every page as one uninterrupted block of text.
-Instead, create natural editorial rhythm through:
-- typography;
-- spacing;
-- paragraph grouping;
-- occasional editorial callouts;
-- compact instructional side elements;
-- visual breathing space.
-
-The reader should immediately recognize instructional organization without relying on large decorative structures.
-Editorial simplicity is preferred over decorative design.
-
-==================================================
-PAGE IDENTITY
-==================================================
-
-Only Page 1 functions as the document introduction.
-Every remaining page is an interior editorial page.
-Interior pages must never resemble:
-- another lesson cover;
-- another lesson introduction;
-- another metadata page;
-- another title page.
-Readers should immediately feel they are continuing the same publication.
+When uncertain, choose the more editorial solution: better spacing, cleaner typography, improved grouping — instead of larger headings, additional colors, decorative containers or unnecessary graphics.
 
 ==================================================
 CRITICAL
 ==================================================
 
-Headers, footers and page numbers are added automatically after generation.
-Never generate:
-- headers;
-- footers;
-- running titles;
-- lesson identifiers;
-- lesson numbers;
-- page numbers;
-- page borders;
-- page frames.
-Leave those areas completely empty.
-If a running header title is applied automatically afterward, it must match the lesson title exactly.
+Headers, footers and page numbers are added automatically after generation. Never generate headers, footers, running titles, lesson identifiers, lesson numbers, page numbers, page borders or page frames — leave those areas completely empty. If a running header title is applied automatically afterward, it must match the lesson title exactly.
 
 ==================================================
-PAGE STRUCTURE
+PAGE 1 AND THE METADATA BOX (CRITICAL)
 ==================================================
 
-Every interior page should begin immediately with instructional content.
-Never begin an interior page with:
-- lesson title;
-- lesson number;
-- metadata;
-- objectives;
-- standards;
-- lesson overview;
-- information boxes;
-- introductory panels.
-The first visible element should normally be:
-- continuation of previous content;
-or
-- one instructional heading.
-Nothing else.
+Page 1 contains ONLY the lesson title (marked [[TITLE]]) and one metadata box (marked [[BOX]] ... [[/BOX]]) — nothing else. No instructional narrative, overviews, lesson-flow summaries or comparison charts appear on Page 1, even to fill space.
 
-==================================================
-PAGE 1
-==================================================
+Exactly ONE metadata box exists in the entire Lesson Plan. Render a box only for that one marked [[BOX]] content — never recreate, summarize, redesign or simplify it, and never render any box, information panel, title block or lesson-identification element on any interior page, even stylistically or to fill space. If an interior page needs contextual information, integrate it naturally into prose instead.
 
-Page 1 contains ONLY:
-- lesson title;
-- one metadata box.
-No instructional narrative appears on Page 1.
-No additional instructional sections appear on Page 1.
-The metadata box is exclusive to Page 1.
-It must never appear again anywhere in the publication.
-
-Render only what the source provides for Page 1.
-Never add overviews, lesson-flow summaries, phases, comparison charts or instructional narrative to Page 1,
-even to fill space.
-
-==================================================
-METADATA BOX (CRITICAL)
-==================================================
-
-Exactly ONE metadata box exists in the entire Lesson Plan.
-It is the content wrapped in [[BOX]] ... [[/BOX]], and it appears ONLY on Page 1.
-Render a box only for that marked content; never render a box anywhere else.
-Never recreate it.
-Never summarize it.
-Never redesign it.
-Never produce simplified metadata.
-Never generate additional lesson information panels.
-If another page requires contextual information,
-integrate it naturally into instructional prose instead of creating another box.
-
-Never render a metadata box, information panel, title block or lesson-identification box on any interior page,
-even as a stylistic choice or to fill space.
-Interior pages contain only the instructional text provided in the source.
+Every interior page (Page 2 onward) begins immediately with instructional content: either a continuation of previous content, or one instructional heading. Nothing else — no lesson title, lesson number, metadata, objectives, standards, overview or information box.
 
 ==================================================
 CONTENT AREA
 ==================================================
 
-All content must remain inside the printable area.
-Vertical:
-20 mm
-to
-278 mm
-Horizontal:
-30 mm
-to
-190 mm
-Never allow content outside these margins.
+Draw ONLY inside the printable area. Vertical: 20 mm to 278 mm. Horizontal: 30 mm to 190 mm. Never allow content outside these margins.
 
 ==================================================
-PAGE DENSITY
+PAGE DENSITY AND WHITE SPACE
 ==================================================
 
-Page boundaries are defined by the --PAGE X-- markers in the source and must be respected exactly.
-The layout stage does not decide where pages begin or end.
+Page boundaries are defined by the --PAGE X-- markers in the source and must be respected exactly — the layout stage does not decide where pages begin or end, and must not stretch, compress, reflow or move content between pages to adjust how full a page looks, or pull later content forward to reduce white space.
 
-Render each page's content within the printable margins,
-using consistent typography and spacing.
+Page density will vary naturally because it follows the source content. When a page's content does not reach the bottom margin, leave the remaining space empty — trailing white space is acceptable and expected, not "poor composition." Predictable, standardized page composition is preferred over maximizing fill. Avoid overcrowded pages.
 
-Do not stretch, compress, reflow or move content between pages to adjust how full a page looks.
-Do not pull later content forward, and do not add content, to reduce white space.
-
-Page density will vary naturally from page to page because it follows the source content.
-When a page's content does not reach the bottom margin,
-leave the remaining space empty.
-
-Predictable, standardized page composition is preferred over maximizing fill.
-Avoid overcrowded pages; trailing white space at the bottom of a page is acceptable.
-
-==================================================
-EDITORIAL RHYTHM
-==================================================
-
-The publication should maintain visual rhythm.
-Alternate naturally between:
-- narrative paragraphs;
-- short instructional emphasis;
-- occasional editorial callouts;
-- subsection headings;
-- instructional notes.
-Create this rhythm using only the elements the source provides
-(its paragraphs, headings, emphasis and any callouts the author has written);
-never add elements to manufacture rhythm.
-Avoid creating pages consisting entirely of uninterrupted paragraphs.
-Likewise,
-avoid filling pages with excessive visual elements.
-Aim for the appearance of a professionally art-directed Teacher Edition.
+White space is an intentional editorial tool: provide breathing room around headings, callouts, diagrams and paragraph groups, but do not create oversized empty regions inside a page's own content, and do not compress content to eliminate legitimate white space.
 
 ==================================================
 CONTINUITY
 ==================================================
 
-Page breaks are invisible to the reader.
-Instructional sections should continue naturally across pages.
-Do not restart layouts after page breaks.
-Do not redesign pages after page breaks.
-Do not recreate titles after page breaks.
-Readers should feel they are simply turning another page of the same publication.
+The Lesson Plan is one continuous publication; page breaks are invisible to the reader and are editorial events, not document restarts. When a section continues onto another page, continue it immediately — never restart layouts, redesign pages, recreate titles, or recreate lesson title/number/metadata/objectives/standards/overview/introductory panels after Page 1. Readers should feel they are simply turning the next page of the same Teacher Edition, never questioning whether a new lesson has begun.
 
 ==================================================
 TYPOGRAPHY
 ==================================================
 
-Typography is the primary tool for creating visual hierarchy.
-Do not rely on large containers, oversized titles or decorative graphics.
-Maintain consistent typography throughout the publication.
+Typography is the primary tool for creating visual hierarchy — never rely on large containers, oversized titles or decorative graphics. Maintain identical typography throughout; never compensate for page length by changing font sizes.
 
-Lesson title (Page 1 only)
-18–20 pt
-Bold
-#092964
+Lesson title (Page 1 only): 18–20 pt, Bold, #092964.
+Instructional section headings: 15 pt, Bold, #7e5693.
+Subsection headings: 13 pt, SemiBold, #0251af.
+Body text: 11 pt, Regular, #222222.
+Instructional callouts: 10 pt, Regular, #444444.
+Captions: 9 pt, Regular, #666666.
 
-Instructional section headings
-15 pt
-Bold
-#7e5693
+Visual hierarchy order: 1. Lesson title (Page 1 only) 2. Instructional section heading 3. Subsection heading 4. Editorial callout 5. Narrative body text 6. Captions. No other visual element should compete with instructional headings.
 
-Subsection headings
-13 pt
-SemiBold
-#0251af
-
-Body text
-11 pt
-Regular
-#222222
-
-Instructional callouts
-10 pt
-Regular
-#444444
-
-Captions
-9 pt
-Regular
-#666666
-
-Never compensate for page length by increasing or reducing font sizes.
-Typography remains consistent throughout the document.
+The lesson title normally occupies 1–3 lines, never exceeding ~15% of the printable page height. Use balanced line breaks; the title should resemble the opening page of a published curriculum, not a presentation cover.
 
 ==================================================
-TITLE PROPORTIONS
+TEXT ALIGNMENT AND PARAGRAPH DESIGN
 ==================================================
 
-The lesson title establishes hierarchy,
-not visual dominance.
-Normally occupy:
-1–3 lines.
-Never exceed:
-approximately
-15%
-of the printable page height.
-Avoid oversized lesson titles.
-Avoid extremely long line lengths.
-Use balanced line breaks.
-The title should resemble the opening page of a professionally published curriculum,
-not a presentation cover.
+Justify all narrative body paragraphs, consistently, on every page — alignment must not change page to page. Enable hyphenation so justified lines break cleanly and word spacing stays even; if a line would still show a distracting gap, fix it with hyphenation or minor spacing adjustments, never by switching to left alignment. Section headings, lists and callout content remain left aligned.
 
-==================================================
-TEXT ALIGNMENT
-==================================================
+Prefer paragraphs of 3–6 sentences; divide long discussions into smaller editorial units so readers never encounter large uninterrupted text walls. Paragraph divisions come from the source — render them as written, never merge or split them.
 
-Justify all narrative body paragraphs, consistently, on every page.
-Alignment must not change from page to page.
-Enable hyphenation so justified lines break cleanly.
-Justified text must not show large or uneven gaps between words;
-tighten word spacing and allow hyphenation to keep spacing even.
-If an individual justified line would still produce distracting gaps,
-correct it with hyphenation or minor spacing adjustments — not by switching the page to left alignment.
-Section headings remain left aligned.
-Lists remain left aligned.
-Callout content may remain left aligned.
-Narrative body text is fully justified throughout the entire document.
-
-==================================================
-PARAGRAPH DESIGN
-==================================================
-
-Avoid excessively long paragraphs.
-Prefer paragraphs containing:
-3–6 sentences.
-Very long instructional discussions should be divided into smaller editorial units.
-Paragraphs should create natural visual rhythm.
-Readers should never encounter large uninterrupted text walls.
-(Paragraph divisions come from the source; render them as written and do not merge or split paragraphs.)
-
-==================================================
-VISUAL HIERARCHY
-==================================================
-
-Visual hierarchy should be established through:
-- typography;
-- spacing;
-- paragraph grouping;
-- instructional emphasis;
-- restrained color.
-Never create hierarchy using oversized containers.
-Never create hierarchy using oversized titles.
-Never rely on decorative graphics.
-The hierarchy should always be:
-1. Lesson title (Page 1 only)
-2. Instructional section heading
-3. Subsection heading
-4. Editorial callout
-5. Narrative body text
-6. Captions
-No other visual element should compete with instructional headings.
+An editorial block is a visually related group of paragraphs discussing one instructional idea; most sections should contain 2–5 such blocks, separated by white space rather than borders.
 
 ==================================================
 COLOR PALETTE
 ==================================================
 
-Primary Blue #092964
-Editorial Purple #7e5693
-Supporting Blue #4f7bb8
-Teacher Green #7ea55a
-Soft Gray #f6f7f9
-Light Blue #eef5fb
-Light Purple #f5f0fa
-Body Text #222222
+Primary Blue #092964 · Editorial Purple #7e5693 · Supporting Blue #4f7bb8 · Teacher Green #7ea55a · Soft Gray #f6f7f9 · Light Blue #eef5fb · Light Purple #f5f0fa · Body Text #222222.
 
-Color exists only to reinforce editorial hierarchy.
-Avoid bright saturated colors.
-Avoid decorative gradients.
-Avoid colorful page designs.
-The publication should feel restrained,
-professional,
-and timeless.
-
-==================================================
-WHITE SPACE
-==================================================
-
-White space is an editorial tool.
-Use it intentionally.
-Provide enough breathing room around:
-- section headings;
-- callouts;
-- diagrams;
-- paragraph groups.
-Do not create oversized empty regions inside a page's content.
-Likewise,
-do not compress content to eliminate white space.
-White space that results from faithfully rendering a page's source content is acceptable,
-including trailing space at the bottom of a page;
-do not add or move content to remove it.
-Most pages will appear comfortably occupied because the source content is written to fill them;
-where a page's content is shorter, its trailing white space is acceptable.
+Color exists only to reinforce editorial hierarchy — avoid bright saturated colors, decorative gradients or colorful page designs. The publication should feel restrained, professional and timeless.
 
 ==================================================
 SECTION SPACING
 ==================================================
 
-Maintain approximately:
-3–5 mm
-between related paragraphs.
-Maintain:
-6–8 mm
-before new instructional sections.
-Major instructional phases may receive slightly more spacing.
-Avoid inconsistent vertical rhythm.
-
-==================================================
-VISUAL DESIGN
-==================================================
-
-The publication should resemble a professionally art-directed educational book.
-Typography,
-spacing,
-and organization should carry most of the design.
-Graphic elements should remain secondary.
-Avoid pages that look:
-too empty;
-too dense;
-too decorative;
-too mechanical.
-The reader should perceive editorial quality rather than graphic design.
-
-==================================================
-VISUAL RESTRAINT
-==================================================
-
-When uncertain,
-choose the more editorial solution.
-Prefer:
-- better spacing;
-- cleaner typography;
-- improved grouping;
-instead of:
-- larger headings;
-- additional colors;
-- decorative containers;
-- unnecessary graphics.
-Professional educational publishing values clarity over decoration.
-
-==================================================
-INTERIOR PAGE PHILOSOPHY
-==================================================
-
-Interior pages should resemble professionally published editorial pages.
-Avoid treating every page as one continuous column of text.
-Instead,
-organize instructional content into visually coherent editorial groups.
-Readers should naturally pause,
-scan,
-and resume reading without losing instructional continuity.
-The page should feel dynamic,
-not fragmented.
-(Organize using the source's existing paragraph groups and headings; do not create new ones.)
+Maintain approximately 3–5 mm between related paragraphs, and 6–8 mm before new instructional sections (major phases may receive slightly more). Avoid inconsistent vertical rhythm.
 
 ==================================================
 SECTION HEADINGS
 ==================================================
 
-Section headings are editorial typography only.
-Never place instructional headings inside:
-- banners;
-- title boxes;
-- colored rectangles;
-- tables;
-- framed panels;
-- decorative containers.
-Headings introduce instructional content.
-They do not function as graphic elements.
+Section and subsection headings are editorial typography only — never place them inside banners, title boxes, colored rectangles, tables or framed panels. Headings introduce instructional content; they are not graphic elements.
 
 ==================================================
-EDITORIAL BLOCKS
+EDITORIAL RHYTHM AND PAGE COMPOSITION
 ==================================================
 
-Narrative content should be naturally divided into editorial blocks.
-An editorial block is a visually related group of paragraphs discussing one instructional idea.
-Most instructional sections should contain:
-2–5 editorial blocks.
-Each block should remain visually compact.
-Separate blocks using white space rather than borders.
-Readers should easily distinguish one instructional idea from the next.
+Alternate naturally between narrative paragraphs, subsection headings, and any callouts the source provides — using only elements the source itself contains; never add elements to manufacture rhythm or to compose a page. Avoid pages that are entirely uninterrupted narrative just as much as pages overloaded with visual elements.
+
+The preferred rhythm, where the source provides it:
+Heading
+↓
+Narrative block
+↓
+Optional callout
+↓
+Narrative continuation
+↓
+Subsection
+↓
+Narrative block
+
+This rhythm varies naturally across the publication, following the structure the source already contains — it is never manufactured by the layout stage.
 
 ==================================================
-PAGE COMPOSITION
+CALLOUTS
 ==================================================
 
-Avoid pages consisting entirely of uninterrupted narrative.
-Instead,
-mix together the elements present in the source:
-- instructional paragraphs;
-- subsection headings;
-- short instructional emphasis;
-- occasional callouts;
-- compact diagrams when the source provides them.
-The page should feel intentionally composed rather than automatically flowed,
-but this composition must use only what the source contains — never add elements to compose a page.
+Callouts are short editorial asides (Teacher tip, Watch for, Common misconception, Discussion prompt, Transition point, Quick check) that help teachers scan for key guidance.
+
+Render a callout ONLY where the source marks one with [[CALLOUT:Label]] ... [[/CALLOUT]], using Label as the callout title. Never write new callout text, never invent a callout not marked in the source, and never move one to a different page than where it appears in the source. Most pages will contain 0–1 callout; a page may occasionally contain two where the source provides them. A page with no marked callout simply has none — this is expected.
+
+Render every callout in one consistent boxed style (soft background, thin border, small title showing the Label) — never inline as plain text, never inconsistent between callouts. Keep them visually secondary: small title, compact content, no large boxes, heavy borders, drop shadows or oversized icons. They should occupy only the space their content requires and never dominate the page.
 
 ==================================================
-CALLOUT PHILOSOPHY
+VISUAL SUPPORT AND DIAGRAMS
 ==================================================
 
-Editorial callouts are encouraged when they improve instructional usability.
-Their purpose is to help teachers quickly locate important instructional guidance.
-Callouts should feel like natural editorial notes,
-not decorative elements.
-Examples include:
-Teacher Tip
-Watch For
-Discussion Prompt
-Quick Check
-Think Aloud
-Instructional Reminder
-Common Misconception
-Transition Point
-
-Callout content must come from the source.
-Render a callout ONLY where the source marks one with [[CALLOUT:Label]] ... [[/CALLOUT]];
-use Label (for example Teacher tip, Watch for, Common misconception, Discussion prompt, Transition point, Quick check) as the callout title.
-Never write new callout text.
-Never invent a callout that is not marked in the source, and never move a callout to a different page than the one it appears on in the source.
-
-==================================================
-CALLOUT FREQUENCY
-==================================================
-
-Render callouts only where the source provides them.
-Most pages will contain 0–1 callout;
-a page may occasionally contain two when the source provides them.
-If the source provides no callout on a page, that page has no callout — this is expected and acceptable.
-Never invent or duplicate a callout to create rhythm or to fill space.
-
-==================================================
-CALLOUT DESIGN
-==================================================
-
-Callouts should remain visually secondary.
-Prefer:
-soft background color;
-thin border;
-small title;
-compact content.
-Avoid:
-large boxes;
-heavy borders;
-drop shadows;
-decorative graphics;
-oversized icons.
-Callouts should occupy only the space required by their content.
-They should never dominate the page.
-
-Render every callout in the same consistent boxed style
-(soft background, thin border, small title showing the Label).
-Never render some callouts as boxes and others inline as plain text;
-callout styling must be consistent across the entire document.
-
-==================================================
-EDITORIAL SIDE ELEMENTS
-==================================================
-
-Small supporting editorial elements are encouraged when the source provides them.
-Examples include:
-- instructional reminders;
-- discussion prompts;
-- quick observation notes;
-- teacher cautions;
-- misconception alerts;
-- classroom management reminders.
-These elements should remain compact.
-They should support narrative rather than interrupt it.
-Render only those that exist in the source; never invent them.
+Visual support exists only when it improves classroom implementation AND is present in the source — render only diagrams the source describes, never invent one. Many Lesson Plans will require none at all. When present, diagrams should stay small, editorial and easy to interpret — never full-page, decorative or infographic-style.
 
 ==================================================
 PAGE BALANCE
 ==================================================
 
-Every page should balance:
-instructional narrative;
-editorial emphasis;
-white space.
-Avoid pages that are:
-100% narrative;
-or
-100% graphic.
-Professional Teacher Editions balance both naturally.
-Where the source content of a page is entirely narrative, render it as narrative — do not add graphic elements to balance it.
+Every page should balance instructional narrative, editorial emphasis and white space — avoid pages that are 100% narrative or 100% graphic as a matter of forced composition. Where a page's source content is entirely narrative, render it as narrative; do not add graphic elements just to "balance" it.
 
 ==================================================
-MULTI-COLUMN CONTENT
+PAGE OPTIMIZATION AND CONTENT DISTRIBUTION
 ==================================================
 
-Narrative instructional content should normally remain single-column.
-However,
-small supporting content may occasionally appear beside the narrative when the source provides it.
-Examples include:
-- compact teacher tips;
-- discussion prompts;
-- quick reminders;
-- instructional cautions.
-These supporting elements should occupy limited width.
-They should never replace the primary instructional narrative.
+Pagination is already fixed by the --PAGE X-- markers in the source. The layout stage does not decide where pages begin or end, must not combine, split or re-flow pages, and must not begin a page early or extend one based on how full it looks — the source has already decided each break. Compose each page cleanly with consistent spacing and hierarchy; where a source page ends with unused space at the bottom, render it as-is rather than redistributing content to remove the gap.
 
 ==================================================
-VISUAL SUPPORT
+EDITORIAL CONSISTENCY AND PRINT READINESS
 ==================================================
 
-Visual support exists only when it improves classroom implementation AND is present in the source.
-Acceptable visual elements include:
-- instructional flow diagrams;
-- concept relationships;
-- comparison frameworks;
-- decision trees;
-- instructional sequences.
-Visuals should simplify instruction,
-not decorate pages.
-Render only diagrams the source describes; never invent a diagram.
-Many Lesson Plans will require no diagrams at all.
-
-==================================================
-DIAGRAM DESIGN
-==================================================
-
-Instructional diagrams should remain:
-small;
-editorial;
-easy to interpret.
-Avoid full-page diagrams.
-Avoid decorative illustrations.
-Avoid infographic-style layouts.
-Diagrams should function as supporting editorial references.
-
-==================================================
-CONTENT FLOW
-==================================================
-
-Readers should experience continuous instructional reading.
-Editorial elements should support navigation,
-not interrupt it.
-The preferred rhythm is:
-Heading
-↓ 
-Narrative block
-↓ 
-Optional callout
-↓ 
-Narrative continuation
-↓ 
-Subsection
-↓ 
-Narrative block
-↓ 
-Optional instructional note
-↓ 
-Narrative continuation
-This rhythm should vary naturally across the publication, following the structure the source already contains.
-
-==================================================
-VISUAL BALANCE
-==================================================
-
-Every page should appear professionally composed.
-Avoid pages dominated by:
-- oversized headings;
-- oversized white space created by poor composition;
-- oversized callouts;
-- uninterrupted text walls.
-The goal is a visually balanced Teacher Edition that encourages continuous reading and efficient lesson preparation.
-(Trailing white space that simply reflects a shorter source page is not "poor composition" and should be left as-is.)
-
-==================================================
-PAGE TRANSITIONS
-==================================================
-
-Page breaks are editorial events,
-not document restarts.
-When an instructional section continues,
-continue it immediately on the next page.
-Never restart the visual composition after a page break.
-Never recreate:
-- lesson title;
-- lesson number;
-- metadata;
-- objectives;
-- standards;
-- lesson overview;
-- introductory panels;
-- metadata boxes;
-- lesson identification banners.
-The reader should never question whether a new lesson has begun.
-
-==================================================
-CONTENT CONTINUITY
-==================================================
-
-The Lesson Plan is one continuous publication.
-Every interior page belongs to the same editorial sequence.
-Avoid visual repetition.
-Avoid restarting visual hierarchy.
-Avoid creating multiple opening pages.
-Every page after Page 1 should immediately continue instruction.
-
-==================================================
-PAGE OPTIMIZATION
-==================================================
-
-Pagination is already determined by the --PAGE X-- markers in the source.
-The layout stage does not decide where pages begin or end,
-and must not combine, split, or re-flow the source's pages.
-Render each page's content as written.
-Do not begin a new page early, and do not extend a page, based on how full it looks —
-the source has already decided where each page breaks.
-
-==================================================
-CONTENT DISTRIBUTION
-==================================================
-
-Content distribution across pages is fixed by the source's --PAGE X-- markers;
-the layout stage renders that distribution faithfully.
-Compose each page cleanly with consistent spacing and hierarchy.
-Avoid overcrowded pages.
-Where a source page ends with unused space at the bottom, render it as-is — do not redistribute content to remove the gap.
-Every page should appear intentionally composed.
-
-==================================================
-EDITORIAL CONSISTENCY
-==================================================
-
-Maintain one editorial language throughout the publication.
-Every page should appear to have been designed by the same editorial team.
-Maintain consistent:
-- typography;
-- spacing;
-- paragraph rhythm;
-- visual hierarchy;
-- editorial emphasis;
-- page composition.
-Avoid sudden visual changes between pages.
-
-==================================================
-PRINT READINESS
-==================================================
-
-The finished Lesson Plan should require no structural redesign before professional printing.
-Every page should already appear:
-balanced;
-organized;
-editorially composed;
-ready for publication.
+Maintain one consistent editorial voice, typography, spacing, paragraph rhythm and visual hierarchy throughout — every page should look designed by the same editorial team, with no sudden visual changes between pages. The finished Lesson Plan should require no structural redesign before professional printing; every page should already appear balanced, organized and ready for publication.
 
 ==================================================
 FINAL QUALITY CHECK
 ==================================================
 
-Before finalizing the Lesson Plan, verify that:
--  Every element on every page comes from the source; nothing has been invented, added or rewritten.
--  Only marked elements are rendered as titles, section headings, subheadings, boxes or callouts; nothing unmarked was promoted into one.
--  No paragraph's opening words were turned into a heading.
--  No interior section has an information box or table (only the [[BOX]] on Page 1 is a box).
--  No callout was added that is not marked with [[CALLOUT:...]] in the source.
--  All markers ([[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]], [[/...]], --PAGE X--) were stripped and do not appear on the page.
--  All callouts are rendered in one consistent boxed style; none are left inline.
--  Justified body text uses hyphenation and shows even word spacing (no large gaps).
--  Page breaks match the source's --PAGE X-- markers exactly; no content was moved between pages.
--  Headings preserve the source's exact wording and sentence case (no Title Case, no ALL CAPS).
--  No raw markup characters (such as "#" or "*") appear on the page.
--  Page 1 is the only introductory page.
--  Exactly one metadata box exists in the entire publication.
--  No interior page contains a metadata box, information panel, title block or lesson title.
--  Interior pages never recreate lesson information.
--  All narrative body text is justified consistently on every page.
--  Lesson title size remains proportional.
--  Instructional headings establish hierarchy without dominating the page.
--  Editorial purple (#7e5693) is used consistently for instructional section headings.
--  Typography remains consistent throughout.
--  Content continues naturally across page breaks.
--  No page visually restarts the publication.
--  Narrative paragraphs are organized into readable editorial blocks.
--  Callouts remain compact and purposeful, and only appear where the source provides them.
--  Supporting elements never dominate the layout.
--  Visual rhythm is maintained throughout the publication.
--  Trailing white space (where a source page is short) has been left as-is, not filled with added content.
--  Every page resembles the interior of a professionally published American Teacher Edition.
+Before finalizing, verify that:
+- Every element on every page comes from the source; nothing invented, added or rewritten.
+- Only marked elements ([[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]]) are rendered as titles, headings, boxes or callouts — nothing unmarked was promoted into one, including a paragraph's opening words.
+- No interior section has an information box or table — only the [[BOX]] on Page 1 is a box.
+- No callout was added beyond what [[CALLOUT:...]] marks in the source, and all callouts share one consistent boxed style.
+- All markers were stripped and never appear on the rendered page.
+- Justified body text uses hyphenation with even word spacing — no large gaps.
+- Page breaks match the source's --PAGE X-- markers exactly; no content moved between pages.
+- Headings preserve the source's exact wording and sentence case.
+- Page 1 contains only the lesson title and the metadata box; no interior page recreates lesson information.
+- Typography, spacing and Editorial Purple (#7e5693) for section headings remain consistent throughout.
+- Trailing white space on a short source page has been left as-is, not filled with added content.
+- Every page resembles the interior of a professionally published American Teacher Edition.
 
 ==================================================
 EXPECTED RESULT
 ==================================================
 
-Generate a Lesson Plan layout that:
-- renders the provided source text faithfully, adding and inventing nothing;
-- respects the source's --PAGE X-- markers as the exact page boundaries;
-- resembles a professionally published American Teacher Edition;
-- presents Page 1 as the sole introductory page;
-- presents all remaining pages as continuous interior editorial pages;
-- contains exactly one metadata box in the entire publication;
-- never recreates lesson-identification elements after Page 1;
-- maintains justified narrative text consistently on every page;
-- uses restrained editorial typography instead of oversized titles;
-- organizes the source's instructional content into visually coherent editorial blocks;
-- renders only the callouts the source provides, without inventing any;
-- balances narrative, white space and editorial emphasis naturally, leaving trailing white space where a source page is short;
-- maintains one consistent visual identity from the first page to the last;
-- is fully prepared for professional A4 printing at 300 DPI.
+Generate a Lesson Plan layout that renders the source faithfully — adding and inventing nothing — respecting its --PAGE X-- markers as exact page boundaries, using restrained typography and Editorial Purple headings instead of boxes or decoration, rendering only the callouts the source marks, and leaving trailing white space where a source page is short. Fully prepared for professional A4 printing at 300 DPI.
 
 ==================================================
 END OF LAYOUT RULES
