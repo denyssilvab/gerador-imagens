@@ -1170,6 +1170,7 @@
     .combinar-item-type { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 3px; flex-shrink: 0; }
     .combinar-item-type.lesson     { background: rgba(137,193,59,.2);  color: #89c13b; }
     .combinar-item-type.practice   { background: rgba(99,102,241,.2);  color: #a5b4fc; }
+    .combinar-item-type.answerkey  { background: rgba(155,89,182,.2);  color: #c39bd3; }
     .combinar-item-type.lessonplan { background: rgba(251,191,36,.2);  color: #fbbf24; }
     /* ── old upscale rows kept for compat ── */
     .upscale-img-row {
@@ -1508,6 +1509,7 @@
             <button class="dash-type-tab active" onclick="setDashType('all',this)">Todos</button>
             <button class="dash-type-tab" onclick="setDashType('lesson',this)">Lesson</button>
             <button class="dash-type-tab" onclick="setDashType('practice',this)">Practice</button>
+            <button class="dash-type-tab" onclick="setDashType('answerkey',this)">Answer Key</button>
             <button class="dash-type-tab" onclick="setDashType('lessonplan',this)">Lesson Plan</button>
           </div>
           <div class="dash-toolbar-right">
@@ -1698,7 +1700,7 @@
             <div id="ctx-practice-wrap" style="display:none;flex-direction:column;gap:6px;">
               <label style="font-size:12px;font-weight:600;color:var(--muted);">Conteúdo das Activities (contexto opcional)</label>
               <textarea id="ctx-practice" rows="5" style="font-family:monospace;font-size:12px;"
-                placeholder="Cole aqui o conteúdo das Activities geradas anteriormente. Usado como contexto para gerar o Lesson Plan."></textarea>
+                placeholder="Cole aqui o conteúdo das Activities geradas anteriormente. Usado como contexto para gerar o Lesson Plan ou o Answer Key."></textarea>
             </div>
 
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1767,6 +1769,19 @@
             </div>
             <div class="card-body">
               <textarea id="claude-output-practice" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Practice Activities gerada aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#9b59b6;">🔑 Answer Key</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="all-badge-answerkey"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('all-answerkey')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendToGerarSingle('answerkey')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="claude-output-answerkey" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Answer Key gerada aparecerá aqui…"></textarea>
             </div>
           </div>
           <div class="card">
@@ -1841,10 +1856,11 @@
         <div class="card">
           <div class="card-head"><h2>Tipo de Documento</h2></div>
           <div class="card-body" style="padding:8px;display:flex;flex-direction:column;gap:6px;">
-            <div class="claude-doc-tabs tabs" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
+            <div class="claude-doc-tabs tabs" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
               <button id="cdtab-all"        class="tab-btn active" onclick="setContentDocType('all',this)"        style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">All</button>
               <button id="cdtab-lesson"     class="tab-btn"        onclick="setContentDocType('lesson',this)"     style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson</button>
               <button id="cdtab-practice"   class="tab-btn"        onclick="setContentDocType('practice',this)"   style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Activities</button>
+              <button id="cdtab-answerkey"  class="tab-btn"        onclick="setContentDocType('answerkey',this)"  style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Answer Key</button>
               <button id="cdtab-lessonplan" class="tab-btn"        onclick="setContentDocType('lessonplan',this)" style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">Lesson Plan</button>
             </div>
           </div>
@@ -1947,6 +1963,19 @@
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <div style="background:var(--surface2);padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#9b59b6;">🔑 Answer Key</span>
+            <span class="pg-badge" id="pg-badge-answerkey">0 páginas</span>
+          </div>
+          <div style="padding:10px;">
+            <textarea id="prompt-answerkey" rows="10" style="margin:0;" oninput="onAllPromptInput('answerkey')"
+              placeholder="--PAGE 1 - TÍTULO--&#10;&#10;Conteúdo da página...&#10;&#10;--PAGE 2 - TÍTULO--&#10;&#10;Conteúdo da página..."></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:6px;">
+              <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('answerkey')">💾 Salvar TXT</button>
+            </div>
+          </div>
+        </div>
+        <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <div style="background:var(--surface2);padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
             <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#ff6b35;">📋 Lesson Plan</span>
             <span class="pg-badge" id="pg-badge-lessonplan">0 páginas</span>
           </div>
@@ -2019,7 +2048,7 @@
         <div class="card">
           <div class="card-head"><h2>Tipo de Arquivo</h2></div>
           <div class="card-body" style="padding:8px;">
-            <div class="tabs" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
+            <div class="tabs" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border:none;overflow:visible;width:100%;border-radius:0;">
               <button class="tab-btn active" onclick="setDocType('all', this)"
                 style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">
                 All
@@ -2031,6 +2060,10 @@
               <button class="tab-btn" onclick="setDocType('practice', this)"
                 style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">
                 Practice
+              </button>
+              <button class="tab-btn" onclick="setDocType('answerkey', this)"
+                style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">
+                Answer Key
               </button>
               <button class="tab-btn" onclick="setDocType('lessonplan', this)"
                 style="border-radius:7px;padding:10px 6px;font-size:12px;text-align:center;border:1px solid var(--border);">
@@ -3058,19 +3091,10 @@ Lesson Topic: Subject here
 --PAGE X--
 
 [Continuation of questions]
-
---PAGE X--
-
-Title: Answer Key
-
-1. [Answer 1]
-2. [Answer 2]
-...
 \`\`\`
 
 Considerations:
 
-- Divide the Answer Key across pages, avoiding overloading a single page.
 - Not every open-ended question needs subquestions. It can be just a simple statement.
 - Distribution of questions per page: (~180-240mm of content)
 - Questions numbered 1, 2, 3, etc.
@@ -3203,15 +3227,6 @@ clean vector-style illustration, no background clutter, no overlapping]\`
 
 ---
 
-## ANSWER KEY (LAST PAGE)
-
-- Separated from the questions
-- Complete and explained answers
-- Includes steps for problem-solving
-- Does not appear on the question pages
-
----
-
 ## Title continuity across pages
 
 When a section's content spans multiple pages, the page break is a print
@@ -3301,10 +3316,102 @@ A document that:
 - Each page ~180-240mm of content
 - Difficulty progression
 - 100% American context
-- Separate Answer Key
 - Ready to pass to the image generation API
 - Ready for A4 printing at 300 DPI
 - Complements the corresponding LESSON`,
+
+// Dedicated Answer Key content meta prompt (Math). A standalone document —
+// no longer generated as trailing pages of the Worksheet — that answers
+// the questions from CONTENT_SPECS.practice, provided as context at
+// generation time. Kept deliberately anti-duplication: this exists because
+// the combined Worksheet+Answer Key document was causing the model to
+// repeat questions instead of writing actual answers.
+answerkey: `# OVERVIEW
+
+You are an expert in CCSS instructional design. Generate a complete, standalone **ANSWER KEY** for the practice activities (worksheet) already created for this lesson. The worksheet's questions are provided to you as context — your job is to answer them, not to reproduce them.
+
+- Provide a complete, explained answer for every question, in the same order and numbering as the worksheet.
+- Show the steps/reasoning used to reach each answer, not just a final value.
+- Is 100% in English.
+- Is ready to be passed to the image generation API.
+
+## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+
+Every word you write becomes what is physically printed on the page — there
+is no narration layer, no notes to a reader of the prompt. Before writing
+anything, ask: "will this exact text appear on the printed page?" If not,
+do not write it.
+
+The ONLY exception is the \`[IMAGE: ...]\` tag — it is a machine-readable
+instruction for what to draw, read by the image generator and never printed
+as text itself. Images are rarely needed in an Answer Key; only include one
+when a worked solution genuinely requires a diagram to be legible.
+
+## CRITICAL: THIS IS AN ANSWER KEY, NOT A SECOND COPY OF THE WORKSHEET
+
+Do NOT restate the full question text, passage, or multiple-choice options
+before each answer. Reference the question only by its number, plus at most
+a short phrase if needed for legibility (e.g. "Question 3 (equivalent
+expressions):"). Writing out the question again — instead of answering it —
+is the single most important failure mode to avoid here.
+
+## LANGUAGE: 100% ENGLISH
+
+## DOCUMENT STRUCTURE
+
+### Mandatory formatting
+
+\`\`\`
+--PAGE 1--
+
+Title: Answer Key
+
+1. [Answer 1, with reasoning/steps]
+2. [Answer 2, with reasoning/steps]
+...
+
+--PAGE X--
+
+[Continuation of answers — see title continuity rules below]
+\`\`\`
+
+Considerations:
+
+- Distribute answers across pages naturally (~180-240mm of content per page); leave blank space rather than compressing or stretching content to fill a page.
+- Answers may vary in length — a one-line answer and a multi-step worked solution can both appear naturally.
+- Multiple choice answers should state the correct letter AND briefly explain why the other options are wrong when that adds instructional value.
+
+## ANSWERS AND SPACE
+
+**NEVER include:**
+- Blank lines, underscores, dotted lines, or empty parentheses (this is a completed answer key, not a fillable form)
+
+## Title continuity across pages
+
+When answers span multiple pages, the page break is a print pagination
+artifact only — it must be INVISIBLE to the reader. On continuation
+page(s):
+- Do NOT repeat the title "Answer Key"
+- Do NOT add any new heading, subtitle, or label
+- Do NOT write ANY phrase that signals continuation — no "continues",
+  "continued", "(cont.)", or similar
+- Simply resume the numbered answers exactly where they left off
+
+## First page title format
+
+On the first page, display ONLY the title "Answer Key" — no unit number, lesson number, or CCSS code below it. The title appears only on page 1, never repeated on subsequent pages.
+
+## EXPECTED RESULT
+
+A document that:
+
+- Answers every question from the worksheet, in order, with reasoning shown
+- Never reproduces the worksheet's question text, passages, or options
+- 100% in English
+- No fillable answer spaces
+- Each page ~180-240mm of content
+- Ready to pass to the image generation API
+- Ready for A4 printing at 300 DPI`,
 
 lessonplan: `# You are a CCSS (Common Core State Standards) instructional expert and need to create a complete Lesson Plan based on the provided Student Lesson Guide and Practice Activities.
 
@@ -4769,52 +4876,6 @@ Never restart numbering because of a page break.
 
 ---
 
-## ANSWER KEY
-
-The Answer Key is a separate section that appears after all worksheet pages.
-
-Display the heading:
-
-Answer Key
-
-ONLY on the first answer page.
-
-Example:
-
-\`\`\`
---PAGE 8--
-
-Answer Key
-
-1.
-2.
-3.
-
---PAGE 9--
-
-4.
-5.
-6.
-
---PAGE 10--
-
-7.
-8.
-9.
-\`\`\`
-
-Never write:
-
-- Answer Key (continued)
-- Answers
-- Page 2
-- Part 2
-- Section 2
-
-Simply continue the numbering.
-
----
-
 ## PAGE DISTRIBUTION
 
 Distribute questions naturally across pages.
@@ -4966,29 +5027,6 @@ Students complete their answers separately.
 
 ---
 
-# ANSWER KEY
-
-Place the Answer Key after all worksheet pages.
-
-The Answer Key should:
-
-- provide complete answers;
-- include explanations whenever appropriate;
-- show calculations or reasoning when instructional value exists;
-- remain separate from the worksheet pages.
-
-Never place answers on activity pages.
-
-Display the title:
-
-Answer Key
-
-only on the first page of the answer section.
-
-Subsequent answer pages continue directly with the next numbered answer.
-
----
-
 # EXPECTED RESULT
 
 Generate a worksheet that:
@@ -5000,25 +5038,113 @@ Generate a worksheet that:
 - includes illustrations only when instructionally necessary;
 - contains no response spaces;
 - maintains logical difficulty progression;
-- provides a separate Answer Key;
 - is ready for image generation;
 - is ready for professional A4 page layout at 300 DPI;
 - begins immediately with instructional content;
 - does not generate internal worksheet titles because document identification is provided externally;
 - behaves as one continuous worksheet across every page.`,
+
+// Dedicated Answer Key content meta prompt for ELA, middle school (6th-8th)
+// only. Mirrors practice_ela_ms's structure but answers the worksheet
+// instead of reproducing it — see the Math `answerkey` spec above for why
+// this exists as a standalone document rather than trailing pages of the
+// worksheet.
+answerkey_ela_ms: `# OVERVIEW
+
+You are an expert in CCSS instructional design.
+
+Generate a complete, standalone Answer Key for the worksheet already created for this lesson. The worksheet's activities are provided to you as context — your job is to answer them, not to reproduce them.
+
+The Answer Key should:
+
+- Provide a complete answer for every activity, in the same order and numbering as the worksheet.
+- Include explanations and reasoning whenever they add instructional value, especially for evidence-based or analytical questions (cite the textual evidence the answer relies on).
+- Be entirely in English.
+- Be ready for page layout and image generation.
+
+## LANGUAGE
+
+Generate the entire Answer Key in English.
+
+---
+
+# CRITICAL: THIS IS AN ANSWER KEY, NOT A SECOND COPY OF THE WORKSHEET
+
+Do NOT restate the full activity text, reading passage, or multiple-choice options before each answer. Reference the activity only by its number, plus at most a short phrase if needed for legibility. Writing out the question again — instead of answering it — is the single most important failure mode to avoid here.
+
+---
+
+# DOCUMENT STRUCTURE
+
+The Answer Key is a single continuous printable document — a separate document from the worksheet it answers.
+
+The document header is added externally during page composition. Therefore, do NOT generate a document title yourself, except for the "Answer Key" heading required below.
+
+Example:
+
+--PAGE 1--
+
+Answer Key
+
+1. [Answer 1, with reasoning/evidence as appropriate]
+2. [Answer 2, with reasoning/evidence as appropriate]
+3.
+
+---
+
+# DOCUMENT CONTINUITY
+
+Treat every generated page as part of one continuous Answer Key.
+
+A page break NEVER starts a new document.
+
+After a page break, continue answer numbering naturally — never restart it.
+
+## Title continuity
+
+Display the heading "Answer Key" ONLY on the first page. Never write "Answer Key (continued)", "Answers", "Page 2", "Part 2", "Section 2", or similar labels on later pages — simply continue the numbering.
+
+---
+
+## PAGE DISTRIBUTION
+
+Distribute answers naturally across pages. Target approximately 180-240 mm of printable content per page. If page content occupies less than approximately 120 mm, leave the remaining space blank — do not create unnecessary elaboration merely to fill the page. Do not compress content to avoid page breaks.
+
+---
+
+# ANSWERS AND RESPONSE SPACE
+
+Never include blank answer lines, dotted lines, underscores, empty parentheses, empty boxes, response fields, writing areas, or checkboxes — this is a completed answer key, not a fillable form.
+
+---
+
+# EXPECTED RESULT
+
+Generate an Answer Key that:
+
+- answers every activity from the worksheet, in order, with reasoning or evidence shown where it adds value;
+- never reproduces the worksheet's activity text, passages, or options;
+- is entirely in English;
+- is ready for image generation;
+- is ready for professional A4 page layout at 300 DPI;
+- displays the "Answer Key" title only on page 1;
+- behaves as one continuous document across every page.`,
 };
 
 // Resolves {{SUBJECT}} / {{GRADE}} placeholders in a CONTENT_SPECS template
 // for the selected discipline/grade — same content-writing structure for
 // every discipline, only the subject/grade reference at the top changes.
-// ELA Worksheets in middle school (6th-8th) use a dedicated meta prompt
-// (practice_ela_ms) instead of the shared one.
+// ELA Worksheets/Answer Keys in middle school (6th-8th) use dedicated meta
+// prompts (practice_ela_ms / answerkey_ela_ms) instead of the shared ones.
 function _contentSpecFor(type, discipline, grade) {
   const subject = (discipline || '').trim() || 'Mathematics';
   const gradeText = (grade || '').trim() || '6th Grade';
   const gradeNum = parseInt(gradeText, 10) || 0;
-  const useElaWorksheetSpec = type === 'practice' && subject === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
-  const raw = useElaWorksheetSpec ? CONTENT_SPECS.practice_ela_ms : (CONTENT_SPECS[type] || CONTENT_SPECS.all);
+  const isElaMS = subject === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
+  const key = type === 'practice' && isElaMS ? 'practice_ela_ms'
+    : type === 'answerkey' && isElaMS ? 'answerkey_ela_ms'
+    : type;
+  const raw = CONTENT_SPECS[key] || CONTENT_SPECS.all;
   return raw.replace(/\{\{SUBJECT\}\}/g, subject).replace(/\{\{GRADE\}\}/g, gradeText);
 }
 
@@ -5041,7 +5167,7 @@ function _refreshImgSpecsTextarea() {
 
 let contentDocType = 'all';
 let claudeAbortCtrl = null;
-const savedContent = { lesson: null, practice: null, lessonplan: null };
+const savedContent = { lesson: null, practice: null, answerkey: null, lessonplan: null };
 let _genFailedStep = null; // which step failed (for resume)
 
 function _showResumeBanner(failedStep) {
@@ -5051,6 +5177,7 @@ function _showResumeBanner(failedStep) {
   const steps = [
     { key: 'lesson',     label: 'Lesson' },
     { key: 'practice',   label: 'Activities' },
+    { key: 'answerkey',  label: 'Answer Key' },
     { key: 'lessonplan', label: 'Lesson Plan' },
   ];
   const order = steps.map(s => s.key);
@@ -5086,9 +5213,10 @@ async function resumeGeneration() {
   const btnStop = document.getElementById('btn-claude-stop');
   const prog    = document.getElementById('claude-prog-wrap');
   const label   = document.getElementById('claude-prog-label');
-  const outLesson   = document.getElementById('claude-output-lesson');
-  const outPractice = document.getElementById('claude-output-practice');
-  const outPlan     = document.getElementById('claude-output-lessonplan');
+  const outLesson    = document.getElementById('claude-output-lesson');
+  const outPractice  = document.getElementById('claude-output-practice');
+  const outAnswerKey = document.getElementById('claude-output-answerkey');
+  const outPlan      = document.getElementById('claude-output-lessonplan');
 
   function _setBadge(id, text) {
     const el = document.getElementById(id);
@@ -5106,7 +5234,7 @@ async function resumeGeneration() {
   const startStep = _genFailedStep;
   _genFailedStep = null;
 
-  const steps = ['lesson', 'practice', 'lessonplan'];
+  const steps = ['lesson', 'practice', 'answerkey', 'lessonplan'];
   const startIdx = steps.indexOf(startStep);
 
   try {
@@ -5143,6 +5271,20 @@ async function resumeGeneration() {
 
     if (startIdx <= 2) {
       done++;
+      _genFailedStep = 'answerkey';
+      _startGenTimer(label, `Gerando Answer Key… (${done}/${total})`);
+      const answerKeyContent = await callClaudeAPI('answerkey', buildClaudeUserPrompt(baseInput, null, savedContent.practice), _contentSpecFor('answerkey', _cDiscipline, _cGrade),
+        (p) => { if (outAnswerKey) outAnswerKey.value = p; });
+      const akTime = _stopPhaseTime();
+      savedContent.answerkey = answerKeyContent;
+      if (outAnswerKey) outAnswerKey.value = answerKeyContent;
+      _setBadge('all-badge-answerkey', `${(answerKeyContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(akTime)}`.trim().replace(/^\s*·\s*/, ''));
+      addGeneratedFile('answerkey', answerKeyContent);
+      updateContentTabs();
+    }
+
+    if (startIdx <= 3) {
+      done++;
       _genFailedStep = 'lessonplan';
       _startGenTimer(label, `Gerando Lesson Plan… (${done}/${total})`);
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, savedContent.lesson, savedContent.practice), _contentSpecFor('lessonplan', _cDiscipline, _cGrade),
@@ -5178,7 +5320,7 @@ function _buildContentFilename(type) {
   const name   = document.getElementById('content-lesson-name')?.value || '';
   const disciplina = document.getElementById('content-disciplina')?.value || '';
   const turma       = document.getElementById('content-turma')?.value || '';
-  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', lessonplan: 'Lesson Plan' };
+  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
   const label = dtLabel[type] || type;
   const parts = [];
   parts.push(lesson ? `${label} ${_padLessonNum(lesson)}` : label);
@@ -5219,7 +5361,7 @@ function refreshContentFiles() {
   _refreshConteudoFolderBadge();
   const dtLabel = {
     lesson: _lessonDocLabel(document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value),
-    practice: 'Worksheet', lessonplan: 'Lesson Plan',
+    practice: 'Worksheet', answerkey: 'Answer Key', lessonplan: 'Lesson Plan',
   };
   list.innerHTML = '';
   _sessionFiles.slice().reverse().forEach(f => {
@@ -5310,7 +5452,7 @@ function updateContentTabs() {
 
 function _updateContextVisibility() {
   const showLesson   = (contentDocType === 'practice'   || contentDocType === 'lessonplan');
-  const showPractice = (contentDocType === 'lessonplan');
+  const showPractice = (contentDocType === 'lessonplan' || contentDocType === 'answerkey');
   const wL = document.getElementById('ctx-lesson-wrap');
   const wP = document.getElementById('ctx-practice-wrap');
   if (wL) wL.style.display = showLesson   ? 'flex' : 'none';
@@ -5463,10 +5605,11 @@ async function generateContent() {
   const card     = document.getElementById('claude-output-card');
 
   // helpers for All mode separate boxes
-  const allOut     = document.getElementById('claude-output-all');
-  const outLesson  = document.getElementById('claude-output-lesson');
-  const outPractice= document.getElementById('claude-output-practice');
-  const outPlan    = document.getElementById('claude-output-lessonplan');
+  const allOut      = document.getElementById('claude-output-all');
+  const outLesson    = document.getElementById('claude-output-lesson');
+  const outPractice  = document.getElementById('claude-output-practice');
+  const outAnswerKey = document.getElementById('claude-output-answerkey');
+  const outPlan      = document.getElementById('claude-output-lessonplan');
 
   function _setBadge(id, text) {
     const el = document.getElementById(id);
@@ -5485,7 +5628,7 @@ async function generateContent() {
 
       // 1. Lesson
       _genFailedStep = 'lesson';
-      _startGenTimer(label, 'Gerando Lesson… (1/3)');
+      _startGenTimer(label, 'Gerando Lesson… (1/4)');
       const lessonContent = await callClaudeAPI('lesson', buildClaudeUserPrompt(baseInput, null, null), _contentSpecFor('lesson', _cDiscipline, _cGrade),
         (partial) => { if (outLesson) outLesson.value = partial; });
       const lTime = _stopPhaseTime();
@@ -5498,7 +5641,7 @@ async function generateContent() {
 
       // 2. Activities
       _genFailedStep = 'practice';
-      _startGenTimer(label, 'Gerando Activities… (2/3)');
+      _startGenTimer(label, 'Gerando Activities… (2/4)');
       const practiceContent = await callClaudeAPI('practice', buildClaudeUserPrompt(baseInput, lessonContent, null), _contentSpecFor('practice', _cDiscipline, _cGrade),
         (partial) => { if (outPractice) outPractice.value = partial; });
       const pTime = _stopPhaseTime();
@@ -5509,9 +5652,22 @@ async function generateContent() {
       addGeneratedFile('practice', practiceContent);
       updateContentTabs();
 
-      // 3. Lesson Plan
+      // 3. Answer Key
+      _genFailedStep = 'answerkey';
+      _startGenTimer(label, 'Gerando Answer Key… (3/4)');
+      const answerKeyContent = await callClaudeAPI('answerkey', buildClaudeUserPrompt(baseInput, null, practiceContent), _contentSpecFor('answerkey', _cDiscipline, _cGrade),
+        (partial) => { if (outAnswerKey) outAnswerKey.value = partial; });
+      const akTime = _stopPhaseTime();
+      savedContent.answerkey = answerKeyContent;
+      if (outAnswerKey) outAnswerKey.value = answerKeyContent;
+      const akpages = (answerKeyContent.match(/^--PAGE /gm) || []).length;
+      _setBadge('all-badge-answerkey', akpages ? `${akpages} pág. · ${_fmtTime(akTime)}` : _fmtTime(akTime));
+      addGeneratedFile('answerkey', answerKeyContent);
+      updateContentTabs();
+
+      // 4. Lesson Plan
       _genFailedStep = 'lessonplan';
-      _startGenTimer(label, 'Gerando Lesson Plan… (3/3)');
+      _startGenTimer(label, 'Gerando Lesson Plan… (4/4)');
       const planContent = await callClaudeAPI('lessonplan', buildClaudeUserPrompt(baseInput, lessonContent, practiceContent), _contentSpecFor('lessonplan', _cDiscipline, _cGrade),
         (partial) => { if (outPlan) outPlan.value = partial; });
       const plTime = _stopPhaseTime();
@@ -5523,12 +5679,13 @@ async function generateContent() {
       updateContentTabs();
 
       _genFailedStep = null;
-      // Sync all 3 to Supabase
+      // Sync all 4 to Supabase
       sbSaveContent('lesson',     lessonContent);
       sbSaveContent('practice',   practiceContent);
+      sbSaveContent('answerkey',  answerKeyContent);
       sbSaveContent('lessonplan', planContent);
       _playNotification();
-      toast('Lesson + Activities + Lesson Plan gerados!', 'ok');
+      toast('Lesson + Activities + Answer Key + Lesson Plan gerados!', 'ok');
 
     } else {
       // ── Geração individual ──────────────────────────────────────────────
@@ -5538,7 +5695,7 @@ async function generateContent() {
       const ctxPractice = savedContent.practice || document.getElementById('ctx-practice')?.value.trim() || null;
       const userInput    = buildClaudeUserPrompt(baseInput,
         contentDocType === 'practice'   ? ctxLesson   : null,
-        contentDocType === 'lessonplan' ? ctxPractice : null);
+        (contentDocType === 'lessonplan' || contentDocType === 'answerkey') ? ctxPractice : null);
       const systemPrompt = document.getElementById('content-specs')?.value.trim() || _contentSpecFor(contentDocType, document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
 
       if (card) card.style.display = '';
@@ -5547,6 +5704,7 @@ async function generateContent() {
 
       if (contentDocType === 'lesson')     savedContent.lesson     = content;
       if (contentDocType === 'practice')   savedContent.practice   = content;
+      if (contentDocType === 'answerkey')  savedContent.answerkey  = content;
       if (contentDocType === 'lessonplan') savedContent.lessonplan = content;
       _stopGenTimer();
       updateContentTabs();
@@ -5598,6 +5756,7 @@ function copyAllOutputs() {
   const parts = [
     savedContent.lesson     ? `${'─'.repeat(60)}\nLESSON\n${'─'.repeat(60)}\n\n${savedContent.lesson}` : '',
     savedContent.practice   ? `\n\n${'─'.repeat(60)}\nACTIVITIES\n${'─'.repeat(60)}\n\n${savedContent.practice}` : '',
+    savedContent.answerkey  ? `\n\n${'─'.repeat(60)}\nANSWER KEY\n${'─'.repeat(60)}\n\n${savedContent.answerkey}` : '',
     savedContent.lessonplan ? `\n\n${'─'.repeat(60)}\nLESSON PLAN\n${'─'.repeat(60)}\n\n${savedContent.lessonplan}` : '',
   ].filter(Boolean).join('');
   if (!parts) { toast('Nenhum conteúdo para copiar.', 'warn'); return; }
@@ -5623,30 +5782,32 @@ function _autoFillGerarFields() {
 }
 
 function sendToGerarSingle(type) {
-  const srcMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', lessonplan: 'claude-output-lessonplan' };
+  const srcMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', answerkey: 'claude-output-answerkey', lessonplan: 'claude-output-lessonplan' };
   const content = document.getElementById(srcMap[type])?.value || savedContent[type];
   if (!content) { toast('Conteúdo vazio.', 'warn'); return; }
-  const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan' };
+  const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', answerkey: 'prompt-answerkey', lessonplan: 'prompt-lessonplan' };
   document.getElementById(dstMap[type]).value = content;
   onAllPromptInput(type);
   _autoFillGerarFields();
   const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
   setPage('gerar', gerarBtn);
-  toast(`${type === 'lesson' ? 'Lesson' : type === 'practice' ? 'Activities' : 'Lesson Plan'} exportado para Gerar Imagens!`, 'ok');
+  const typeLabel = { lesson: 'Lesson', practice: 'Activities', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
+  toast(`${typeLabel[type] || type} exportado para Gerar Imagens!`, 'ok');
 }
 
 function sendToGerar() {
   _autoFillGerarFields();
 
   if (contentDocType === 'all') {
-    // Exporta os 3 conteúdos separados para seus inputs
+    // Exporta os 4 conteúdos separados para seus inputs
     if (savedContent.lesson)     { document.getElementById('prompt-lesson').value     = savedContent.lesson;     onAllPromptInput('lesson'); }
     if (savedContent.practice)   { document.getElementById('prompt-practice').value   = savedContent.practice;   onAllPromptInput('practice'); }
+    if (savedContent.answerkey)  { document.getElementById('prompt-answerkey').value  = savedContent.answerkey;  onAllPromptInput('answerkey'); }
     if (savedContent.lessonplan) { document.getElementById('prompt-lessonplan').value = savedContent.lessonplan; onAllPromptInput('lessonplan'); }
   } else {
     const content = document.getElementById('claude-output')?.value;
     if (!content) { toast('Nenhum conteúdo para transferir.', 'warn'); return; }
-    const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan' };
+    const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', answerkey: 'prompt-answerkey', lessonplan: 'prompt-lessonplan' };
     const dst = dstMap[contentDocType];
     if (dst) { document.getElementById(dst).value = content; onAllPromptInput(contentDocType); }
   }
@@ -6122,7 +6283,7 @@ function setDashType(type, el) {
   if (el) el.classList.add('active');
   // Update breadcrumb only if not inside a folder
   if (!dashFolderFilter) {
-    const labels = { all: 'Todos os arquivos', lesson: 'Lesson', practice: 'Practice Activities', lessonplan: 'Lesson Plan' };
+    const labels = { all: 'Todos os arquivos', lesson: 'Lesson', practice: 'Practice Activities', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
     const bc = document.getElementById('dash-breadcrumb-label');
     if (bc) bc.textContent = labels[type] || 'Todos os arquivos';
   }
@@ -6358,7 +6519,7 @@ function openTxtInConteudo(key) {
   }
   const btn = document.querySelector('.nav-item[onclick*="conteudo"]');
   setPage('conteudo', btn);
-  const fieldMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', lessonplan: 'claude-output-lessonplan' };
+  const fieldMap = { lesson: 'claude-output-lesson', practice: 'claude-output-practice', answerkey: 'claude-output-answerkey', lessonplan: 'claude-output-lessonplan' };
   const fieldId = fieldMap[docType];
   if (fieldId) {
     // All-mode: show the combined output block
@@ -6428,7 +6589,7 @@ function _renderPreview() {
   nextBtn.disabled = _previewIdx === _previewItems.length - 1;
   counterEl.textContent = `${_previewIdx + 1} / ${_previewItems.length}`;
 
-  const typeLabel = { lesson: 'Lesson', practice: 'Practice', lessonplan: 'Lesson Plan' };
+  const typeLabel = { lesson: 'Lesson', practice: 'Practice', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
 
   if (txtEntry) {
     // In-memory TXT file — content may still be loading (fetched from Storage
@@ -6792,7 +6953,7 @@ function refreshDashboard() {
     return dashSort === 'recent' ? tb - ta : ta - tb;
   });
 
-  const typeLabel = { lesson:'Lesson', practice:'Practice', lessonplan:'Plan' };
+  const typeLabel = { lesson:'Lesson', practice:'Practice', answerkey:'Answer Key', lessonplan:'Plan' };
   grid.innerHTML = '';
 
   // ── Folder cards — rendered BEFORE empty check so an empty folder still shows subfolders ──
@@ -6974,12 +7135,13 @@ function _getOrCreateTypeGroups(grid, saved) {
   const TYPE_META = {
     lesson:     { label: '📖 Lesson',              color: '#89c13b' },
     practice:   { label: '✏️ Practice Activities', color: '#0251af' },
+    answerkey:  { label: '🔑 Answer Key',          color: '#9b59b6' },
     lessonplan: { label: '📋 Lesson Plan',         color: '#ff6b35' },
   };
   const container = document.createElement('div');
   container.className = 'type-groups-container';
   const groupGrids = {};
-  ['lesson','practice','lessonplan'].forEach(type => {
+  ['lesson','practice','answerkey','lessonplan'].forEach(type => {
     if (!types.includes(type)) return;
     const count = saved.filter(r => r.docType === type).length;
     const { label, color } = TYPE_META[type];
@@ -7382,7 +7544,7 @@ let _combinarModalSel = new Set(); // keys selected in add-modal
 // Assembly order: complete one document type fully (in page order) before
 // moving to the next, instead of interleaving pages across types by number
 // — so the 3 types never look mixed together while previewing/exporting.
-const _COMBINAR_TYPE_ORDER = { lesson: 0, practice: 1, lessonplan: 2 };
+const _COMBINAR_TYPE_ORDER = { lesson: 0, practice: 1, answerkey: 2, lessonplan: 3 };
 
 function _combinarSort(a, b) {
   // Primary: document type group (Lesson → Worksheet → Lesson Plan → other)
@@ -7560,7 +7722,7 @@ function renderCombinarList() {
     list.appendChild(banner);
   }
 
-  const typeShort = { lesson: 'L', practice: 'PA', lessonplan: 'LP' };
+  const typeShort = { lesson: 'L', practice: 'PA', answerkey: 'AK', lessonplan: 'LP' };
   combinarItems.forEach((item, i) => {
     const isSel = combinarSelected.has(i);
     const div = document.createElement('div');
@@ -7688,7 +7850,7 @@ function _buildCombinarFilenameForType(type) {
               || document.getElementById('content-disciplina')?.value?.trim() || '';
   const turma       = document.getElementById('turma')?.value?.trim()
               || document.getElementById('content-turma')?.value?.trim() || '';
-  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', lessonplan: 'Lesson Plan' };
+  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
 
   // Se o tipo passado não tem label, tenta inferir a partir dos próprios itens
   let effectiveType = type;
@@ -8651,38 +8813,99 @@ Then on PAGE 2:
 
 - Do NOT repeat "Practice Activities" on page 2, 3, or any subsequent page
 - Do NOT include unit, lesson number, or CCSS code anywhere
-- Do NOT add any title to pages 2 and beyond
+- Do NOT add any title to pages 2 and beyond`,
+
+// Dedicated Answer Key layout spec (Math). Shares the same typography,
+// illustration and content-distribution rules as SPECS.practice (they're
+// visually the same publication family) but is now its own standalone
+// document — "Answer Key" is the page 1 title here, not a mid-document
+// section — see the CONTENT_SPECS.answerkey meta prompt for why this split
+// exists (the combined document was causing the model to duplicate
+// questions instead of writing answers).
+answerkey: `# FORMAT: A4 (210mm × 297mm), 300 DPI
+
+## CRITICAL
+- Header and footer are added programmatically after generation.
+- DO NOT draw headers, footers, page borders or side lines of any kind.
+- DO NOT include unit/lesson labels, page numbers or footer text anywhere in the body.
+
+## TYPOGRAPHY (NEVER SMALLER THAN):
+{{FONT_LINE}}
+- Section titles: 20pt Bold #092964
+- Answer numbers: 16pt Bold #0251af
+- Body text: 18pt Regular #000000
+- ALL TITLES: Sentence case — NEVER all caps
+
+## CRITICAL: FONT SIZE MUST REMAIN FIXED
+
+If the page content is limited, meaning it's not enough to fill the entire page, LEAVE BLANK SPACE AFTER THE CONTENT. DO NOT increase the font size or paragraph spacing to force full page filling.
+
+### NEVER:
+- Increase body text from 18pt to 20pt, 22pt, or larger
+- Add extra line spacing between answers to fill space
+- Increase margins or padding to make page appear fuller
+- Stretch text horizontally or vertically
+
+### ALWAYS:
+- Keep body text at 18pt (fixed, no scaling)
+- Respect natural whitespace (10-15mm minimum between sections)
+- Leave blank space at bottom of page if content is limited — this is NORMAL and ACCEPTABLE
+- Keep spacing between answers FIXED at 10-15mm (natural)
+- Keep margins and padding CONSISTENT
+
+## CRITICAL: NO RESPONSE SPACES
+
+This is a completed answer key, not a fillable form. Absolutely NO answer lines, blanks, dotted lines, underscores, or checkboxes anywhere.
+
+## ILLUSTRATIONS
+
+Answer Keys rarely need illustrations — only include one when a worked solution genuinely requires a diagram to be legible (e.g. a geometry answer that depends on a labeled figure). Never add a decorative image.
+
+## CONTENT DISTRIBUTION
+
+Total useful page height: ~247mm (from 25mm top to 272mm bottom)
+
+Distribute answers naturally across pages. A one-line answer and a multi-step worked solution can both appear naturally on the same page.
+
+## HORIZONTAL SPACE UTILIZATION
+
+All text must remain inside the defined content area. The right and left margins are fixed boundaries. Text alignment: left-aligned, every line extending close to x=190mm.
 
 ---
 
-## First page of answer key (PAGE X ONLY)
+## Title continuity across pages
 
-The "Answer Key" title appears ONLY on the first page of answers. Subsequent answer pages continue without repeating the title.
+When answers span multiple pages, do NOT repeat the title on subsequent pages. Simply continue the numbered answers naturally.
+
+Example:
+\`\`\`
+--PAGE 1--
+Answer Key
+
+1. [First answer]
+2. [Second answer]
+
+--PAGE 2--
+[Continue directly without repeating "Answer Key"]
+3. [Next answer]
+\`\`\`
+
+---
+
+## Title capitalization (CRITICAL)
+
+Every title and heading MUST start with a capital letter. Never use lowercase at the beginning, never ALL CAPS.
+
+---
+
+## First page (PAGE 1 ONLY)
+
+The "Answer Key" title appears ONLY on page 1 — this is a standalone document, so page 1 of THIS document is where it goes. Subsequent pages continue without repeating the title.
 
 ### Structure:
 
 \`\`\`
---PAGE 4-- (or whichever page answer key starts)
-Answer Key
-
-1. [Answer 1]
-2. [Answer 2]
-\`\`\`
-
-Then on PAGE 5:
-\`\`\`
---PAGE 5--
-[Continues directly with answer 3 or more — NO "Answer Key" title repeats]
-
-3. [Next answer]
-4. [Next answer]
-\`\`\`
-
-### Generic example:
-
-First answer page:
-\`\`\`
---PAGE 4--
+--PAGE 1--
 Answer Key
 
 1. b) 5x + 15
@@ -8690,19 +8913,20 @@ Answer Key
 3. Maya is correct
 \`\`\`
 
-Second answer page:
+Then on PAGE 2:
 \`\`\`
---PAGE 5--
+--PAGE 2--
+[Continues directly with answer 4 or more — NO "Answer Key" title repeats]
+
 4. a) 5(2x + 3)
 5. Yes, they are equivalent
-6. b) 11x + 12
 \`\`\`
 
 ### What NOT to do:
 
-- Do NOT repeat "Answer Key" on page 5, 6, or any subsequent answer pages
-- Do NOT add "Answer Key" to any page except the first page of answers
-- Do NOT split the title and answers across pages`,
+- Do NOT repeat "Answer Key" on page 2, 3, or any subsequent page
+- Do NOT add unit, lesson number, or CCSS code anywhere
+- Do NOT split the title and the first answer across pages`,
 
 lessonplan: `# FORMAT: A4 (210 mm × 297 mm), 300 DPI
 
@@ -9498,60 +9722,6 @@ Read the passage carefully
 Never restart a section simply because a page break occurred.
 
 ==================================================
-ANSWER KEY
-==================================================
-
-The Answer Key is a single continuous document.
-
-Display the title:
-
-Answer Key
-
-ONLY once, on the first page of the answer section.
-
-Every following answer page continues immediately with the next numbered answer.
-
-Correct:
-
-PAGE 8
-
-Answer Key
-
-1.
-2.
-3.
-
-PAGE 9
-
-4.
-5.
-6.
-
-PAGE 10
-
-7.
-8.
-9.
-
-Never repeat:
-
-- Answer Key
-- section titles
-- continuation labels
-- document headings
-- page titles
-
-Never write:
-
-Answer Key (continued)
-Answers
-Page 2
-Part 2
-Section 2
-
-or similar labels.
-
-==================================================
 PAGE FLOW
 ==================================================
 
@@ -9610,7 +9780,6 @@ Before completing the worksheet, verify that:
 - exercises remain in logical order;
 - numbering is continuous;
 - document continuity is preserved;
-- Answer Key title appears only once;
 - no worksheet title appears inside the printable page body;
 - headers and footers have not been recreated.
 
@@ -9634,7 +9803,95 @@ The worksheet should feel like it belongs to the same editorial collection as th
 
 The final result must never resemble a presentation, worksheet template, or decorative classroom handout.
 
-Instead, it should reflect the quality, consistency, and visual language of a professionally designed educational publication.`
+Instead, it should reflect the quality, consistency, and visual language of a professionally designed educational publication.`,
+
+// Dedicated Answer Key layout spec for ELA, middle school (6th-8th) only.
+// Shares the same typography/margins/design-quality bar as
+// practice_ela_ms (same publication family) but is its own standalone
+// document — see CONTENT_SPECS.answerkey_ela_ms for why this is split
+// out from the worksheet rather than trailing pages of it.
+answerkey_ela_ms: `# FORMAT: A4 (210mm × 297mm), 300 DPI
+
+==================================================
+DOCUMENT STRUCTURE
+==================================================
+
+The Answer Key is a single continuous printable document — a separate document from the worksheet it answers.
+
+Headers and footers are added programmatically after generation. The printable page body must never recreate document headers or page identification.
+
+Do NOT generate anything except the "Answer Key" title (page 1 only, see below) and the numbered answers — no worksheet titles, lesson titles, lesson topics, unit numbers, lesson numbers, CCSS codes, page numbers, headers, footers, borders, or side decorations.
+
+==================================================
+DOCUMENT CONTINUITY (CRITICAL)
+==================================================
+
+Treat every generated page as part of one continuous document. A page break NEVER starts a new document. After a page break: continue answer numbering naturally; never recreate the "Answer Key" title or any heading; never restart the document.
+
+==================================================
+CONTENT AREA
+==================================================
+
+Draw ONLY inside the printable content area. Top: 25 mm, Bottom: 272 mm, Left: 20 mm, Right: 190 mm. Never position text outside this area.
+
+==================================================
+TYPOGRAPHY
+==================================================
+
+{{FONT_LINE}}
+- Section titles: 20 pt Bold #092964
+- Answer numbers: 16 pt Bold #0251AF
+- Body text: 18 pt Regular #000000
+
+All titles: Sentence case only. Never ALL CAPS. Never Title Case.
+
+==================================================
+CRITICAL — FONT SIZE MUST REMAIN FIXED
+==================================================
+
+If page content does not completely fill the page, LEAVE EMPTY SPACE AFTER THE CONTENT. Do NOT compensate by enlarging typography or spacing. Body text remains 18 pt; blank space at the end of a page is completely acceptable.
+
+==================================================
+NO RESPONSE SPACES
+==================================================
+
+This is a completed answer key, not a fillable form. Never generate blank answer lines, dotted lines, underscores, empty parentheses/brackets, response boxes, or checkboxes.
+
+==================================================
+ILLUSTRATIONS
+==================================================
+
+Answer Keys rarely need illustrations — only include one when a worked solution genuinely requires a diagram to be legible (e.g. an answer that depends on a labeled map or figure). Never add a decorative image, and never generate one simply because empty space exists.
+
+==================================================
+CONTENT DISTRIBUTION
+==================================================
+
+Approximate printable height: 247 mm. Distribute answers naturally across pages — a one-line answer and a longer explained answer can both appear naturally on the same page. Never overload a page or compress content to avoid a page break.
+
+==================================================
+TITLE CONTINUITY ACROSS PAGES
+==================================================
+
+Do not repeat the "Answer Key" title on any page after page 1. Continue the numbered answers naturally from the previous page.
+
+==================================================
+FIRST PAGE (PAGE 1 ONLY)
+==================================================
+
+Display the title "Answer Key" ONLY on page 1 of this document. Every following page continues immediately with the next numbered answer — never repeat the title, and never write "Answer Key (continued)", "Answers", "Page 2", "Part 2", "Section 2", or similar labels.
+
+==================================================
+FINAL PAGE VALIDATION
+==================================================
+
+Before completing the document, verify that: every element remains inside the printable area; typography follows the specified sizes; spacing and margins remain consistent; page breaks occur naturally; numbering is continuous; document continuity is preserved; the "Answer Key" title appears only once; headers and footers have not been recreated.
+
+==================================================
+OVERALL DESIGN GOAL
+==================================================
+
+The final document should resemble the answer-key section of a professionally published middle school educational workbook — clean, modern, highly readable, and academically appropriate. It should feel like it belongs to the same editorial collection as the accompanying Worksheet, Student Lesson Guide, and Teacher Lesson Plan.`
 };
 
 // Resolves which layout/design spec to use for image generation. SPECS is
@@ -9642,15 +9899,19 @@ Instead, it should reflect the quality, consistency, and visual language of a pr
 // alike) for all three doc types — the only per-discipline difference is
 // the {{FONT_LINE}} token in each TYPOGRAPHY section, which requests a
 // serif font (Merriweather) for ELA and is stripped out entirely for Math.
-// ELA Worksheets in middle school (6th-8th) use a dedicated layout spec
-// (practice_ela_ms) instead of the shared one.
+// ELA Worksheets/Answer Keys in middle school (6th-8th) use dedicated
+// layout specs (practice_ela_ms / answerkey_ela_ms) instead of the shared
+// ones.
 function _getSpecsFor(type, discipline, grade) {
   const isEla = (discipline || '').trim() === 'English Language Arts';
   const gradeNum = parseInt(grade, 10) || 0;
-  const useElaWorksheetSpec = type === 'practice' && isEla && gradeNum >= 6 && gradeNum <= 8;
-  const raw = useElaWorksheetSpec ? SPECS.practice_ela_ms : SPECS[type];
+  const isElaMS = isEla && gradeNum >= 6 && gradeNum <= 8;
+  const key = type === 'practice' && isElaMS ? 'practice_ela_ms'
+    : type === 'answerkey' && isElaMS ? 'answerkey_ela_ms'
+    : type;
+  const raw = SPECS[key];
   if (!raw.includes('{{FONT_LINE}}')) return raw;
-  const fontLine = !isEla ? '' : type === 'practice' ? '- Font: Merriweather, serif' : 'Font: Merriweather, serif';
+  const fontLine = !isEla ? '' : (type === 'practice' || type === 'answerkey') ? '- Font: Merriweather, serif' : 'Font: Merriweather, serif';
   return raw.replace('{{FONT_LINE}}', fontLine);
 }
 
@@ -10097,7 +10358,7 @@ function onAllPromptInput(type) {
 
 function updateAllBadge() {
   let total = 0;
-  ['lesson','practice','lessonplan'].forEach(t => {
+  ['lesson','practice','answerkey','lessonplan'].forEach(t => {
     total += parsePages(document.getElementById(`prompt-${t}`)?.value || '').length;
   });
   const badge = document.getElementById('pg-badge');
@@ -10283,8 +10544,8 @@ async function startGeneration() {
 
   let pages = [];
   if (docType === 'all') {
-    const typeLabels = { lesson: 'Lesson', practice: 'Practice', lessonplan: 'Plan' };
-    for (const type of ['lesson', 'practice', 'lessonplan']) {
+    const typeLabels = { lesson: 'Lesson', practice: 'Practice', answerkey: 'Answer Key', lessonplan: 'Plan' };
+    for (const type of ['lesson', 'practice', 'answerkey', 'lessonplan']) {
       const raw = parsePages(document.getElementById(`prompt-${type}`)?.value || '');
       raw.forEach(p => pages.push({
         ...p,
@@ -10411,8 +10672,8 @@ async function handleEvent(ev) {
       // Aplica header/footer programático
       try {
         const pageDocType = ev.docType || docType;
-        const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
-        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
+        const { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+        displayUrl = await applyHeaderFooter(displayUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title });
       } catch (e) { console.warn('Overlay header/footer falhou:', e); }
       // Stable key for this image — reused in refazer/retry so we update, not duplicate
       const sbKey = `img_${currentGen}_p${ev.pageNum || ev.index}_${Date.now()}`;
@@ -10516,6 +10777,7 @@ function setupTypeGroupsForGen(grid, pages) {
   const TYPE_META = {
     lesson:     { label: '📖 Lesson',              color: '#89c13b' },
     practice:   { label: '✏️ Practice Activities', color: '#0251af' },
+    answerkey:  { label: '🔑 Answer Key',          color: '#9b59b6' },
     lessonplan: { label: '📋 Lesson Plan',         color: '#ff6b35' },
   };
 
@@ -10524,7 +10786,7 @@ function setupTypeGroupsForGen(grid, pages) {
 
   const groupGrids = {}; // type → grid element (referência direta)
 
-  ['lesson', 'practice', 'lessonplan'].forEach(type => {
+  ['lesson', 'practice', 'answerkey', 'lessonplan'].forEach(type => {
     const count = pages.filter(p => p.docType === type).length;
     if (count === 0) return;
     const { label, color } = TYPE_META[type];
@@ -11201,8 +11463,8 @@ async function confirmRefazer() {
               catch (e) { console.warn('Overlay refazer fetch falhou:', e); }
             }
             try {
-              const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title });
             } catch (e) { console.warn('Overlay refazer falhou:', e); }
             const filename = `page_${String(pageNum).padStart(2,'0')}_refazer.png`;
             const existingKey = results[domKey]?.sbKey;
@@ -11289,8 +11551,8 @@ async function retryPage(domKey) {
             }
             try {
               const pageDocType = ev.docType || pd.docType || docType;
-              const { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
-              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title });
+              const { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType(pageDocType);
+              dataUrl = await applyHeaderFooter(dataUrl, header, footer, pageDocType, { isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title });
             } catch (e) { console.warn('Overlay retry:', e); }
             const filename = `page_${String(pd.num).padStart(2,'0')}_retry.png`;
             // Reuse existing sbKey or generate a new one for error cards (never had a save)
@@ -12090,8 +12352,11 @@ function _drawElaLessonHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5
 
 // ELA Worksheet header — same technique as _drawElaLessonHeader, ported
 // from its own exact SVG source (viewBox 0 0 2480 440). No rounded corners
-// on the icon this time (the source SVG has no clip path for it).
-function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5 }) {
+// on the icon this time (the source SVG has no clip path for it). Also
+// reused for the Answer Key document (identical canvas, different label
+// word) via the labelWord param — see applyHeaderFooter's isElaWorksheet
+// branch, which now also covers isElaAnswerKey.
+function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM = 5, labelWord = 'WORKSHEET' }) {
   const spanMM = 210;
   const k      = mx(spanMM / 2480);
   // Icon starts at svgX=167 here (vs 165 for Lesson Notes) — shift by 63
@@ -12131,7 +12396,7 @@ function _drawElaWorksheetHeader(ctx, mx, my, mpt, { lesson, title, topMarginMM 
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#ffffff';
   ctx.font = `800 ${fpx(40)}px Poppins,Arial,sans-serif`;
-  ctx.fillText(`WORKSHEET ${lesson}`, X(354), Y(230));
+  ctx.fillText(`${labelWord} ${lesson}`, X(354), Y(230));
 
   // Title — shrink-to-fit so a long title can never overflow past the panel
   ctx.fillStyle = '#111111';
@@ -12258,7 +12523,7 @@ function _drawElaLessonFooter(ctx, mx, my, W, H, { unit, ccssGradeText, color = 
 }
 
 async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {}) {
-  if (opts.isElaLesson || opts.isElaWorksheet || opts.isElaLessonPlan) await _ensureElaHeaderFonts();
+  if (opts.isElaLesson || opts.isElaWorksheet || opts.isElaAnswerKey || opts.isElaLessonPlan) await _ensureElaHeaderFonts();
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -12332,9 +12597,11 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
           unit: opts.unit || '', ccssGradeText: footerText,
         }, footerZoneMM);
 
-      } else if (opts.isElaWorksheet) {
-        // ── ELA Worksheet (6th-8th): "Worksheet X" + title header (pink),
-        // same "Unit X" + CCSS/grade footer as Lesson Notes, recolored.
+      } else if (opts.isElaWorksheet || opts.isElaAnswerKey) {
+        // ── ELA Worksheet / Answer Key (6th-8th): "Worksheet X" or
+        // "Answer Key X" + title header (pink, identical canvas — only the
+        // label word changes), same "Unit X" + CCSS/grade footer as Lesson
+        // Notes, recolored.
         const headerZoneMM = 20, footerZoneMM = 16; // extra ~5mm margin below the footer bar, matching the header's own top margin
         const cTop = my(headerZoneMM), cH = H - my(headerZoneMM) - my(footerZoneMM);
         ctx.drawImage(img, 0, cTop, W, cH);
@@ -12342,6 +12609,7 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
         ctx.fillRect(0, 0, W, my(headerZoneMM)); // white header zone bg
         _drawElaWorksheetHeader(ctx, mx, my, mpt, {
           lesson: opts.lesson || '', title: opts.title || headerText,
+          labelWord: opts.isElaAnswerKey ? 'ANSWER KEY' : 'WORKSHEET',
         });
 
         ctx.fillStyle = '#ffffff'; ctx.fillRect(0, H - my(footerZoneMM), W, my(footerZoneMM));
@@ -12367,8 +12635,9 @@ async function applyHeaderFooter(dataUrl, headerText, footerText, type, opts = {
         }, footerZoneMM);
 
       } else {
-        // ── Lesson (azul) / Practice (lilás) — idêntico ao Lesson Plan, só muda a cor ──
-        const barColor = type === 'practice' ? '#9b59b6' : '#0251af';
+        // ── Lesson (azul) / Practice (lilás) / Answer Key (lilás, mesma cor
+        // da Practice) — idêntico ao Lesson Plan, só muda a cor ──
+        const barColor = (type === 'practice' || type === 'answerkey') ? '#9b59b6' : '#0251af';
 
         const cTop = my(20), cH = H - my(20) - my(15);
         ctx.drawImage(img, 0, cTop, W, cH);
@@ -12427,24 +12696,30 @@ function _overlayTextsForType(type) {
   const disciplina = document.getElementById('disciplina')?.value.trim() || 'Mathematics';
   const turma      = document.getElementById('turma')?.value.trim()      || '6th Grade';
   const gradeNum   = parseInt(turma, 10) || 0;
-  // ELA Lesson Notes / Worksheet / Lesson Plan (6th-8th) use dedicated
-  // header designs ("Lesson Guide" / "Worksheet" / "Lesson Plan") sharing
-  // the same "Unit X / discipline / CCSS / Grade" footer design — see
-  // applyHeaderFooter's elaLesson/elaWorksheet/elaLessonPlan branches.
+  // ELA Lesson Notes / Worksheet / Answer Key / Lesson Plan (6th-8th) use
+  // dedicated header designs ("Lesson Guide" / "Worksheet" / "Answer Key" /
+  // "Lesson Plan") sharing the same "Unit X / discipline / CCSS / Grade"
+  // footer design — see applyHeaderFooter's elaLesson/elaWorksheet/
+  // elaAnswerKey/elaLessonPlan branches. Answer Key always shows "Answer
+  // Key X" as its title (even for Math, where Worksheet itself has no
+  // special title) — it's the one piece of text that must always change
+  // to distinguish it from the Worksheet it answers.
   const isElaMS = disciplina === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
   const isElaLesson     = type === 'lesson'     && isElaMS;
   const isElaWorksheet  = type === 'practice'   && isElaMS;
+  const isElaAnswerKey  = type === 'answerkey'  && isElaMS;
   const isElaLessonPlan = type === 'lessonplan' && isElaMS;
   const header = isElaLessonPlan  ? `Lesson Plan ${lesson}`
     : type === 'lessonplan'       ? `Unit ${unit} | Lesson Plan ${lesson}`
     : isElaLesson                 ? `Lesson Guide ${lesson}`
     : isElaWorksheet              ? `Worksheet ${lesson}`
+    : type === 'answerkey'        ? `Answer Key ${lesson}`
     : `Unit ${unit} | Lesson ${lesson}`;
-  const footer = (isElaLesson || isElaWorksheet || isElaLessonPlan)
+  const footer = (isElaLesson || isElaWorksheet || isElaAnswerKey || isElaLessonPlan)
     ? `${disciplina.toUpperCase()} / CCSS ${ccss} / ${turma.replace(/Grade$/i, 'GRADE')}`
     : `${disciplina} - ${turma} | ${ccss}`;
   const title = lessonName || header;
-  return { header, footer, isElaLesson, isElaWorksheet, isElaLessonPlan, unit, lesson, title };
+  return { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title };
 }
 function _overlayTexts() { return _overlayTextsForType(docType); }
 
@@ -12479,6 +12754,7 @@ function buildFilename(docTypeOverride, ext) {
   const lessonDocLabel = _lessonDocLabel(disciplina, turma);
   const dtLabel = dt === 'lesson'     ? lessonDocLabel
                : dt === 'practice'    ? 'Worksheet'
+               : dt === 'answerkey'   ? 'Answer Key'
                : dt === 'lessonplan'  ? 'Lesson Plan'
                : '';
   const parts = [];
@@ -12492,12 +12768,12 @@ function buildFilename(docTypeOverride, ext) {
 
 function savePromptAsTxt(type) {
   const idMap = {
-    lesson: 'prompt-lesson', practice: 'prompt-practice', lessonplan: 'prompt-lessonplan', single: 'prompt',
-    'all-lesson': 'claude-output-lesson', 'all-practice': 'claude-output-practice', 'all-lessonplan': 'claude-output-lessonplan',
+    lesson: 'prompt-lesson', practice: 'prompt-practice', answerkey: 'prompt-answerkey', lessonplan: 'prompt-lessonplan', single: 'prompt',
+    'all-lesson': 'claude-output-lesson', 'all-practice': 'claude-output-practice', 'all-answerkey': 'claude-output-answerkey', 'all-lessonplan': 'claude-output-lessonplan',
   };
   const dtMap = {
-    lesson: 'lesson', practice: 'practice', lessonplan: 'lessonplan', single: docType,
-    'all-lesson': 'lesson', 'all-practice': 'practice', 'all-lessonplan': 'lessonplan',
+    lesson: 'lesson', practice: 'practice', answerkey: 'answerkey', lessonplan: 'lessonplan', single: docType,
+    'all-lesson': 'lesson', 'all-practice': 'practice', 'all-answerkey': 'answerkey', 'all-lessonplan': 'lessonplan',
   };
   const text = document.getElementById(idMap[type])?.value || '';
   if (!text.trim()) { toast('Conteúdo vazio — nada para salvar.', 'warn'); return; }
@@ -12509,7 +12785,7 @@ function savePromptAsTxt(type) {
   const disciplina = (useContentFields ? document.getElementById('content-disciplina') : document.getElementById('disciplina'))?.value || '';
   const turma       = (useContentFields ? document.getElementById('content-turma') : document.getElementById('turma'))?.value || '';
   const dt       = dtMap[type];
-  const dtLabel  = dt === 'lesson' ? _lessonDocLabel(disciplina, turma) : dt === 'practice' ? 'Worksheet' : 'Lesson Plan';
+  const dtLabel  = dt === 'lesson' ? _lessonDocLabel(disciplina, turma) : dt === 'practice' ? 'Worksheet' : dt === 'answerkey' ? 'Answer Key' : 'Lesson Plan';
   const parts    = [];
   parts.push(lesson ? `${dtLabel} ${_padLessonNum(lesson)}` : dtLabel);
   if (name) parts.push(`- ${name}`);
@@ -12634,6 +12910,7 @@ function saveSettings() {
       prompt:              document.getElementById('prompt')?.value ?? '',
       promptLesson:        document.getElementById('prompt-lesson')?.value ?? '',
       promptPractice:      document.getElementById('prompt-practice')?.value ?? '',
+      promptAnswerkey:     document.getElementById('prompt-answerkey')?.value ?? '',
       promptLessonplan:    document.getElementById('prompt-lessonplan')?.value ?? '',
     }));
   } catch (_) {}
@@ -12666,6 +12943,7 @@ function loadSettings() {
     set('prompt', s.prompt);
     set('prompt-lesson', s.promptLesson);
     set('prompt-practice', s.promptPractice);
+    set('prompt-answerkey', s.promptAnswerkey);
     set('prompt-lessonplan', s.promptLessonplan);
 
     if (s.provider) {
@@ -12678,7 +12956,7 @@ function loadSettings() {
     }
 
     onPromptInput();
-    ['lesson','practice','lessonplan'].forEach(t => onAllPromptInput(t));
+    ['lesson','practice','answerkey','lessonplan'].forEach(t => onAllPromptInput(t));
     updateTopbarChips();
   } catch (_) {}
 }
