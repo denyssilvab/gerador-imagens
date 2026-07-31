@@ -5176,7 +5176,9 @@ function _buildContentFilename(type) {
   const lesson = document.getElementById('content-lesson')?.value || '';
   const ccss   = document.getElementById('content-ccss')?.value   || '';
   const name   = document.getElementById('content-lesson-name')?.value || '';
-  const dtLabel = { lesson: 'Lesson Notes', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
+  const disciplina = document.getElementById('content-disciplina')?.value || '';
+  const turma       = document.getElementById('content-turma')?.value || '';
+  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', lessonplan: 'Lesson Plan' };
   const label = dtLabel[type] || type;
   const parts = [];
   parts.push(lesson ? `${label} ${_padLessonNum(lesson)}` : label);
@@ -5215,7 +5217,10 @@ function refreshContentFiles() {
   if (!_sessionFiles.length) { section.style.display = 'none'; return; }
   section.style.display = '';
   _refreshConteudoFolderBadge();
-  const dtLabel = { lesson: 'Lesson Notes', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
+  const dtLabel = {
+    lesson: _lessonDocLabel(document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value),
+    practice: 'Worksheet', lessonplan: 'Lesson Plan',
+  };
   list.innerHTML = '';
   _sessionFiles.slice().reverse().forEach(f => {
     const savedBadge = f._saved
@@ -7678,7 +7683,12 @@ function _refreshCombinarPreview() {
 }
 
 function _buildCombinarFilenameForType(type) {
-  const dtLabel = { lesson: 'Lesson Notes', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
+  // Campos do formulário (Generate + Content como fallback)
+  const disciplina = document.getElementById('disciplina')?.value?.trim()
+              || document.getElementById('content-disciplina')?.value?.trim() || '';
+  const turma       = document.getElementById('turma')?.value?.trim()
+              || document.getElementById('content-turma')?.value?.trim() || '';
+  const dtLabel = { lesson: _lessonDocLabel(disciplina, turma), practice: 'Worksheet', lessonplan: 'Lesson Plan' };
 
   // Se o tipo passado não tem label, tenta inferir a partir dos próprios itens
   let effectiveType = type;
@@ -7688,7 +7698,6 @@ function _buildCombinarFilenameForType(type) {
     }
   }
 
-  // Campos do formulário (Generate + Content como fallback)
   const lesson = document.getElementById('lesson')?.value?.trim()
               || document.getElementById('content-lesson')?.value?.trim() || '';
   const name   = document.getElementById('lesson-name')?.value?.trim()
@@ -7753,7 +7762,6 @@ async function combinarExportPDF() {
     const docTypes = [...new Set(combinarItems.map(i => i.docType).filter(Boolean))];
     if (docTypes.length > 1) {
       // Multiple types → one PDF per type
-      const dtLabel = { lesson: 'Lesson Notes', practice: 'Worksheet', lessonplan: 'Lesson Plan' };
       for (const type of docTypes) {
         const typeItems = combinarItems.filter(i => i.docType === type);
         const bytes = await _buildPdfBytes(typeItems, 'pdf-prog');
@@ -12436,6 +12444,14 @@ function _padLessonNum(lesson) {
   return /^\d+$/.test(s) ? s.padStart(2, '0') : s;
 }
 
+// ELA middle school (6th-8th) exports use "Lesson Guide" instead of
+// "Lesson Notes" in filenames, matching the header/footer overlay naming.
+function _lessonDocLabel(discipline, grade) {
+  const gradeNum = parseInt(grade, 10) || 0;
+  const isElaMS = (discipline || '').trim() === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
+  return isElaMS ? 'Lesson Guide' : 'Lesson Notes';
+}
+
 function buildFilename(docTypeOverride, ext) {
   const lesson = document.getElementById('lesson')?.value?.trim()
               || document.getElementById('content-lesson')?.value?.trim() || '';
@@ -12443,14 +12459,19 @@ function buildFilename(docTypeOverride, ext) {
               || document.getElementById('content-ccss')?.value?.trim() || '';
   const name   = document.getElementById('lesson-name')?.value?.trim()
               || document.getElementById('content-lesson-name')?.value?.trim() || '';
+  const disciplina = document.getElementById('disciplina')?.value?.trim()
+              || document.getElementById('content-disciplina')?.value?.trim() || '';
+  const turma       = document.getElementById('turma')?.value?.trim()
+              || document.getElementById('content-turma')?.value?.trim() || '';
   const dt = docTypeOverride || docType;
-  const dtLabel = dt === 'lesson'     ? 'Lesson Notes'
+  const lessonDocLabel = _lessonDocLabel(disciplina, turma);
+  const dtLabel = dt === 'lesson'     ? lessonDocLabel
                : dt === 'practice'    ? 'Worksheet'
                : dt === 'lessonplan'  ? 'Lesson Plan'
                : '';
   const parts = [];
   if (dtLabel) parts.push(lesson ? `${dtLabel} ${_padLessonNum(lesson)}` : dtLabel);
-  else if (lesson) parts.push(`Lesson Notes ${_padLessonNum(lesson)}`);
+  else if (lesson) parts.push(`${lessonDocLabel} ${_padLessonNum(lesson)}`);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
   const base = parts.length ? parts.join(' ') : 'arquivo';
@@ -12473,8 +12494,10 @@ function savePromptAsTxt(type) {
   const lesson   = (useContentFields ? document.getElementById('content-lesson') : document.getElementById('lesson'))?.value || '';
   const ccss     = (useContentFields ? document.getElementById('content-ccss')   : document.getElementById('ccss'))?.value   || '';
   const name     = (useContentFields ? document.getElementById('content-lesson-name') : document.getElementById('lesson-name'))?.value || '';
+  const disciplina = (useContentFields ? document.getElementById('content-disciplina') : document.getElementById('disciplina'))?.value || '';
+  const turma       = (useContentFields ? document.getElementById('content-turma') : document.getElementById('turma'))?.value || '';
   const dt       = dtMap[type];
-  const dtLabel  = dt === 'lesson' ? 'Lesson Notes' : dt === 'practice' ? 'Worksheet' : 'Lesson Plan';
+  const dtLabel  = dt === 'lesson' ? _lessonDocLabel(disciplina, turma) : dt === 'practice' ? 'Worksheet' : 'Lesson Plan';
   const parts    = [];
   parts.push(lesson ? `${dtLabel} ${_padLessonNum(lesson)}` : dtLabel);
   if (name) parts.push(`- ${name}`);
