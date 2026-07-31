@@ -3327,7 +3327,7 @@ Assume the teacher has access to both documents throughout the lesson.
 Do not recreate reading passages, worked examples, diagrams or worksheet questions unless a brief excerpt is essential for instructional modeling.
 
 ==================================================
-OUTPUT IS FINAL - RENDERING CONTRACT
+OUTPUT IS FINAL — RENDERING CONTRACT
 ==================================================
 
 This prompt produces the COMPLETE and FINAL content of the entire Lesson Plan.
@@ -3352,6 +3352,70 @@ The Lesson Plan is one continuous document.
 The content must read continuously across every --PAGE X-- boundary,
 so that when it is rendered page by page, the pages connect naturally
 and never read as disconnected fragments.
+
+==================================================
+STRUCTURAL MARKERS (REQUIRED)
+==================================================
+
+To remove all ambiguity for the layout stage, mark every structural element explicitly.
+The layout stage renders only what is marked, and strips the markers from the finished document.
+Anything that is NOT marked is treated as ordinary body prose.
+
+Use these markers exactly:
+
+- --PAGE X--  → the start of each page (as already required).
+- [[TITLE]] <lesson title>  → the lesson title. Page 1 only. Exactly one in the document.
+- [[BOX]] ... [[/BOX]]  → the single metadata box. Page 1 only. Exactly one in the document.
+- [[SECTION]] <heading>  → an instructional phase heading (e.g., Prior knowledge, Guided practice).
+- [[SUB]] <subheading>  → a subsection heading inside a longer phase.
+- [[CALLOUT:<Label>]] ... [[/CALLOUT]]  → an editorial callout, where <Label> is one of the reserved labels.
+
+Rules for markers:
+- Every title, metadata box, section heading, subsection heading and callout MUST be wrapped in its marker.
+  If it is not marked, it will render as an ordinary paragraph — never rely on capitalization, position or punctuation to signal a heading.
+- Do NOT wrap ordinary sentences in [[SECTION]] or [[SUB]]. A heading is a short title, never a full sentence.
+  In particular, never mark the opening words of a paragraph as a heading.
+- Headings and subheadings remain in sentence case; the marker controls styling, not the wording.
+- Place a marker on its own, immediately before the element it labels.
+- The markers are machine tokens (like --PAGE X--); the layout removes them, so they never appear in the finished document.
+
+Concrete example:
+
+--PAGE 1--
+
+[[TITLE]] Reading between the lines: explicit evidence and inference
+
+[[BOX]]
+Duration: 60-75 minutes
+Unit: Unit 1
+Grade: Grade 6
+CCSS Standard: RL.6.1 — Cite textual evidence to support analysis of what the text says explicitly as well as inferences drawn from the text.
+Lesson: Lesson 01 — Reading between the lines: explicit evidence and inference
+Objectives: ...
+Materials: ...
+[[/BOX]]
+
+--PAGE 2--
+
+[[SECTION]] Prior knowledge
+
+Students entering this lesson should understand ...
+
+[[SECTION]] Key vocabulary
+
+Three terms anchor this lesson ...
+
+--PAGE 4--
+
+[[SECTION]] Introduction and direct instruction
+
+[[SUB]] Distinguishing explicit from inferred
+
+Begin with page 2 of the Student Lesson Guide ...
+
+[[CALLOUT:Common misconception]]
+Students often believe that a strong inference means identifying the most dramatic conclusion. Clarify that a stronger inference is one better supported by evidence, not one that goes further.
+[[/CALLOUT]]
 
 ==================================================
 WRITING STYLE (CRITICAL)
@@ -3612,10 +3676,16 @@ and help teachers locate key guidance while scanning.
 
 A callout is a short editorial aside of one to three sentences.
 Besides the Page 1 metadata box, it is the only structured element permitted.
-It is short connected prose - never a list, table, checklist or numbered structure.
+It is short connected prose — never a list, table, checklist or numbered structure.
 
-Author a callout by beginning it with one of these reserved labels,
-followed by its short note:
+Author a callout by wrapping it in the callout marker,
+using one of these reserved labels:
+
+[[CALLOUT:<Label>]]
+<one to three sentences>
+[[/CALLOUT]]
+
+Reserved labels:
 
 - Teacher tip
 
@@ -3723,13 +3793,16 @@ Example:
 
 --PAGE 1--
 
-Lesson title
+[[TITLE]] Lesson title
 
-[Metadata Box]
+[[BOX]]
+Duration: ...
+Unit: ...
+[[/BOX]]
 
 --PAGE 2--
 
-Prior knowledge
+[[SECTION]] Prior knowledge
 
 Content...
 
@@ -3739,7 +3812,7 @@ Content continues...
 
 --PAGE 4--
 
-Key vocabulary
+[[SECTION]] Key vocabulary
 
 Content...
 
@@ -3755,7 +3828,7 @@ Do not place any content before the page marker.
 
 The page marker is required because it defines the page boundaries for the layout generation system.
 
-The layout stage renders exactly the content under each marker on that page, in order, and does not move content between pages - so the content you place under each marker is the final content of that page.
+The layout stage renders exactly the content under each marker on that page, in order, and does not move content between pages — so the content you place under each marker is the final content of that page.
 
 ==================================================
 DOCUMENT CONTINUITY
@@ -3791,13 +3864,13 @@ They should never determine the instructional organization of the lesson.
 PAGE STRUCTURE
 ==================================================
 
-Page 1 - Lesson overview
+Page 1 — Lesson overview
 
 Page 1 contains ONLY:
 
-- Lesson title
+- Lesson title, marked with [[TITLE]]
 
-- One single information box containing:
+- One single information box, wrapped in [[BOX]] ... [[/BOX]], containing:
 
 Duration
 
@@ -3816,7 +3889,7 @@ Materials needed
 No additional instructional content appears on Page 1.
 
 ==================================================
-PAGES 2 ONWARDS - LESSON PLAN CONTENT
+PAGES 2 ONWARDS — LESSON PLAN CONTENT
 ==================================================
 
 Beginning on Page 2, organize the lesson into logical instructional phases.
@@ -4229,7 +4302,8 @@ Avoid repeating guidance already established in previous sections.
 
 Within longer phases (such as introduction and direct instruction, and guided practice),
 use occasional subsection headings in sentence case to create scannable structure and prevent long uninterrupted text walls.
-These subsection headings are authored here and rendered as written; the layout stage will not add its own.
+Mark each subsection heading with [[SUB]] and each phase heading with [[SECTION]].
+These headings are authored here and rendered as written; the layout stage will not add its own and will not invent headings from paragraph text.
 
 Write with the editorial quality expected of a professionally published Teacher Edition.
 
@@ -4385,9 +4459,15 @@ Before completing the Lesson Plan, verify that:
 
 - the content under each --PAGE X-- marker is the final, complete content for that page;
 
-- any callouts use the reserved labels and remain short editorial asides (one to three sentences);
+- every title, metadata box, section heading, subsection heading and callout is wrapped in its marker ([[TITLE]], [[BOX]], [[SECTION]], [[SUB]], [[CALLOUT:...]]);
 
-- longer phases use occasional subsection headings to prevent uninterrupted text walls;
+- no ordinary sentence or paragraph opening is marked as a heading;
+
+- there is exactly one [[TITLE]] and exactly one [[BOX]], both on Page 1, and no box anywhere else;
+
+- any callouts are wrapped in [[CALLOUT:Label]] ... [[/CALLOUT]] using the reserved labels and remain short editorial asides (one to three sentences);
+
+- longer phases use occasional subsection headings (marked [[SUB]]) to prevent uninterrupted text walls;
 
 - the Lesson Plan functions as a practical teacher guide;
 
@@ -8660,6 +8740,66 @@ Adding, removing or moving content breaks the continuity between pages
 and makes the publication read as disconnected fragments.
 
 ==================================================
+MARKUP CONTRACT (HOW TO READ THE SOURCE)
+==================================================
+
+The source uses explicit markers so the layout never has to guess
+what is a title, a heading, a subheading, a callout or a box.
+
+Render each marker as follows, and STRIP the marker itself
+(never display [[...]] or --PAGE X-- literally on the page):
+
+- --PAGE X--  →  start of a new printable page. Not shown.
+- [[TITLE]] text  →  the lesson title (Page 1 only). 18–20 pt, Bold, #092964.
+- [[BOX]] ... [[/BOX]]  →  the single metadata box (Page 1 only). One soft-background information box.
+- [[SECTION]] text  →  an instructional section heading. 15 pt, Bold, #7e5693.
+- [[SUB]] text  →  a subsection heading. 13 pt, SemiBold, #0251af.
+- [[CALLOUT:Label]] ... [[/CALLOUT]]  →  an editorial callout, rendered as a compact callout box titled with Label.
+
+Any text that is NOT wrapped in a marker is ordinary body prose.
+Render it as justified body text.
+
+CRITICAL:
+- Render something as a title, section heading, subsection heading, box or callout
+  ONLY when it is wrapped in the matching marker.
+- Never promote unmarked text — for example, the opening words of a paragraph — into a heading.
+- Never create a title, heading, box or callout that is not marked in the source.
+- The markers are machine tokens. They may be uppercase, and they must never appear in the rendered output.
+- Do not reinterpret, relabel or restyle a marker. An [[SUB]] is always a subheading; a [[CALLOUT]] is always a callout; and so on.
+
+==================================================
+NEGATIVE EXAMPLES (DO NOT DO THESE)
+==================================================
+
+These are real failures that have occurred. Each one violates Source Fidelity.
+Avoid all of them.
+
+1. Do NOT add an information box or table at the start of an interior section.
+   Example of the error: rendering a box containing
+   "Grade Level / Unit / CCSS / Materials / Duration" above the heading
+   "Introduction and direct instruction".
+   There is exactly one box in the entire document — the [[BOX]] on Page 1.
+   No interior section has a box of any kind.
+   Never fabricate field values (grade, unit, standard, duration, materials);
+   if a value is not in the source, it does not appear.
+
+2. Do NOT promote a paragraph's opening words into a heading.
+   Example of the error: turning the sentence
+   "This lesson establishes the foundational reading practice..."
+   into a heading reading "This lesson".
+   A heading exists only where [[SECTION]] or [[SUB]] is marked.
+   Everything else is body prose — including the first words of a paragraph.
+
+3. Do NOT add a callout that is not in the source.
+   Example of the error: adding a "Teacher Tip" box at the end of the last page
+   when the source contains no [[CALLOUT]] there.
+   Render a callout only where [[CALLOUT:...]] appears in the source.
+
+4. Do NOT display raw markers or markup characters.
+   [[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]], [[/...]], --PAGE X--,
+   and characters such as "#" or "*" must never appear on the finished page.
+
+==================================================
 GENERAL PHILOSOPHY
 ==================================================
 
@@ -8774,7 +8914,8 @@ METADATA BOX (CRITICAL)
 ==================================================
 
 Exactly ONE metadata box exists in the entire Lesson Plan.
-That box appears ONLY on Page 1.
+It is the content wrapped in [[BOX]] ... [[/BOX]], and it appears ONLY on Page 1.
+Render a box only for that marked content; never render a box anywhere else.
 Never recreate it.
 Never summarize it.
 Never redesign it.
@@ -8917,7 +9058,10 @@ TEXT ALIGNMENT
 
 Justify all narrative body paragraphs, consistently, on every page.
 Alignment must not change from page to page.
-If an individual justified line would produce distracting gaps,
+Enable hyphenation so justified lines break cleanly.
+Justified text must not show large or uneven gaps between words;
+tighten word spacing and allow hyphenation to keep spacing even.
+If an individual justified line would still produce distracting gaps,
 correct it with hyphenation or minor spacing adjustments — not by switching the page to left alignment.
 Section headings remain left aligned.
 Lists remain left aligned.
@@ -9121,9 +9265,10 @@ Common Misconception
 Transition Point
 
 Callout content must come from the source.
-Render a callout only where the author has provided an editorial note (labeled Teacher tip, Watch for, Common misconception, Discussion prompt, Transition point or Quick check).
+Render a callout ONLY where the source marks one with [[CALLOUT:Label]] ... [[/CALLOUT]];
+use Label (for example Teacher tip, Watch for, Common misconception, Discussion prompt, Transition point, Quick check) as the callout title.
 Never write new callout text.
-Never invent a callout that is not in the source, and never move a callout to a different page than the one it appears on in the source.
+Never invent a callout that is not marked in the source, and never move a callout to a different page than the one it appears on in the source.
 
 ==================================================
 CALLOUT FREQUENCY
@@ -9153,6 +9298,11 @@ decorative graphics;
 oversized icons.
 Callouts should occupy only the space required by their content.
 They should never dominate the page.
+
+Render every callout in the same consistent boxed style
+(soft background, thin border, small title showing the Label).
+Never render some callouts as boxes and others inline as plain text;
+callout styling must be consistent across the entire document.
 
 ==================================================
 EDITORIAL SIDE ELEMENTS
@@ -9238,19 +9388,19 @@ Editorial elements should support navigation,
 not interrupt it.
 The preferred rhythm is:
 Heading
-↓
+↓ 
 Narrative block
-↓
+↓ 
 Optional callout
-↓
+↓ 
 Narrative continuation
-↓
+↓ 
 Subsection
-↓
+↓ 
 Narrative block
-↓
+↓ 
 Optional instructional note
-↓
+↓ 
 Narrative continuation
 This rhythm should vary naturally across the publication, following the structure the source already contains.
 
@@ -9353,6 +9503,13 @@ FINAL QUALITY CHECK
 
 Before finalizing the Lesson Plan, verify that:
 -  Every element on every page comes from the source; nothing has been invented, added or rewritten.
+-  Only marked elements are rendered as titles, section headings, subheadings, boxes or callouts; nothing unmarked was promoted into one.
+-  No paragraph's opening words were turned into a heading.
+-  No interior section has an information box or table (only the [[BOX]] on Page 1 is a box).
+-  No callout was added that is not marked with [[CALLOUT:...]] in the source.
+-  All markers ([[TITLE]], [[SECTION]], [[SUB]], [[BOX]], [[CALLOUT:...]], [[/...]], --PAGE X--) were stripped and do not appear on the page.
+-  All callouts are rendered in one consistent boxed style; none are left inline.
+-  Justified body text uses hyphenation and shows even word spacing (no large gaps).
 -  Page breaks match the source's --PAGE X-- markers exactly; no content was moved between pages.
 -  Headings preserve the source's exact wording and sentence case (no Title Case, no ALL CAPS).
 -  No raw markup characters (such as "#" or "*") appear on the page.
