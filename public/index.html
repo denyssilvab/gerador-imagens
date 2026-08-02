@@ -11744,6 +11744,78 @@ function renderLessonPageBody(blocks, illustrations, W, H, opts = {}) {
   return cv;
 }
 
+// Requests ONE isolated illustration from the image API — no page layout,
+// transparent background — reusing the exact single-page-array POST
+// pattern refazer/retryPage already use against /api/gerar-lote, just with
+// a minimal prompt instead of a full-page spec+content prompt. Returns
+// { img, width, height } ready to hand to renderLessonPageBody.
+async function requestLessonIllustration(description) {
+  const apiKey = getActiveApiKey();
+  const model  = getActiveModel();
+  const quality = document.getElementById('quality')?.value;
+  const size    = provider === 'openai'
+    ? document.getElementById('resolution-openai')?.value
+    : document.getElementById('resolution-replicate')?.value;
+  if (!apiKey) throw new Error('Insira a chave de API antes de gerar ilustrações.');
+
+  const prompt = `Generate ONLY this single illustration, isolated on a plain background — no page layout, no title, no body text, no border, no caption, no surrounding elements of any kind. Style: flat design educational illustration, clean lines, soft colors, no shadows, no gradients, textbook-quality — matching a modern academic textbook, not a decorative sticker.\n\nSubject: ${description}`;
+
+  const res = await authFetch('/api/gerar-lote', {
+    method: 'POST',
+    body: JSON.stringify({
+      apiKey, provider, model, quality, size,
+      pages: [{ num: 0, title: '', content: prompt, docType: 'lesson', transparent: true }],
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Erro HTTP ${res.status}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  let dataUrl = null;
+  let errorMsg = null;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split('\n'); buf = lines.pop();
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      let ev;
+      try { ev = JSON.parse(line.slice(6)); } catch { continue; }
+      if (ev.type === 'image') {
+        dataUrl = ev.dataUrl || ev.url;
+        if (ev.storageUrl && !dataUrl) {
+          try { dataUrl = await _storageUrlToDataUrl(ev.storageUrl); }
+          catch (e) { errorMsg = e.message; }
+        }
+      } else if (ev.type === 'error') {
+        errorMsg = ev.error;
+      }
+    }
+  }
+  if (!dataUrl) throw new Error(errorMsg || 'Falha ao gerar ilustração.');
+
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error('Falha ao carregar ilustração gerada.'));
+    el.src = dataUrl;
+  });
+  return { img, width: img.naturalWidth, height: img.naturalHeight };
+}
+
+// Requests every illustration a page needs, in document order, in
+// parallel — matches the order extractImageBlocks() returns, which is
+// the same order _attachLessonIllustrations() consumes later.
+async function generateLessonIllustrations(blocks) {
+  const imageBlocks = extractImageBlocks(blocks);
+  return Promise.all(imageBlocks.map(b => requestLessonIllustration(b.description)));
+}
+
 function onPromptInput() {
   const pages = parsePages(document.getElementById('prompt').value);
   const badge = document.getElementById('pg-badge');

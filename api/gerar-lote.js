@@ -24,7 +24,7 @@ async function urlToDataUrl(url, signal) {
 
 // ── OpenAI ────────────────────────────────────────────────────────────────
 
-async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
+async function generateOpenAI(apiKey, model, quality, size, prompt, signal, transparent) {
   const params = { model, prompt, n: 1 };
 
   if (model === 'dall-e-2') {
@@ -36,9 +36,11 @@ async function generateOpenAI(apiKey, model, quality, size, prompt, signal) {
     params.response_format = 'b64_json';
     params.style = 'vivid';
   } else {
-    // gpt-image-2 / gpt-image-1
+    // gpt-image-2 / gpt-image-1 — the only family that supports a real
+    // transparent-background param (dall-e-2/3 don't and would error).
     params.size = size || '1024x1536';
     params.quality = quality || 'medium';
+    if (transparent) params.background = 'transparent';
   }
 
   const res = await fetch('https://api.openai.com/v1/images/generations', {
@@ -228,7 +230,7 @@ export default async function handler(req) {
             try {
               const dataUrl = provider === 'replicate'
                 ? await generateReplicate(apiKey, model, size, page.content, ctrl.signal)
-                : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal);
+                : await generateOpenAI(apiKey, model, quality, size, page.content, ctrl.signal, page.transparent);
 
               // Upload raw image from server to Supabase Storage — eliminates ~1.5 MB from SSE stream.
               // Falls back to sending dataUrl if the upload fails for any reason.
