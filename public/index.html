@@ -11816,6 +11816,29 @@ async function generateLessonIllustrations(blocks) {
   return Promise.all(imageBlocks.map(b => requestLessonIllustration(b.description)));
 }
 
+// Fixed print-quality resolution for canvas-rendered pages, chosen
+// independently of whatever size the illustration image comes back in —
+// sharper than inheriting resolution from the AI (A4 @ ~200 DPI).
+const LESSON_CANVAS_PAGE_W = 1654;
+const LESSON_CANVAS_PAGE_H = 2339;
+
+// Orchestrates one full Lesson page through the canvas pipeline: parse →
+// generate isolated illustrations → render the body → stamp header/footer
+// via the existing, unchanged applyHeaderFooter (same call shape
+// handleEvent already uses for AI-generated pages). Returns a final data
+// URL the caller saves exactly like any other generated page.
+async function generateLessonPageCanvas(page) {
+  const blocks = parseLessonCanvasPage(page.content);
+  const illustrations = await generateLessonIllustrations(blocks);
+
+  const isEla = document.getElementById('disciplina')?.value.trim() === 'English Language Arts';
+  const bodyCanvas = renderLessonPageBody(blocks, illustrations, LESSON_CANVAS_PAGE_W, LESSON_CANVAS_PAGE_H, { isEla });
+  const bodyDataUrl = bodyCanvas.toDataURL('image/png');
+
+  const { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType('lesson');
+  return applyHeaderFooter(bodyDataUrl, header, footer, 'lesson', { isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title });
+}
+
 function onPromptInput() {
   const pages = parsePages(document.getElementById('prompt').value);
   const badge = document.getElementById('pg-badge');
