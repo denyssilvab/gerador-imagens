@@ -2705,29 +2705,31 @@ Blocking is intentionally rare. Everything else you fix silently. When in doubt 
 OUTPUT FORMAT
 ==================================================
 
-If everything passed or was fixed: output exactly this, then the four corrected files in full.
+Each request tells you which ONE of the four files to output, via a line
+"TARGET FILE TO OUTPUT: [Lesson Guide | Worksheet | Answer Key | Lesson Plan]"
+in the input, right after LESSON_SPEC. You still read and evaluate all four
+files together, exactly as described above — cross-file coherence and block
+conditions depend on the whole combo, not just the target file — but you
+only ever output the corrected text of the target file. The other three
+files are context for your review only; never output them, even partially.
+This keeps each response short enough to never be cut off mid-file.
+
+If everything passed or was fixed: output exactly this, then the corrected
+target file in full.
 
 STATUS: APPROVED
 
-===== LESSON GUIDE =====
-[full corrected text]
-
-===== WORKSHEET =====
-[full corrected text]
-
-===== ANSWER KEY =====
-[full corrected text]
-
-===== LESSON PLAN =====
-[full corrected text]
+===== [TARGET FILE LABEL] =====
+[full corrected text of the target file only]
 
 Rules for the APPROVED output:
 
-• Output the complete files, corrections already applied in place. Do not include change logs, comments, tracked changes, annotations, or explanations. The downstream image generator must receive clean, final content only.
-• If a file needed no changes, output it unchanged.
-• Do not add meta-text, headers, or notes beyond the four section markers shown.
+• Output the complete target file, corrections already applied in place. Do not include change logs, comments, tracked changes, annotations, or explanations. The downstream image generator must receive clean, final content only.
+• If the target file needed no changes, output it unchanged.
+• Do not add meta-text, headers, or notes beyond the single section marker shown.
+• Never output the other three files, even partially, even if they also needed corrections — those are handled by separate requests.
 
-If a BLOCK condition is met: output exactly this and nothing else (do NOT output the files):
+If a BLOCK condition is met anywhere in the combo — even in a file other than the target — output exactly this and nothing else (do NOT output any file):
 
 STATUS: BLOCKED
 FILE: [Lesson Guide | Worksheet | Answer Key | Lesson Plan]
@@ -6153,11 +6155,19 @@ function _updateExportButtonLabels() {
 
 // ── Revisão de Conteúdo (Supervisor Agent — ELA, grades 6-8) ──────────────
 
-function buildReviewUserPrompt(lessonSpec) {
-  return `LESSON_SPEC:\n${lessonSpec}\n\n===== LESSON GUIDE =====\n${savedContent.lesson}\n\n===== WORKSHEET =====\n${savedContent.practice}\n\n===== ANSWER KEY =====\n${savedContent.answerkey}\n\n===== LESSON PLAN =====\n${savedContent.lessonplan}`;
+// One call per file (instead of asking for all 4 at once) — the combined
+// output of 4 full documents routinely blew past the model's max_tokens
+// and got silently truncated mid-file. Each call still sends all 4 drafts
+// as context (cross-file coherence needs that) but is told to output only
+// the corrected text of a single TARGET FILE, keeping every response short
+// enough to never be cut off.
+const REVIEW_TYPE_LABELS = { lesson: 'Lesson Guide', practice: 'Worksheet', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
+
+function buildReviewUserPrompt(lessonSpec, targetLabel) {
+  return `LESSON_SPEC:\n${lessonSpec}\n\nTARGET FILE TO OUTPUT: ${targetLabel}\n\n===== LESSON GUIDE =====\n${savedContent.lesson}\n\n===== WORKSHEET =====\n${savedContent.practice}\n\n===== ANSWER KEY =====\n${savedContent.answerkey}\n\n===== LESSON PLAN =====\n${savedContent.lessonplan}`;
 }
 
-function _parseReviewOutput(raw) {
+function _parseReviewOutput(raw, targetType) {
   const text = (raw || '').trim();
   const statusMatch = text.match(/STATUS:\s*(APPROVED|BLOCKED)/i);
   const status = statusMatch ? statusMatch[1].toUpperCase() : 'APPROVED';
@@ -6173,24 +6183,15 @@ function _parseReviewOutput(raw) {
     };
   }
 
-  const markers = [
-    ['lesson',     'LESSON GUIDE'],
-    ['practice',   'WORKSHEET'],
-    ['answerkey',  'ANSWER KEY'],
-    ['lessonplan', 'LESSON PLAN'],
-  ];
-  const re = /=====\s*(LESSON GUIDE|WORKSHEET|ANSWER KEY|LESSON PLAN)\s*=====/gi;
-  const hits = [...text.matchAll(re)];
-  const out = { status: 'APPROVED', lesson: null, practice: null, answerkey: null, lessonplan: null };
-  hits.forEach((m, i) => {
-    const label = m[1].toUpperCase();
-    const key = (markers.find(([, l]) => l === label) || [])[0];
-    if (!key) return;
-    const start = m.index + m[0].length;
-    const end = i + 1 < hits.length ? hits[i + 1].index : text.length;
-    out[key] = text.slice(start, end).trim();
-  });
-  return out;
+  // APPROVED — expect a single "===== LABEL =====" marker followed by the
+  // target file's corrected text. Fall back to everything after STATUS if
+  // the marker is missing so a minor formatting slip doesn't lose content.
+  const markerRe = /=====\s*(LESSON GUIDE|WORKSHEET|ANSWER KEY|LESSON PLAN)\s*=====/i;
+  const m = text.match(markerRe);
+  const content = m
+    ? text.slice(m.index + m[0].length).trim()
+    : text.replace(/^STATUS:\s*APPROVED\s*/i, '').trim();
+  return { status: 'APPROVED', [targetType]: content };
 }
 
 function _setReviewLoading(isLoading, statusText) {
@@ -6250,37 +6251,39 @@ async function runContentReview() {
   const specEl = document.getElementById('review-lesson-spec');
   if (specEl) specEl.value = lessonSpec;
 
-  _setReviewLoading(true, 'Revisando com IA…');
   claudeAbortCtrl = new AbortController();
 
+  const types = ['lesson', 'practice', 'answerkey', 'lessonplan'];
+  let correctedCount = 0;
+
   try {
-    const raw = await callClaudeAPI('review', buildReviewUserPrompt(lessonSpec), REVIEW_PROMPT_ELA_MS,
-      (partial) => { _setReviewLoading(true, `Revisando com IA… (${partial.length} caracteres recebidos)`); });
+    for (let i = 0; i < types.length; i++) {
+      const type  = types[i];
+      const label = REVIEW_TYPE_LABELS[type];
+      _setReviewLoading(true, `Revisando ${label}… (${i + 1}/4)`);
 
-    const parsed = _parseReviewOutput(raw);
-    if (parsed.status === 'BLOCKED') {
-      openReviewBlockModal(parsed);
-      toast('Revisão bloqueada — veja o motivo no popup.', 'warn');
-      return;
-    }
+      const raw = await callClaudeAPI('review', buildReviewUserPrompt(lessonSpec, label), REVIEW_PROMPT_ELA_MS,
+        (partial) => { _setReviewLoading(true, `Revisando ${label}… (${i + 1}/4) — ${partial.length} caracteres`); });
 
-    reviewedContent.lesson     = parsed.lesson     || savedContent.lesson;
-    reviewedContent.practice   = parsed.practice   || savedContent.practice;
-    reviewedContent.answerkey  = parsed.answerkey  || savedContent.answerkey;
-    reviewedContent.lessonplan = parsed.lessonplan || savedContent.lessonplan;
-    _renderReviewBoxes();
+      const parsed = _parseReviewOutput(raw, type);
+      if (parsed.status === 'BLOCKED') {
+        openReviewBlockModal(parsed);
+        toast('Revisão bloqueada — veja o motivo no popup.', 'warn');
+        return;
+      }
 
-    // Only save a new TXT for doc types the Supervisor Agent actually
-    // corrected — an unchanged doc is identical to its draft, so a second
-    // file would just be a duplicate.
-    let correctedCount = 0;
-    ['lesson', 'practice', 'answerkey', 'lessonplan'].forEach(type => {
+      reviewedContent[type] = parsed[type] || savedContent[type];
+      _renderReviewBoxes();
+
+      // Only save a new TXT for doc types the Supervisor Agent actually
+      // corrected — an unchanged doc is identical to its draft, so a second
+      // file would just be a duplicate.
       sbSaveContent(type, reviewedContent[type]);
       if (reviewedContent[type] !== savedContent[type]) {
         correctedCount++;
         addGeneratedFile(type, reviewedContent[type], { fromReview: true });
       }
-    });
+    }
 
     _playNotification();
     toast(correctedCount ? `Revisão concluída! ${correctedCount} arquivo(s) corrigido(s).` : 'Revisão concluída — nenhuma correção necessária.', 'ok');
