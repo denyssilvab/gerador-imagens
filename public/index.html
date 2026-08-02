@@ -1981,6 +1981,14 @@
           </div>
         </div>
 
+        <!-- Generated files for download (only doc types actually corrected) -->
+        <div id="review-generated-files" style="display:none; margin-top:4px;">
+          <div class="card">
+            <div class="card-head"><h2>📁 Arquivos da Revisão</h2></div>
+            <div class="card-body" id="review-files-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+          </div>
+        </div>
+
       </div><!-- /gerar-main -->
     </div><!-- /gerar-layout -->
   </div><!-- /pg-revisao -->
@@ -5608,17 +5616,18 @@ function _buildContentFilename(type, { draft = false } = {}) {
   return (parts.join(' ') || type) + suffix + '.txt';
 }
 
-async function addGeneratedFile(type, content, { draft = false } = {}) {
+async function addGeneratedFile(type, content, { draft = false, fromReview = false } = {}) {
   const filename = _buildContentFilename(type, { draft });
   const ts       = Date.now();
   const key      = `txt_${type}_${ts}`;
   const folderId = dashFolderFilter || null;
 
-  const entry = { key, type, filename, content, ts, folderId };
+  const entry = { key, type, filename, content, ts, folderId, fromReview };
   generatedFiles.push(entry);   // dashboard
   _sessionFiles.push(entry);    // conteudo page (session only)
 
   refreshContentFiles();
+  refreshReviewFiles();
   refreshDashboard();
 
   // Persist to IDB + Supabase; update entry status when done
@@ -5628,7 +5637,40 @@ async function addGeneratedFile(type, content, { draft = false } = {}) {
     await dbSave({ key, dataUrl, filename, pageNum: null, title: filename, docType: type, folderId });
     entry._saved = true;
     refreshContentFiles(); // update saved indicator
+    refreshReviewFiles();
   } catch (_) { /* dbSave shows its own error toast */ }
+  return entry;
+}
+
+// Files newly saved by the Revisão de Conteúdo step (only doc types the
+// Supervisor Agent actually corrected get a new file — unchanged docs keep
+// only their original draft TXT).
+function refreshReviewFiles() {
+  const section = document.getElementById('review-generated-files');
+  const list    = document.getElementById('review-files-list');
+  if (!section || !list) return;
+  const files = _sessionFiles.filter(f => f.fromReview);
+  if (!files.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const dtLabel = {
+    lesson: 'Lesson Guide', practice: 'Worksheet', answerkey: 'Answer Key', lessonplan: 'Lesson Plan',
+  };
+  list.innerHTML = '';
+  files.slice().reverse().forEach(f => {
+    const savedBadge = f._saved
+      ? `<span style="font-size:11px;color:#4caf50;font-weight:600;">✓ Salvo</span>`
+      : `<span style="font-size:11px;color:var(--muted);">Salvando…</span>`;
+    const div = document.createElement('div');
+    div.className = 'content-file-entry';
+    div.innerHTML = `
+      <span style="font-size:20px;">📄</span>
+      <span class="content-file-entry-name">${esc(f.filename)}</span>
+      <span class="content-file-entry-meta">${esc(dtLabel[f.type] || f.type)} · ${_relTime(f.ts)}</span>
+      ${savedBadge}
+      <button class="btn btn-ghost btn-sm" onclick="downloadGeneratedFile('${f.key}')">⬇ Baixar</button>
+    `;
+    list.appendChild(div);
+  });
 }
 
 function refreshContentFiles() {
@@ -6228,17 +6270,20 @@ async function runContentReview() {
     reviewedContent.lessonplan = parsed.lessonplan || savedContent.lessonplan;
     _renderReviewBoxes();
 
-    addGeneratedFile('lesson',     reviewedContent.lesson);
-    addGeneratedFile('practice',   reviewedContent.practice);
-    addGeneratedFile('answerkey',  reviewedContent.answerkey);
-    addGeneratedFile('lessonplan', reviewedContent.lessonplan);
-    sbSaveContent('lesson',     reviewedContent.lesson);
-    sbSaveContent('practice',   reviewedContent.practice);
-    sbSaveContent('answerkey',  reviewedContent.answerkey);
-    sbSaveContent('lessonplan', reviewedContent.lessonplan);
+    // Only save a new TXT for doc types the Supervisor Agent actually
+    // corrected — an unchanged doc is identical to its draft, so a second
+    // file would just be a duplicate.
+    let correctedCount = 0;
+    ['lesson', 'practice', 'answerkey', 'lessonplan'].forEach(type => {
+      sbSaveContent(type, reviewedContent[type]);
+      if (reviewedContent[type] !== savedContent[type]) {
+        correctedCount++;
+        addGeneratedFile(type, reviewedContent[type], { fromReview: true });
+      }
+    });
 
     _playNotification();
-    toast('Revisão concluída!', 'ok');
+    toast(correctedCount ? `Revisão concluída! ${correctedCount} arquivo(s) corrigido(s).` : 'Revisão concluída — nenhuma correção necessária.', 'ok');
   } catch (e) {
     if (e.name !== 'AbortError') toast(e.message || 'Erro na revisão.', 'err');
   } finally {
