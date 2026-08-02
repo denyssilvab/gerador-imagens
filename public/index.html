@@ -11585,6 +11585,165 @@ function _drawJustifiedLines(ctx, lines, x, yTop, maxWidthPx, lineHeightPx, font
   });
 }
 
+function _drawLeftAlignedLines(ctx, lines, x, yTop, lineHeightPx, font, color) {
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  lines.forEach((line, i) => ctx.fillText(line.words.join(' '), x, yTop + i * lineHeightPx));
+}
+
+// ── Lesson Canvas block renderer ────────────────────────────────────────────
+// Style constants resolved against the actual mm→px / pt→px helpers for a
+// given canvas resolution — mirrors the exact margins/typography/colors
+// already defined in SPECS.lesson (safe area x=35-190mm/y=20-278mm, Title
+// 20pt #092964, Subtitle 18pt #0251af, Body 18pt/1.5 spacing #000000, box
+// corners 5mm/padding 15mm). Box vs callout colors are a new, additive
+// choice (not previously defined) since callouts didn't exist as a
+// distinct concept before this pilot.
+function _buildLessonCanvasStyle(mx, my, mpt, isEla) {
+  const bodyFamily = isEla ? 'Georgia, "Times New Roman", serif' : 'Arial, Helvetica, sans-serif';
+  const headingFamily = 'Arial, Helvetica, sans-serif';
+  return {
+    marginLeftPx: mx(35), marginRightPx: mx(190), marginTopPx: my(20), marginBottomPx: my(278),
+    titleFont: `700 ${mpt(20)}px ${headingFamily}`, titleColor: '#092964',
+    titleLineHeightPx: mpt(20) * 1.3, titleGapAfterPx: my(10),
+    subtitleFont: `600 ${mpt(18)}px ${headingFamily}`, subtitleColor: '#0251af',
+    subtitleLineHeightPx: mpt(18) * 1.3, subtitleGapAfterPx: my(8),
+    subFont: `700 ${mpt(15)}px ${headingFamily}`, subColor: '#092964',
+    subLineHeightPx: mpt(15) * 1.3, subGapAfterPx: my(6),
+    bodyFont: `400 ${mpt(18)}px ${bodyFamily}`, bodyColor: '#000000',
+    bodyLineHeightPx: mpt(18) * 1.5, paragraphGapPx: my(6),
+    listIndentPx: mx(8), listItemGapPx: my(3),
+    boxPaddingPx: mx(15), boxRadiusPx: mx(5), boxBorderWidthPx: Math.max(1, mpt(1.5)),
+    boxBg: '#dceafa', boxBorder: '#0251af',
+    calloutBg: '#fff4e6', calloutBorder: '#ff6b35',
+    calloutLabelFont: `700 ${mpt(13)}px ${headingFamily}`,
+    calloutLabelLineHeightPx: mpt(13) * 1.3, calloutLabelGapPx: my(4),
+    blockGapPx: my(8), imageMaxHeightPx: my(90),
+  };
+}
+
+function _roundRectPath(ctx, x, y, w, h, r) {
+  if (typeof ctx.roundRect === 'function') { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); return; }
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+// Attaches the matching illustration (or null) onto each image block, in
+// document order — done once before rendering so the measure-only pass
+// (used to size a box/callout before painting it) and the real draw pass
+// see identical data and produce consistent heights.
+function _attachLessonIllustrations(blocks, illustrations) {
+  extractImageBlocks(blocks).forEach((b, i) => { b.illustration = (illustrations || [])[i] || null; });
+}
+
+// Recursively lays out (and, when draw=true, draws) a block list starting
+// at (x, yTop) within maxWidthPx, returning the total height consumed in
+// px. Reused both to MEASURE a box/callout's content (draw=false, so it
+// can be sized correctly before its background is painted) and to
+// actually draw it once the size is known.
+function _renderLessonBlocks(ctx, blocks, x, yTop, maxWidthPx, style, draw) {
+  let cursorY = yTop;
+  blocks.forEach(block => {
+    if (block.type === 'title') {
+      const lines = _layoutParagraphLines(ctx, block.text, maxWidthPx, style.titleFont);
+      if (draw) _drawLeftAlignedLines(ctx, lines, x, cursorY, style.titleLineHeightPx, style.titleFont, style.titleColor);
+      cursorY += lines.length * style.titleLineHeightPx + style.titleGapAfterPx;
+    } else if (block.type === 'subtitle') {
+      const lines = _layoutParagraphLines(ctx, block.text, maxWidthPx, style.subtitleFont);
+      if (draw) _drawLeftAlignedLines(ctx, lines, x, cursorY, style.subtitleLineHeightPx, style.subtitleFont, style.subtitleColor);
+      cursorY += lines.length * style.subtitleLineHeightPx + style.subtitleGapAfterPx;
+    } else if (block.type === 'sub') {
+      const lines = _layoutParagraphLines(ctx, block.text, maxWidthPx, style.subFont);
+      if (draw) _drawLeftAlignedLines(ctx, lines, x, cursorY, style.subLineHeightPx, style.subFont, style.subColor);
+      cursorY += lines.length * style.subLineHeightPx + style.subGapAfterPx;
+    } else if (block.type === 'paragraph') {
+      const lines = _layoutParagraphLines(ctx, block.text, maxWidthPx, style.bodyFont);
+      if (draw) _drawJustifiedLines(ctx, lines, x, cursorY, maxWidthPx, style.bodyLineHeightPx, style.bodyFont, style.bodyColor);
+      cursorY += lines.length * style.bodyLineHeightPx + style.paragraphGapPx;
+    } else if (block.type === 'list') {
+      const itemMaxWidth = maxWidthPx - style.listIndentPx;
+      block.items.forEach((item, idx) => {
+        const marker = block.ordered ? `${idx + 1}.` : '•';
+        const lines = _layoutParagraphLines(ctx, item, itemMaxWidth, style.bodyFont);
+        if (draw) {
+          ctx.font = style.bodyFont; ctx.fillStyle = style.bodyColor;
+          ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+          ctx.fillText(marker, x, cursorY);
+          _drawJustifiedLines(ctx, lines, x + style.listIndentPx, cursorY, itemMaxWidth, style.bodyLineHeightPx, style.bodyFont, style.bodyColor);
+        }
+        cursorY += lines.length * style.bodyLineHeightPx + style.listItemGapPx;
+      });
+      cursorY += style.paragraphGapPx - style.listItemGapPx;
+    } else if (block.type === 'box' || block.type === 'callout') {
+      const isCallout = block.type === 'callout';
+      const padding = style.boxPaddingPx;
+      const innerMaxWidth = maxWidthPx - padding * 2;
+      const innerX = x + padding;
+      let innerHeight = 0;
+      if (isCallout && block.label) innerHeight += style.calloutLabelLineHeightPx + style.calloutLabelGapPx;
+      innerHeight += _renderLessonBlocks(ctx, block.children, innerX, 0, innerMaxWidth, style, false);
+      const boxHeight = innerHeight + padding * 2;
+      if (draw) {
+        ctx.fillStyle = isCallout ? style.calloutBg : style.boxBg;
+        ctx.strokeStyle = isCallout ? style.calloutBorder : style.boxBorder;
+        ctx.lineWidth = style.boxBorderWidthPx;
+        _roundRectPath(ctx, x, cursorY, maxWidthPx, boxHeight, style.boxRadiusPx);
+        ctx.fill(); ctx.stroke();
+        let innerY = cursorY + padding;
+        if (isCallout && block.label) {
+          ctx.font = style.calloutLabelFont; ctx.fillStyle = style.calloutBorder;
+          ctx.textBaseline = 'top'; ctx.textAlign = 'left';
+          ctx.fillText(block.label.toUpperCase(), innerX, innerY);
+          innerY += style.calloutLabelLineHeightPx + style.calloutLabelGapPx;
+        }
+        _renderLessonBlocks(ctx, block.children, innerX, innerY, innerMaxWidth, style, true);
+      }
+      cursorY += boxHeight + style.blockGapPx;
+    } else if (block.type === 'image') {
+      const illo = block.illustration;
+      const naturalW = illo?.width || 4, naturalH = illo?.height || 3;
+      let drawW = maxWidthPx, drawH = drawW * (naturalH / naturalW);
+      if (drawH > style.imageMaxHeightPx) { drawH = style.imageMaxHeightPx; drawW = drawH * (naturalW / naturalH); }
+      const drawX = x + (maxWidthPx - drawW) / 2;
+      if (draw && illo?.img) ctx.drawImage(illo.img, drawX, cursorY, drawW, drawH);
+      cursorY += drawH + style.blockGapPx;
+    }
+  });
+  return cursorY - yTop;
+}
+
+// Renders one lesson page's body (everything except header/footer, which
+// applyHeaderFooter still adds afterwards, unchanged) onto a canvas of the
+// given pixel size. `illustrations` is a same-order array of
+// { img, width, height } matching extractImageBlocks(blocks) — pass an
+// empty array to render with the images simply skipped.
+function renderLessonPageBody(blocks, illustrations, W, H, opts = {}) {
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  const mx = mm => W * mm / 210;
+  const my = mm => H * mm / 297;
+  const mpt = p => W * p / 595.28;
+  const style = _buildLessonCanvasStyle(mx, my, mpt, !!opts.isEla);
+
+  _attachLessonIllustrations(blocks, illustrations);
+  const maxWidthPx = style.marginRightPx - style.marginLeftPx;
+  _renderLessonBlocks(ctx, blocks, style.marginLeftPx, style.marginTopPx, maxWidthPx, style, true);
+
+  return cv;
+}
+
 function onPromptInput() {
   const pages = parsePages(document.getElementById('prompt').value);
   const badge = document.getElementById('pg-badge');
