@@ -36,7 +36,7 @@ export default async function handler(req) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 16000,
+      max_tokens: docType === 'review' ? 32000 : 16000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
       stream: true,

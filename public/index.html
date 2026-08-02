@@ -1412,6 +1412,9 @@
     <button class="nav-item" onclick="setPage('conteudo',this)">
       <span class="nav-icon">✦</span><span>Gerar Conteúdo</span>
     </button>
+    <button class="nav-item" onclick="setPage('revisao',this)">
+      <span class="nav-icon">🔍</span><span>Revisão de Conteúdo</span>
+    </button>
     <button class="nav-item active" onclick="setPage('gerar',this)">
       <span class="nav-icon">🖼</span><span>Gerar Imagens</span>
     </button>
@@ -1735,7 +1738,7 @@
             <h2>Conteúdo Gerado</h2>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-ghost btn-sm" onclick="copyClaudeOutput()">⎘ Copiar</button>
-              <button class="btn btn-primary btn-sm" onclick="sendToGerar()">→ Exportar para Gerar Imagens</button>
+              <button class="btn btn-primary btn-sm" id="btn-export-single" onclick="sendToGerar()">→ Exportar para Gerar Imagens</button>
             </div>
           </div>
           <div class="card-body">
@@ -1800,7 +1803,7 @@
           <!-- Export all at once -->
           <div style="display:flex;justify-content:flex-end;gap:8px;">
             <button class="btn btn-ghost" onclick="copyAllOutputs()">⎘ Copiar tudo</button>
-            <button class="btn btn-primary" onclick="sendToGerar()">→ Exportar tudo para Gerar Imagens</button>
+            <button class="btn btn-primary" id="btn-export-all" onclick="sendToGerar()">→ Exportar tudo para Gerar Imagens</button>
           </div>
         </div>
 
@@ -1842,11 +1845,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <div class="fg">
                 <label>Disciplina</label>
-                <select id="content-disciplina" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();saveSettings()"><option value="Mathematics">Mathematics</option><option value="English Language Arts">English Language Arts</option></select>
+                <select id="content-disciplina" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();_updateExportButtonLabels();saveSettings()"><option value="Mathematics">Mathematics</option><option value="English Language Arts">English Language Arts</option></select>
               </div>
               <div class="fg">
                 <label>Turma</label>
-                <select id="content-turma" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();saveSettings()"><option value="2nd Grade">2nd Grade</option><option value="3rd Grade">3rd Grade</option><option value="4th Grade">4th Grade</option><option value="5th Grade">5th Grade</option><option value="6th Grade" selected>6th Grade</option><option value="7th Grade">7th Grade</option><option value="8th Grade">8th Grade</option><option value="9th Grade">9th Grade</option><option value="10th Grade">10th Grade</option><option value="11th Grade">11th Grade</option><option value="12th Grade">12th Grade</option></select>
+                <select id="content-turma" style="padding:6px 8px;font-size:12px;" onchange="_refreshContentSpecsTextarea();_updateExportButtonLabels();saveSettings()"><option value="2nd Grade">2nd Grade</option><option value="3rd Grade">3rd Grade</option><option value="4th Grade">4th Grade</option><option value="5th Grade">5th Grade</option><option value="6th Grade" selected>6th Grade</option><option value="7th Grade">7th Grade</option><option value="8th Grade">8th Grade</option><option value="9th Grade">9th Grade</option><option value="10th Grade">10th Grade</option><option value="11th Grade">11th Grade</option><option value="12th Grade">12th Grade</option></select>
               </div>
             </div>
           </div>
@@ -1892,6 +1895,95 @@
 
     </div><!-- /gerar-layout -->
   </div><!-- /pg-conteudo -->
+
+  <!-- ══════════════════════════════════════════════
+       PAGE: REVISÃO DE CONTEÚDO (Supervisor Agent — ELA, grades 6-8)
+  ══════════════════════════════════════════════ -->
+  <div class="pg" id="pg-revisao">
+    <div class="gerar-layout">
+      <div class="gerar-main">
+
+        <!-- LESSON_SPEC -->
+        <div class="card">
+          <div class="card-head">
+            <h2>Critério de Revisão (LESSON_SPEC)</h2>
+          </div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:12px;">
+            <p class="hint">Mesmo texto do campo "Descrição da Aula" em Gerar Conteúdo — é o critério usado pelo Supervisor Agent para revisar os 4 arquivos. Para editar, volte para Gerar Conteúdo e gere novamente.</p>
+            <textarea id="review-lesson-spec" rows="6" readonly style="font-family:monospace;font-size:12px;background:var(--surface2);"></textarea>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" id="btn-review-rerun" onclick="runContentReview()">🔁 Revisar novamente</button>
+              <button class="btn btn-danger btn-sm" id="btn-review-stop" style="display:none;" onclick="stopClaudeGeneration()">⏹ Parar</button>
+              <div class="prog-wrap" id="review-prog-wrap" style="display:none;">
+                <div class="prog-track"><div class="prog-fill" style="width:100%;animation:shimmer 1.5s ease infinite;"></div></div>
+                <div class="prog-label" id="review-prog-label">Revisando com IA…</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 caixas revisadas -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#89c13b;">📖 Lesson Guide</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="review-badge-lesson" style="display:none;"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('review-lesson')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendReviewedToGerarSingle('lesson')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="review-output-lesson" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Conteúdo revisado aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#0251af;">✏️ Worksheet</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="review-badge-practice" style="display:none;"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('review-practice')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendReviewedToGerarSingle('practice')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="review-output-practice" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Conteúdo revisado aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#9b59b6;">🔑 Answer Key</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="review-badge-answerkey" style="display:none;"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('review-answerkey')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendReviewedToGerarSingle('answerkey')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="review-output-answerkey" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Conteúdo revisado aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head">
+              <h2 style="color:#ff6b35;">📋 Lesson Plan</h2>
+              <div style="display:flex;gap:8px;">
+                <span class="pg-badge" id="review-badge-lessonplan" style="display:none;"></span>
+                <button class="btn btn-ghost btn-sm" onclick="savePromptAsTxt('review-lessonplan')">💾 TXT</button>
+                <button class="btn btn-primary btn-sm" onclick="sendReviewedToGerarSingle('lessonplan')">→ Exportar</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <textarea id="review-output-lessonplan" rows="14" style="font-family:monospace;font-size:12px;resize:vertical;" placeholder="Conteúdo revisado aparecerá aqui…"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button class="btn btn-primary" id="btn-review-export-all" onclick="sendReviewedToGerar()" disabled>→ Exportar tudo para Gerar Imagens</button>
+          </div>
+        </div>
+
+      </div><!-- /gerar-main -->
+    </div><!-- /gerar-layout -->
+  </div><!-- /pg-revisao -->
 
   <div class="pg active" id="pg-gerar">
     <div class="gerar-layout">
@@ -2461,12 +2553,192 @@
   </div>
 </div>
 
+<!-- Modal: Revisão bloqueada -->
+<div class="modal-bg" id="review-block-modal">
+  <div class="modal">
+    <h3>🚫 Revisão bloqueada</h3>
+    <p style="font-size:12px;color:var(--muted);line-height:1.6;">
+      O Supervisor Agent encontrou um problema que não pode ser corrigido automaticamente. Um humano precisa intervir antes de seguir para Gerar Imagens.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;margin:4px 0;">
+      <div><strong style="font-size:12px;color:var(--muted);">Arquivo</strong><div id="review-block-file" style="font-size:13px;">—</div></div>
+      <div><strong style="font-size:12px;color:var(--muted);">Localização</strong><div id="review-block-location" style="font-size:13px;">—</div></div>
+      <div><strong style="font-size:12px;color:var(--muted);">Motivo</strong><div id="review-block-reason" style="font-size:13px;">—</div></div>
+      <div><strong style="font-size:12px;color:var(--muted);">Sugestão</strong><div id="review-block-fix" style="font-size:13px;">—</div></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px;">
+      <button class="btn btn-primary" onclick="closeReviewBlockModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 // ── Navegação entre páginas ────────────────────────────────────────────────
 
-const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', gerar:'Gerar Imagens', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
+const PAGE_TITLES = { dashboard:'Dashboard', conteudo:'Gerar Conteúdo', revisao:'Revisão de Conteúdo', gerar:'Gerar Imagens', upscale:'Upscale', combinar:'Combinar Arquivos', config:'Configurações' };
+
+// ── Prompt do Supervisor Agent (revisão de conteúdo ELA, grades 6-8) ───────
+
+const REVIEW_PROMPT_ELA_MS = `SUPERVISOR AGENT — ELA Combo Reviewer & Corrector (Grades 6–8, CCSS)
+
+You are a content supervisor for a Middle School ELA product. An upstream generator has already produced a four-file lesson combo: Lesson Guide, Worksheet, Answer Key, and Lesson Plan. Your job is to read all four together against the lesson specification, silently fix everything that is fixable, and output the corrected combo ready for the image generator — OR block it if it crosses a safety/rights line that must not be silently patched.
+
+You are the last check before publication. Be rigorous. Do not rubber-stamp.
+
+==================================================
+INPUTS YOU RECEIVE
+==================================================
+
+1. LESSON_SPEC — the specification block for this exact lesson, in this format:
+
+Lesson N - Title
+• CCSS Code: [code]
+• Learning Target (I can): ...
+• Essential Question: ...
+• Target Verb (CCSS): ...
+• Objective: ...
+• Content: ...
+• Guardrails: ...
+• Trap item: [Yes / absent]
+
+Plus the Standard defaults line for that code (genre, terms, strand guardrail, grade-band note) and the Universal Requirements list.
+
+2. THE FOUR GENERATED FILES — full text of Lesson Guide, Worksheet, Answer Key, Lesson Plan.
+
+The LESSON_SPEC is the contract. You judge the files against the spec, not against your own idea of a good lesson. If the spec says "keep it literary, grade 7, target verb = analyze," those are the criteria. When the spec and a file disagree, the file is wrong.
+
+==================================================
+HOW YOU WORK
+==================================================
+
+1. Read the LESSON_SPEC first and hold it as the rubric.
+2. Read all four files as a set (you are checking cross-file coherence, not each file in isolation).
+3. Run every review dimension below.
+4. For each issue: if it is fixable, fix it directly in the file text — silently, no commentary in the output. If it is blocking (see BLOCK CONDITIONS), stop and return BLOCKED.
+5. Output the corrected four files (or the block notice). Nothing else.
+
+Correct in place and minimally: preserve everything that already meets the spec. Do not rewrite passages, questions, or explanations that are already correct. You are a corrector, not a re-generator. Never expand scope, add lessons, or change the lesson's topic.
+
+==================================================
+REVIEW DIMENSIONS (check all, in this order)
+==================================================
+
+1. Safety and rights — checked FIRST, can trigger BLOCK
+
+• Child safety: no romantic/sexual content involving or directed at minors; no content that could sexualize, groom, or endanger a child. Passages and prompts must be age-appropriate for 11–14-year-olds. If any file contains such content, BLOCK.
+• Copyright: passages must be original or public-domain, not copied text from a copyrighted work or the open web. Watch for verbatim song lyrics, poems reproduced in full, or long passages that read as lifted. If a passage appears to be copied copyrighted material, BLOCK (do not "fix" by lightly paraphrasing — flag it).
+• Harmful/inappropriate content: no instructions enabling real-world harm; no graphic violence, self-harm, or hateful content in passages or examples; no political persuasion presented as fact. If borderline and removable without gutting the lesson, fix; if central to the passage, BLOCK.
+• Neutrality: on contested political/social topics, the material presents balanced perspectives and does not push one view. Fixable by rebalancing; only BLOCK if the whole passage is built as one-sided persuasion.
+
+2. Standard alignment (the core check)
+
+• Right code: the content actually teaches the CCSS code in the spec — not a neighboring one. Watch for the recurring strand leaks we know about: citation mechanics (quoting/paraphrasing/MLA/plagiarism) belongs to the Writing strand (W.x.8/W.x.9), NOT to RL/RI evidence standards; "fact vs opinion" is RI, not RL; whole-text structure is not the same as the grade-8 "specific paragraph / role of particular sentences" (RI.8.5). If a file drifts into a neighboring standard, refocus it onto the spec's code.
+• Target verb match: the tasks demand the spec's Target Verb. If the spec says analyze/evaluate but every item only asks students to identify/label, raise the cognitive demand to match. (Under-shooting the verb is the most common alignment failure.)
+• Objective delivered: the Worksheet actually gives students practice on the stated Objective, and the Answer Key answers reflect it.
+
+3. Grade-band fit (grade-specific — use the spec's band note)
+
+The three grades are deliberately incremental. Enforce the spec's band, do not drift up or down:
+
+• Grade 6: NO unreliable narrator, NO formal/named logical fallacies, only LIGHT bias. Evidence floor is "at least two clues." Keep "explicit/inference" terminology (never "implicit" as a synonym).
+• Grade 7: unreliable narrators, sound/unsound reasoning and basic fallacies, and author bias ARE appropriate — do not strip them. Evidence expectation rises to "several pieces." Signature skills present where the code calls for them (drama/poem form, misplaced/dangling modifiers, wordiness/redundancy, allusions).
+• Grade 8: keeps grade-7 rigor AND adds its signatures where the code calls for them (compare structures of two texts; POV differences that create suspense/humor/dramatic irony; specific-paragraph/sentence-role analysis; irrelevant-evidence recognition; conflicting-information analysis; modern works drawing on myths; verbals/voice/mood + correcting shifts; verbal irony/puns). Do not push into grade 9-10 (no cumulative whole-work authorial analysis, no named ethos/pathos/logos). If a file's difficulty or concept sits in the wrong grade, adjust the framing/terminology to the spec's band. If the base passage itself is far off the grade-8 (~1010-1185L), grade-7 (~970-1120L), or grade-6 (~925-1185L) band such that the lesson can't work, and re-leveling would require regenerating the passage, treat as BLOCK (see conditions).
+
+4. Genre discipline
+
+• RL lessons use only literary passages/examples; RI lessons use only informational passages. If a literary lesson leaks a news/nonfiction example (or vice versa), replace it with a genre-correct one.
+
+5. Worksheet quality (mechanical, almost always fixable)
+
+• Stem–answer format match: if a prompt asks for "two clues / several pieces," the response format must permit that many. Never a plural request inside a single-select MC item. Fix by converting to select-all / short-response, or by rewording the stem.
+• Distractor quality: MC distractors are plausible, not throwaway; exactly one correct option unless the item is explicitly select-all.
+• Trap item present when required: if the spec lists a Trap item, the Worksheet must include at least one item whose correct answer is "neither / invalid inference / insufficient evidence." If missing, add one consistent with the passage.
+• Answerability: every question is answerable from the provided passage(s); nothing depends on outside knowledge the lesson didn't supply.
+
+6. Answer Key integrity
+
+• No over-inference: the single most important Answer Key rule. The key must NOT read beyond what the text states. (Canonical failure: text says a character holds/turns an object; key says she hands it over / surrenders it.) If the key asserts something the passage doesn't support, rewrite the answer to stay within the evidence.
+• Internal consistency: the key does not contradict itself across items (e.g., interpreting the same detail two incompatible ways).
+• Every item answered: each Worksheet item has a corresponding key entry.
+• Rubric present: every constructed-response item has a 3-level rubric (2 = cites 2+ pieces and connects / 1 = cites without connecting / 0 = personal opinion or no evidence). If missing, add it.
+
+7. Lesson Plan completeness
+
+• Per-segment pacing present (warm-up / launch / direct instruction / guided / independent / closure + exit ticket), summing within the 60–75 min window.
+• Gradual release explicit (I do → we do → you do).
+• Differentiation in 3 tiers: Support / ELL-MLL / Enrichment, plus an IEP/504 note. Add any missing tier.
+• Learning target ("I can") and Essential Question posted, matching the spec verbatim in meaning.
+• Code closure: if the spec marks this as the code's closing lesson, the plan includes a synthesis/summative instrument.
+
+8. Cross-file coherence (only visible when reading all four together)
+
+• Same passage(s), same key terms, same learning target, and same three-step method (or lesson method) across all four files.
+• Terminology consistency: identical vocabulary in all four (e.g., "explicit/inference," not "implicit" in one file and "inference" in another).
+• Worksheet item count and numbering match the Answer Key exactly.
+• The Lesson Plan's references to Worksheet items (e.g., "Question 4") point to items that actually exist and say what the plan claims.
+
+==================================================
+BLOCK CONDITIONS (do NOT silently correct these)
+==================================================
+
+Return BLOCKED only when one of these is true:
+
+1. Child-safety violation of any kind.
+2. Apparent copyrighted text reproduced (not fixable by paraphrase — must be regenerated upstream).
+3. Content enabling real-world harm, or a passage built as one-sided political/ideological persuasion that can't be rebalanced without replacing it.
+4. The base passage is so far outside the grade band that the lesson cannot be corrected without regenerating the passage.
+5. The generated files are internally so contradictory (e.g., Worksheet and Answer Key are about different passages) that no in-place fix can reconcile them.
+
+Blocking is intentionally rare. Everything else you fix silently. When in doubt between fix and block on a safety/rights item, BLOCK; on a pedagogical item, FIX.
+
+==================================================
+OUTPUT FORMAT
+==================================================
+
+If everything passed or was fixed: output exactly this, then the four corrected files in full.
+
+STATUS: APPROVED
+
+===== LESSON GUIDE =====
+[full corrected text]
+
+===== WORKSHEET =====
+[full corrected text]
+
+===== ANSWER KEY =====
+[full corrected text]
+
+===== LESSON PLAN =====
+[full corrected text]
+
+Rules for the APPROVED output:
+
+• Output the complete files, corrections already applied in place. Do not include change logs, comments, tracked changes, annotations, or explanations. The downstream image generator must receive clean, final content only.
+• If a file needed no changes, output it unchanged.
+• Do not add meta-text, headers, or notes beyond the four section markers shown.
+
+If a BLOCK condition is met: output exactly this and nothing else (do NOT output the files):
+
+STATUS: BLOCKED
+FILE: [Lesson Guide | Worksheet | Answer Key | Lesson Plan]
+LOCATION: [page or item reference, e.g. "Page 3" or "Worksheet Question 4"]
+REASON: [one line: which block condition, and why]
+SUGGESTED_FIX: [what needs to happen next — e.g. "regenerate passage upstream with a public-domain source"]
+
+The block notice is the ONLY case where you produce commentary. It exists so a human can intervene before anything reaches production. In every other case, you are silent and corrective.
+
+==================================================
+OPERATING PRINCIPLES
+==================================================
+
+• The spec is the contract; the files are wrong when they disagree with it.
+• Fix minimally and in place; preserve what already works; never regenerate what isn't broken.
+• Correct silently; explain nothing except a BLOCK.
+• Safety and rights outrank helpfulness and throughput — a blocked combo is better than a harmful or infringing one shipped.
+• You are English-only in everything you read and produce; if any file contains stray non-English text that isn't intentional lesson content, correct it to English.
+`;
 
 // ── Specs de conteúdo por tipo ─────────────────────────────────────────────
 
@@ -5170,6 +5442,10 @@ let claudeAbortCtrl = null;
 const savedContent = { lesson: null, practice: null, answerkey: null, lessonplan: null };
 let _genFailedStep = null; // which step failed (for resume)
 
+// ── Revisão de Conteúdo (ELA, grades 6-8) ──────────────────────────────────
+const reviewedContent = { lesson: null, practice: null, answerkey: null, lessonplan: null };
+let _reviewBlockInfo = null;
+
 function _showResumeBanner(failedStep) {
   const banner = document.getElementById('gen-resume-banner');
   const status = document.getElementById('gen-resume-status');
@@ -5251,7 +5527,7 @@ async function resumeGeneration() {
       savedContent.lesson = lessonContent;
       if (outLesson) outLesson.value = lessonContent;
       _setBadge('all-badge-lesson', `${(lessonContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(lTime)}`.trim().replace(/^\s*·\s*/, ''));
-      addGeneratedFile('lesson', lessonContent);
+      addGeneratedFile('lesson', lessonContent, { draft: true });
       updateContentTabs();
     }
 
@@ -5265,7 +5541,7 @@ async function resumeGeneration() {
       savedContent.practice = practiceContent;
       if (outPractice) outPractice.value = practiceContent;
       _setBadge('all-badge-practice', `${(practiceContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(pTime)}`.trim().replace(/^\s*·\s*/, ''));
-      addGeneratedFile('practice', practiceContent);
+      addGeneratedFile('practice', practiceContent, { draft: true });
       updateContentTabs();
     }
 
@@ -5279,7 +5555,7 @@ async function resumeGeneration() {
       savedContent.answerkey = answerKeyContent;
       if (outAnswerKey) outAnswerKey.value = answerKeyContent;
       _setBadge('all-badge-answerkey', `${(answerKeyContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(akTime)}`.trim().replace(/^\s*·\s*/, ''));
-      addGeneratedFile('answerkey', answerKeyContent);
+      addGeneratedFile('answerkey', answerKeyContent, { draft: true });
       updateContentTabs();
     }
 
@@ -5293,7 +5569,7 @@ async function resumeGeneration() {
       savedContent.lessonplan = planContent;
       if (outPlan) outPlan.value = planContent;
       _setBadge('all-badge-lessonplan', `${(planContent.match(/^--PAGE /gm)||[]).length || ''} pág. · ${_fmtTime(plTime)}`.trim().replace(/^\s*·\s*/, ''));
-      addGeneratedFile('lessonplan', planContent);
+      addGeneratedFile('lessonplan', planContent, { draft: true });
       updateContentTabs();
     }
 
@@ -5314,7 +5590,7 @@ async function resumeGeneration() {
 const generatedFiles = [];          // all txt files (dashboard use)
 const _sessionFiles  = [];          // only files generated in current session (conteudo page display)
 
-function _buildContentFilename(type) {
+function _buildContentFilename(type, { draft = false } = {}) {
   const lesson = document.getElementById('content-lesson')?.value || '';
   const ccss   = document.getElementById('content-ccss')?.value   || '';
   const name   = document.getElementById('content-lesson-name')?.value || '';
@@ -5326,11 +5602,14 @@ function _buildContentFilename(type) {
   parts.push(lesson ? `${label} ${_padLessonNum(lesson)}` : label);
   if (name) parts.push(`- ${name}`);
   if (ccss) parts.push(`(${ccss})`);
-  return (parts.join(' ') || type) + '.txt';
+  // Draft (pre-review) files get a "[1.]" suffix so they don't collide with
+  // the reviewed/final version saved later under the same base name.
+  const suffix = draft && _isElaMS(disciplina, turma) ? ' [1.]' : '';
+  return (parts.join(' ') || type) + suffix + '.txt';
 }
 
-async function addGeneratedFile(type, content) {
-  const filename = _buildContentFilename(type);
+async function addGeneratedFile(type, content, { draft = false } = {}) {
+  const filename = _buildContentFilename(type, { draft });
   const ts       = Date.now();
   const key      = `txt_${type}_${ts}`;
   const folderId = dashFolderFilter || null;
@@ -5636,7 +5915,7 @@ async function generateContent() {
       if (outLesson) outLesson.value = lessonContent;
       const lpages = (lessonContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-lesson', lpages ? `${lpages} pág. · ${_fmtTime(lTime)}` : _fmtTime(lTime));
-      addGeneratedFile('lesson', lessonContent);
+      addGeneratedFile('lesson', lessonContent, { draft: true });
       updateContentTabs();
 
       // 2. Activities
@@ -5649,7 +5928,7 @@ async function generateContent() {
       if (outPractice) outPractice.value = practiceContent;
       const ppages = (practiceContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-practice', ppages ? `${ppages} pág. · ${_fmtTime(pTime)}` : _fmtTime(pTime));
-      addGeneratedFile('practice', practiceContent);
+      addGeneratedFile('practice', practiceContent, { draft: true });
       updateContentTabs();
 
       // 3. Answer Key
@@ -5662,7 +5941,7 @@ async function generateContent() {
       if (outAnswerKey) outAnswerKey.value = answerKeyContent;
       const akpages = (answerKeyContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-answerkey', akpages ? `${akpages} pág. · ${_fmtTime(akTime)}` : _fmtTime(akTime));
-      addGeneratedFile('answerkey', answerKeyContent);
+      addGeneratedFile('answerkey', answerKeyContent, { draft: true });
       updateContentTabs();
 
       // 4. Lesson Plan
@@ -5675,7 +5954,7 @@ async function generateContent() {
       if (outPlan) outPlan.value = planContent;
       const plpages = (planContent.match(/^--PAGE /gm) || []).length;
       _setBadge('all-badge-lessonplan', plpages ? `${plpages} pág. · ${_fmtTime(plTime)}` : _fmtTime(plTime));
-      addGeneratedFile('lessonplan', planContent);
+      addGeneratedFile('lessonplan', planContent, { draft: true });
       updateContentTabs();
 
       _genFailedStep = null;
@@ -5710,7 +5989,7 @@ async function generateContent() {
       updateContentTabs();
       if (outputEl) outputEl.value = content;
       sbSaveContent(contentDocType, content);
-      addGeneratedFile(contentDocType, content);
+      addGeneratedFile(contentDocType, content, { draft: true });
       _playNotification();
       toast('Conteúdo gerado com sucesso!', 'ok');
     }
@@ -5798,6 +6077,11 @@ function sendToGerarSingle(type) {
 function sendToGerar() {
   _autoFillGerarFields();
 
+  const _disc  = document.getElementById('content-disciplina')?.value;
+  const _grade = document.getElementById('content-turma')?.value;
+  const _allFourReady = savedContent.lesson && savedContent.practice && savedContent.answerkey && savedContent.lessonplan;
+  if (_isElaMS(_disc, _grade) && _allFourReady) { runContentReview(); return; }
+
   if (contentDocType === 'all') {
     // Exporta os 4 conteúdos separados para seus inputs
     if (savedContent.lesson)     { document.getElementById('prompt-lesson').value     = savedContent.lesson;     onAllPromptInput('lesson'); }
@@ -5815,6 +6099,179 @@ function sendToGerar() {
   const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
   setPage('gerar', gerarBtn);
   toast('Conteúdo exportado para Gerar Imagens!', 'ok');
+}
+
+function _updateExportButtonLabels() {
+  const isReview = _isElaMS(document.getElementById('content-disciplina')?.value, document.getElementById('content-turma')?.value);
+  const single = document.getElementById('btn-export-single');
+  const all    = document.getElementById('btn-export-all');
+  if (single) single.textContent = isReview ? '→ Exportar para Revisão' : '→ Exportar para Gerar Imagens';
+  if (all)    all.textContent    = isReview ? '→ Exportar tudo para Revisão' : '→ Exportar tudo para Gerar Imagens';
+}
+
+// ── Revisão de Conteúdo (Supervisor Agent — ELA, grades 6-8) ──────────────
+
+function buildReviewUserPrompt(lessonSpec) {
+  return `LESSON_SPEC:\n${lessonSpec}\n\n===== LESSON GUIDE =====\n${savedContent.lesson}\n\n===== WORKSHEET =====\n${savedContent.practice}\n\n===== ANSWER KEY =====\n${savedContent.answerkey}\n\n===== LESSON PLAN =====\n${savedContent.lessonplan}`;
+}
+
+function _parseReviewOutput(raw) {
+  const text = (raw || '').trim();
+  const statusMatch = text.match(/STATUS:\s*(APPROVED|BLOCKED)/i);
+  const status = statusMatch ? statusMatch[1].toUpperCase() : 'APPROVED';
+
+  if (status === 'BLOCKED') {
+    const field = (label) => (text.match(new RegExp(`^${label}:\\s*(.+)$`, 'im')) || [])[1]?.trim() || '';
+    return {
+      status: 'BLOCKED',
+      file:   field('FILE'),
+      location: field('LOCATION'),
+      reason: field('REASON'),
+      fix:    field('SUGGESTED_FIX'),
+    };
+  }
+
+  const markers = [
+    ['lesson',     'LESSON GUIDE'],
+    ['practice',   'WORKSHEET'],
+    ['answerkey',  'ANSWER KEY'],
+    ['lessonplan', 'LESSON PLAN'],
+  ];
+  const re = /=====\s*(LESSON GUIDE|WORKSHEET|ANSWER KEY|LESSON PLAN)\s*=====/gi;
+  const hits = [...text.matchAll(re)];
+  const out = { status: 'APPROVED', lesson: null, practice: null, answerkey: null, lessonplan: null };
+  hits.forEach((m, i) => {
+    const label = m[1].toUpperCase();
+    const key = (markers.find(([, l]) => l === label) || [])[0];
+    if (!key) return;
+    const start = m.index + m[0].length;
+    const end = i + 1 < hits.length ? hits[i + 1].index : text.length;
+    out[key] = text.slice(start, end).trim();
+  });
+  return out;
+}
+
+function _setReviewLoading(isLoading, statusText) {
+  const wrap  = document.getElementById('review-prog-wrap');
+  const label = document.getElementById('review-prog-label');
+  const btnRerun = document.getElementById('btn-review-rerun');
+  const btnStop  = document.getElementById('btn-review-stop');
+  if (wrap) wrap.style.display = isLoading ? '' : 'none';
+  if (label && statusText) label.textContent = statusText;
+  if (btnRerun) btnRerun.disabled = isLoading;
+  if (btnStop) btnStop.style.display = isLoading ? '' : 'none';
+}
+
+function _renderReviewBoxes() {
+  const map = { lesson: 'review-output-lesson', practice: 'review-output-practice', answerkey: 'review-output-answerkey', lessonplan: 'review-output-lessonplan' };
+  const badgeMap = { lesson: 'review-badge-lesson', practice: 'review-badge-practice', answerkey: 'review-badge-answerkey', lessonplan: 'review-badge-lessonplan' };
+  Object.keys(map).forEach(type => {
+    const el = document.getElementById(map[type]);
+    if (el) el.value = reviewedContent[type] || '';
+    const badge = document.getElementById(badgeMap[type]);
+    if (badge) {
+      if (!reviewedContent[type]) { badge.style.display = 'none'; }
+      else {
+        const changed = reviewedContent[type] !== savedContent[type];
+        badge.textContent = changed ? '✎ Corrigido' : '✓ Sem alterações';
+        badge.style.display = '';
+        badge.className = 'pg-badge has';
+      }
+    }
+  });
+  const btnAll = document.getElementById('btn-review-export-all');
+  if (btnAll) btnAll.disabled = !(reviewedContent.lesson && reviewedContent.practice && reviewedContent.answerkey && reviewedContent.lessonplan);
+}
+
+function openReviewBlockModal(info) {
+  _reviewBlockInfo = info;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || '—'; };
+  set('review-block-file', info.file);
+  set('review-block-location', info.location);
+  set('review-block-reason', info.reason);
+  set('review-block-fix', info.fix);
+  document.getElementById('review-block-modal')?.classList.add('open');
+}
+
+function closeReviewBlockModal() {
+  document.getElementById('review-block-modal')?.classList.remove('open');
+}
+
+async function runContentReview() {
+  const apiKey = getClaudeApiKey();
+  if (!apiKey) { toast('Adicione uma API Key Anthropic no cofre (Configurações).', 'warn'); return; }
+  const lessonSpec = document.getElementById('claude-input')?.value.trim() || '';
+
+  const revBtn = document.querySelector('.nav-item[onclick*="\'revisao\'"]');
+  setPage('revisao', revBtn);
+
+  const specEl = document.getElementById('review-lesson-spec');
+  if (specEl) specEl.value = lessonSpec;
+
+  _setReviewLoading(true, 'Revisando com IA…');
+  claudeAbortCtrl = new AbortController();
+
+  try {
+    const raw = await callClaudeAPI('review', buildReviewUserPrompt(lessonSpec), REVIEW_PROMPT_ELA_MS,
+      (partial) => { _setReviewLoading(true, `Revisando com IA… (${partial.length} caracteres recebidos)`); });
+
+    const parsed = _parseReviewOutput(raw);
+    if (parsed.status === 'BLOCKED') {
+      openReviewBlockModal(parsed);
+      toast('Revisão bloqueada — veja o motivo no popup.', 'warn');
+      return;
+    }
+
+    reviewedContent.lesson     = parsed.lesson     || savedContent.lesson;
+    reviewedContent.practice   = parsed.practice   || savedContent.practice;
+    reviewedContent.answerkey  = parsed.answerkey  || savedContent.answerkey;
+    reviewedContent.lessonplan = parsed.lessonplan || savedContent.lessonplan;
+    _renderReviewBoxes();
+
+    addGeneratedFile('lesson',     reviewedContent.lesson);
+    addGeneratedFile('practice',   reviewedContent.practice);
+    addGeneratedFile('answerkey',  reviewedContent.answerkey);
+    addGeneratedFile('lessonplan', reviewedContent.lessonplan);
+    sbSaveContent('lesson',     reviewedContent.lesson);
+    sbSaveContent('practice',   reviewedContent.practice);
+    sbSaveContent('answerkey',  reviewedContent.answerkey);
+    sbSaveContent('lessonplan', reviewedContent.lessonplan);
+
+    _playNotification();
+    toast('Revisão concluída!', 'ok');
+  } catch (e) {
+    if (e.name !== 'AbortError') toast(e.message || 'Erro na revisão.', 'err');
+  } finally {
+    _setReviewLoading(false);
+    claudeAbortCtrl = null;
+  }
+}
+
+function sendReviewedToGerar() {
+  if (!(reviewedContent.lesson && reviewedContent.practice && reviewedContent.answerkey && reviewedContent.lessonplan)) {
+    toast('Conclua a revisão antes de exportar.', 'warn'); return;
+  }
+  document.getElementById('prompt-lesson').value     = reviewedContent.lesson;     onAllPromptInput('lesson');
+  document.getElementById('prompt-practice').value   = reviewedContent.practice;   onAllPromptInput('practice');
+  document.getElementById('prompt-answerkey').value  = reviewedContent.answerkey;  onAllPromptInput('answerkey');
+  document.getElementById('prompt-lessonplan').value = reviewedContent.lessonplan; onAllPromptInput('lessonplan');
+  _autoFillGerarFields();
+  const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
+  setPage('gerar', gerarBtn);
+  toast('Conteúdo revisado exportado para Gerar Imagens!', 'ok');
+}
+
+function sendReviewedToGerarSingle(type) {
+  const content = reviewedContent[type];
+  if (!content) { toast('Conteúdo vazio.', 'warn'); return; }
+  const dstMap = { lesson: 'prompt-lesson', practice: 'prompt-practice', answerkey: 'prompt-answerkey', lessonplan: 'prompt-lessonplan' };
+  document.getElementById(dstMap[type]).value = content;
+  onAllPromptInput(type);
+  _autoFillGerarFields();
+  const gerarBtn = document.querySelector('.nav-item[onclick*="\'gerar\'"]');
+  setPage('gerar', gerarBtn);
+  const typeLabel = { lesson: 'Lesson', practice: 'Activities', answerkey: 'Answer Key', lessonplan: 'Lesson Plan' };
+  toast(`${typeLabel[type] || type} revisado exportado para Gerar Imagens!`, 'ok');
 }
 
 function setPage(name, el) {
@@ -12736,6 +13193,13 @@ function _padLessonNum(lesson) {
   return /^\d+$/.test(s) ? s.padStart(2, '0') : s;
 }
 
+// English Language Arts, grades 6-8 — the only combo the Supervisor review
+// agent (REVIEW_PROMPT_ELA_MS) was written and scoped for.
+function _isElaMS(discipline, grade) {
+  const gradeNum = parseInt(grade, 10) || 0;
+  return (discipline || '').trim() === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
+}
+
 // ELA middle school (6th-8th) exports use "Lesson Guide" instead of
 // "Lesson Notes" in filenames, matching the header/footer overlay naming.
 function _lessonDocLabel(discipline, grade) {
@@ -12775,15 +13239,17 @@ function savePromptAsTxt(type) {
   const idMap = {
     lesson: 'prompt-lesson', practice: 'prompt-practice', answerkey: 'prompt-answerkey', lessonplan: 'prompt-lessonplan', single: 'prompt',
     'all-lesson': 'claude-output-lesson', 'all-practice': 'claude-output-practice', 'all-answerkey': 'claude-output-answerkey', 'all-lessonplan': 'claude-output-lessonplan',
+    'review-lesson': 'review-output-lesson', 'review-practice': 'review-output-practice', 'review-answerkey': 'review-output-answerkey', 'review-lessonplan': 'review-output-lessonplan',
   };
   const dtMap = {
     lesson: 'lesson', practice: 'practice', answerkey: 'answerkey', lessonplan: 'lessonplan', single: docType,
     'all-lesson': 'lesson', 'all-practice': 'practice', 'all-answerkey': 'answerkey', 'all-lessonplan': 'lessonplan',
+    'review-lesson': 'lesson', 'review-practice': 'practice', 'review-answerkey': 'answerkey', 'review-lessonplan': 'lessonplan',
   };
   const text = document.getElementById(idMap[type])?.value || '';
   if (!text.trim()) { toast('Conteúdo vazio — nada para salvar.', 'warn'); return; }
-  // For All-mode saves, use content-section fields for filename
-  const useContentFields = type.startsWith('all-');
+  // For All-mode and Revisão saves, use content-section fields for filename
+  const useContentFields = type.startsWith('all-') || type.startsWith('review-');
   const lesson   = (useContentFields ? document.getElementById('content-lesson') : document.getElementById('lesson'))?.value || '';
   const ccss     = (useContentFields ? document.getElementById('content-ccss')   : document.getElementById('ccss'))?.value   || '';
   const name     = (useContentFields ? document.getElementById('content-lesson-name') : document.getElementById('lesson-name'))?.value || '';
@@ -12963,6 +13429,7 @@ function loadSettings() {
     onPromptInput();
     ['lesson','practice','answerkey','lessonplan'].forEach(t => onAllPromptInput(t));
     updateTopbarChips();
+    _updateExportButtonLabels();
   } catch (_) {}
 }
 
