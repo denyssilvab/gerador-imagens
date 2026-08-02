@@ -1869,6 +1869,16 @@
           </div>
         </div>
 
+        <!-- Lesson Canvas rendering pilot (beta) -->
+        <div class="card">
+          <div class="card-body" style="padding:10px 12px;">
+            <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12px;">
+              <input type="checkbox" id="lesson-canvas-beta" onchange="_onLessonCanvasBetaToggle()" style="margin-top:2px;accent-color:var(--primary);" />
+              <span>🧪 Gerar Lesson com marcadores para Canvas (beta) — o texto/layout é desenhado no Canvas em vez da IA, que só gera a ilustração.</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Claude settings -->
         <div class="card">
           <div class="card-head"><h2>Modelo Claude</h2></div>
@@ -5900,6 +5910,7 @@ function _contentSpecFor(type, discipline, grade) {
   const isElaMS = subject === 'English Language Arts' && gradeNum >= 6 && gradeNum <= 8;
   const key = type === 'practice' && isElaMS ? 'practice_ela_ms'
     : type === 'answerkey' && isElaMS ? 'answerkey_ela_ms'
+    : type === 'lesson' && _lessonCanvasBeta ? 'lesson_canvas'
     : type;
   const raw = CONTENT_SPECS[key] || CONTENT_SPECS.all;
   return raw.replace(/\{\{SUBJECT\}\}/g, subject).replace(/\{\{GRADE\}\}/g, gradeText);
@@ -5926,6 +5937,25 @@ let contentDocType = 'all';
 let claudeAbortCtrl = null;
 const savedContent = { lesson: null, practice: null, answerkey: null, lessonplan: null };
 let _genFailedStep = null; // which step failed (for resume)
+
+// ── Lesson Canvas rendering pilot (beta) ────────────────────────────────────
+// When on, Lesson content generation uses CONTENT_SPECS.lesson_canvas
+// (adds [[SUB:]]/[[BOX]]/[[CALLOUT:]] structural markers) instead of
+// CONTENT_SPECS.lesson, so Gerar Imagens can later render the page body in
+// Canvas via generateLessonPageCanvas() instead of asking the image AI to
+// draw the whole page. See parseLessonCanvasPage()/renderLessonPageBody().
+let _lessonCanvasBeta = false;
+function _onLessonCanvasBetaToggle() {
+  _lessonCanvasBeta = !!document.getElementById('lesson-canvas-beta')?.checked;
+}
+
+// Detects whether a Lesson page's raw text was generated with
+// CONTENT_SPECS.lesson_canvas (i.e. it carries the structural markers) —
+// used at Gerar Imagens time to decide, per page, whether to render it via
+// generateLessonPageCanvas() instead of sending it to the image AI.
+function _lessonPageUsesCanvasMarkers(rawContent) {
+  return /\[\[(?:SUB|BOX|CALLOUT):|\[\[\/(?:BOX|CALLOUT)\]\]/.test(rawContent || '');
+}
 
 // ── Revisão de Conteúdo (ELA, grades 6-8) ──────────────────────────────────
 const reviewedContent = { lesson: null, practice: null, answerkey: null, lessonplan: null };
@@ -11822,21 +11852,19 @@ async function generateLessonIllustrations(blocks) {
 const LESSON_CANVAS_PAGE_W = 1654;
 const LESSON_CANVAS_PAGE_H = 2339;
 
-// Orchestrates one full Lesson page through the canvas pipeline: parse →
-// generate isolated illustrations → render the body → stamp header/footer
-// via the existing, unchanged applyHeaderFooter (same call shape
-// handleEvent already uses for AI-generated pages). Returns a final data
-// URL the caller saves exactly like any other generated page.
+// Orchestrates one full Lesson page's BODY through the canvas pipeline:
+// parse → generate isolated illustrations → render. Deliberately does NOT
+// apply header/footer here — the caller (handleEvent, via the same 'image'
+// SSE-shaped event AI-generated pages already flow through) does that
+// uniformly for every page, so header/footer stamping only ever happens
+// in one place regardless of how the body was produced.
 async function generateLessonPageCanvas(page) {
   const blocks = parseLessonCanvasPage(page.content);
   const illustrations = await generateLessonIllustrations(blocks);
 
   const isEla = document.getElementById('disciplina')?.value.trim() === 'English Language Arts';
   const bodyCanvas = renderLessonPageBody(blocks, illustrations, LESSON_CANVAS_PAGE_W, LESSON_CANVAS_PAGE_H, { isEla });
-  const bodyDataUrl = bodyCanvas.toDataURL('image/png');
-
-  const { header, footer, isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title } = _overlayTextsForType('lesson');
-  return applyHeaderFooter(bodyDataUrl, header, footer, 'lesson', { isElaLesson, isElaWorksheet, isElaAnswerKey, isElaLessonPlan, unit, lesson, title });
+  return bodyCanvas.toDataURL('image/png');
 }
 
 function onPromptInput() {
@@ -12020,37 +12048,81 @@ async function startGeneration() {
 
   sseController = new AbortController();
 
-  try {
-    const response = await authFetch('/api/gerar-lote', {
-      method: 'POST',
-      signal: sseController.signal,
-      body: JSON.stringify({ apiKey, provider, model, quality, size, pages }),
-    });
-
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || `Erro HTTP ${response.status}`);
+  // Lesson pages written with CONTENT_SPECS.lesson_canvas markers render
+  // locally via generateLessonPageCanvas() instead of asking the image AI
+  // to draw the whole page — everything else still goes through
+  // /api/gerar-lote exactly as before. Card indices (`i` from the loop
+  // above) stay stable either way; only the *server's* positional index
+  // shifts when canvas pages are excluded from what gets posted, so it's
+  // remapped back via aiIndexMap before reaching handleEvent().
+  const canvasEntries = [];
+  const aiPages = [];
+  const aiIndexMap = [];
+  pages.forEach((p, i) => {
+    if (p.docType === 'lesson' && _lessonPageUsesCanvasMarkers(p._rawContent)) {
+      canvasEntries.push({ page: p, cardIndex: i });
+    } else {
+      aiIndexMap.push(i);
+      aiPages.push(p);
     }
+  });
+  if (canvasEntries.length) {
+    toast(`${canvasEntries.length} página(s) de Lesson renderizada(s) via Canvas (beta)`, 'ok');
+  }
 
-    const reader  = response.body.getReader();
-    const decoder = new TextDecoder();
-    let   buf     = '';
+  const canvasPromise = canvasEntries.length
+    ? Promise.allSettled(canvasEntries.map(async ({ page: p, cardIndex }) => {
+        startCardTimer(currentGen, cardIndex);
+        try {
+          const dataUrl = await generateLessonPageCanvas({ content: p._rawContent, num: p.num, title: p.title });
+          await handleEvent({ type: 'image', index: cardIndex, pageNum: p.num, title: p.title, dataUrl, docType: 'lesson' });
+        } catch (e) {
+          await handleEvent({ type: 'error', index: cardIndex, pageNum: p.num, title: p.title, error: e.message || 'Falha ao renderizar no Canvas.' });
+        }
+      }))
+    : Promise.resolve();
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buf += decoder.decode(value, { stream: true });
-      const lines = buf.split('\n');
-      buf = lines.pop();
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          try { await handleEvent(JSON.parse(line.slice(6))); } catch (_) {}
+  const sseLoopPromise = (async () => {
+    if (!aiPages.length) return;
+    try {
+      const response = await authFetch('/api/gerar-lote', {
+        method: 'POST',
+        signal: sseController.signal,
+        body: JSON.stringify({ apiKey, provider, model, quality, size, pages: aiPages }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Erro HTTP ${response.status}`);
+      }
+
+      const reader  = response.body.getReader();
+      const decoder = new TextDecoder();
+      let   buf     = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const ev = JSON.parse(line.slice(6));
+              if (ev.index != null) ev.index = aiIndexMap[ev.index] ?? ev.index;
+              await handleEvent(ev);
+            } catch (_) {}
+          }
         }
       }
+    } catch (e) {
+      if (e.name !== 'AbortError') toast(`Erro de conexão: ${e.message}`, 'err');
     }
+  })();
 
-  } catch (e) {
-    if (e.name !== 'AbortError') toast(`Erro de conexão: ${e.message}`, 'err');
+  try {
+    await Promise.all([sseLoopPromise, canvasPromise]);
   } finally {
     sseController = null;
     finishGen();
