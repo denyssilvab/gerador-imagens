@@ -3164,6 +3164,481 @@ The title is the ONLY element on that first section — the actual topic of the 
 
 - Referencing past lessons is prohibited. For example: "In previous lessons", "In the last class", "In the content of the previous class". Every lesson is independent content.`,
 
+// Canvas rendering pilot (beta) — identical pedagogical content to `lesson`
+// above, but the AI no longer draws the page itself: a canvas layout engine
+// does, using the structural markers this variant adds ([[SUB:]]/[[BOX]]/
+// [[CALLOUT:Label]]). The image model is only asked for the illustration
+// described by [IMAGE: ...], generated in isolation. See parseLessonCanvasPage().
+lesson_canvas: `# OVERVIEW
+
+You are an expert in CCSS instructional design (Common Core State
+Standards) and pedagogical layout. Generate a complete lesson content
+prompt in {{SUBJECT}} based on the provided instructional information.
+
+The generated lesson must:
+- Introduce the {{SUBJECT}} concept clearly and rigorously.
+- Follow strong pedagogical progression.
+- Create content suitable for a 45-50 minute lesson.
+- Be usable as the foundation for practice activities, slides, and
+  lesson plans.
+- Respect A4 page distribution and visual balance.
+- Specify professional visual elements only when they improve
+  understanding.
+
+---
+
+## OUTPUT IS LITERAL PAGE CONTENT ONLY (CRITICAL)
+
+Every word written becomes physically printed on the page.
+
+There is no narration layer, explanation layer, or notes to the reader.
+
+Before writing anything, ask:
+
+"Will this exact text appear on the printed page?"
+
+If not, do not write it.
+
+The only exceptions are machine-readable markers:
+
+\`[TITLE: ...]\`
+\`[SUBTITLE: ...]\`
+\`[[SUB: ...]]\`
+\`[[BOX]]\` ... \`[[/BOX]]\`
+\`[[CALLOUT:Label]]\` ... \`[[/CALLOUT]]\`
+\`[IMAGE: ...]\`
+
+These markers are instructions for the layout system and are not printed
+themselves.
+
+---
+
+## TITLE AND SUBTITLE RULES
+
+\`[TITLE: ...]\`
+
+Use only for real educational titles that should appear on the final
+page.
+
+Rules:
+- The text inside the marker is the exact title.
+- Do not repeat it outside the marker.
+- Use sentence case.
+- Never add unit number, lesson number, CCSS code, or metadata.
+
+\`[SUBTITLE: ...]\`
+
+Use only when a real educational subtitle improves understanding.
+
+Rules:
+- The text inside the marker is the exact subtitle.
+- Do not repeat it outside the marker.
+- Use sentence case.
+
+**IMPORTANT**
+
+Do NOT create titles or subtitles only because:
+- a new page begins;
+- a section continues;
+- more organization seems visually useful.
+
+Create titles/subtitles only when they represent genuine educational
+sections.
+
+Never create artificial headings such as:
+- Introduction
+- Overview
+- Section 1
+- Page 2
+- Continued
+
+unless they are actual printable educational content.
+
+---
+
+## STRUCTURAL MARKERS: SUB-HEADINGS, BOXES AND CALLOUTS (CANVAS MODE)
+
+This version of the lesson prompt is rendered by a layout engine that reads
+your structure directly — it does not infer boxes or headings from prose
+the way the image model used to. Every box, callout, or sub-heading called
+for anywhere in this document (e.g. "Mandatory BOX for 4+ steps", "Each
+concept in SEPARATE BOX") MUST be wrapped in the matching marker below, or
+it will not render as a box at all — it will just print as a plain
+paragraph.
+
+\`[[SUB: text]]\`
+
+A sub-heading INSIDE a page, one level below \`[SUBTITLE: ...]\`. Use it for
+individual items within a section that already has a subtitle — e.g. each
+example inside "Examples Applied", or a short label for one step.
+- The text inside the marker is the exact heading.
+- Do not repeat it outside the marker.
+- Use sentence case.
+
+\`[[BOX]]\` ... \`[[/BOX]]\`
+
+Wraps content that must render as a bordered, background-highlighted box:
+formal definitions, key formulas, and structured step sequences (4+
+steps). Everything between the two tags — including a \`[[SUB: ...]]\`
+heading if the box has one — is rendered inside the box. Never nest a box
+inside another box.
+
+\`[[CALLOUT:Label]]\` ... \`[[/CALLOUT]]\`
+
+Wraps a short, emphasized highlight distinct from a formal box — for the
+optional "key insight" or "concept check" moments mentioned below.
+\`Label\` is a short word or two shown as the callout's header, e.g.
+\`[[CALLOUT:Key Insight]]\`.
+
+Rules for all three:
+- Maximum 2 boxes/callouts combined per page — same limit as before, it
+  just now has to be tagged instead of implied.
+- Never wrap an introduction, narrative paragraph, example walkthrough, or
+  the synthesis/tips section in a box or callout — those stay as plain
+  paragraphs, exactly as today.
+
+---
+
+## IMAGE RULES
+
+Images are optional and pedagogically driven.
+
+If a visual genuinely helps, use:
+
+\`[IMAGE: Complete literal specification of exactly what must appear.]\`
+
+The image description must specify:
+- what is shown;
+- important objects;
+- relationships;
+- labels;
+- quantities;
+- visual style when relevant.
+
+Never describe a visual in normal prose as a substitute for an image
+tag.
+
+**IMPORTANT:**
+
+Images are supporting elements.
+
+The written lesson content is always primary.
+
+Never replace explanations, examples, definitions, or reasoning with
+images. Use them only to illustrate the context.
+
+**CANVAS MODE NOTE:** this illustration is generated in isolation, not as
+part of a full page — never describe page layout, borders, captions,
+other text, or the surrounding page in the image description. Describe
+ONLY the illustrated subject itself, exactly as it should look floating
+on its own against a plain background.
+
+---
+
+## LANGUAGE: 100% ENGLISH
+
+All:
+- titles;
+- subtitles;
+- explanations;
+- examples;
+- questions;
+- activities
+
+must be written in English.
+
+Do not include:
+- stage labels;
+- generation notes;
+- meta commentary.
+
+---
+
+## PAGE DISTRIBUTION
+
+Generate pages using:
+
+\`--PAGE X--\`
+
+Content must respect A4 proportions.
+
+Reference distribution:
+
+Light page: 150-180mm content
+
+Normal page: 180-220mm content
+
+Dense page: 220-240mm maximum
+
+Never exceed 250mm. (Exception: characters in image descriptions tagged
+with [IMAGE] do not count toward the page body character count, as they
+are purely descriptive.)
+
+If content exceeds limits, divide into additional pages.
+
+---
+
+## FUNDAMENTAL STRUCTURE
+
+### [1] Lesson Title: Add the lesson topic here.
+### Motivation and Context
+
+**Location:** PAGE 1
+
+**Distribution:** 140-160mm
+- Title: "Motivation and Context" (only this)
+- 2-3 paragraphs (max. 75-85 words total)
+- No mandatory image
+
+---
+
+### [2] Problem Disparador
+
+**Location:** PAGE 1 (continuation)
+
+**Distribution:** 40-60mm
+- Title: "The Challenge:" OR "Problem:"
+- 1-2 paragraphs (max. 50 words)
+- No mandatory box
+- Optional visual element
+
+---
+
+### [3] Intuitive Understanding
+
+**Location:** PAGE 2-3 (can occupy 1-2 pages)
+
+**Distribution:** 180-220mm per page
+- Title: "Understanding the Pattern" OR "Discovering the Rule"
+- Step-by-step discovery (8-12 lines)
+- Optional \`[[BOX]]...[[/BOX]]\` for the final key concept, or
+  \`[[CALLOUT:Key Insight]]...[[/CALLOUT]]\` for a lighter emphasis
+- Optional pedagogical image (80-100mm)
+
+**If content > 220mm: DIVIDE INTO 2 PAGES**
+
+---
+
+### [4] Formal Method
+
+**Location:** PAGE 3-4 (can occupy 1-2 pages)
+
+**Distribution:** 200-230mm per page
+- Title: "The Standard Method" OR "Writing Expressions Step by Step"
+- Structured steps (3-5 steps = 1 page; 6+ = 2 pages)
+- Mandatory: wrap the step sequence in \`[[BOX]]...[[/BOX]]\` for 4+ steps
+- Quick application example
+
+---
+
+### [5] Key Concepts
+
+**Location:** PAGE 5-6 (can occupy 1-2 pages)
+
+**Distribution:** 60-90mm per concept
+- Title: "Key Concepts" OR "Essential Definitions"
+- Each concept in its own \`[[BOX]]...[[/BOX]]\` (mandatory for formal
+  definitions)
+- 2-3 concepts per page (maximum 3 = ~210mm)
+- 4+ concepts = 2 pages (maximum 3 concepts per page)
+
+**Calculation:**
+- 2 concepts: 2 × 75mm + 1 × 6mm = ~156mm (1 page)
+- 3 concepts: 3 × 70mm + 2 × 6mm = ~222mm (1 tight page)
+- 4 concepts: MANDATORY 2 pages (2 per page)
+
+---
+
+### [6] Examples Applied
+
+**Location:** PAGE 6-8 (depends on quantity)
+
+**Distribution:** 70-90mm per example
+- Title: "Examples Applied" (once at the beginning, as \`[SUBTITLE: ...]\`)
+- Each example: \`[[SUB: Example N]]\` heading, then statement + solution +
+  result as structured text
+- No box; only the \`[[SUB: ...]]\` heading + structured text
+- Optional detailed image per example (80-100mm)
+
+**Calculation:**
+- 2 examples: 2 × 85mm + 1 × 6mm = ~176mm (1 page)
+- 3 examples: 3 × 80mm + 2 × 6mm = ~252mm → DIVIDE (2 pages: 1-2 ex, 3 ex)
+- 4 examples: MANDATORY 2 pages (2 per page)
+
+---
+
+### [7] Special Cases
+
+**Location:** PAGE 8-9 (after examples)
+
+**Distribution:** 100-150mm
+- Title: "Special Cases" OR "Important Considerations"
+- Optional: not every concept has special cases
+- If there are: 1-3 cases (each one is paragraph + example)
+- No mandatory box
+
+---
+
+### [8] Synthesis and Application
+
+**Location:** PAGE 9-10
+
+**Distribution:** 180-220mm (can occupy 1-2 pages)
+- Title: "Synthesis and Application"
+- Brief summary (1 paragraph, ~50mm)
+- Practical applications (3-4 bullet points, ~60mm)
+- Helpful tips (2-3 points, ~50mm)
+- Final key takeaway (1 paragraph, ~30mm)
+
+**If > 220mm: DIVIDE INTO 2 PAGES**
+
+---
+
+## IMAGES: WHEN AND HOW
+
+Images are optional and pedagogically driven — most pages need none at all;
+never force one in just to fill space. Whenever one IS included, write the
+[IMAGE: ...] description as a complete, LITERAL specification of exactly
+what must appear (exact values, labels, counts, type of visual) — never a
+generic request left open to interpretation, since the image model fills
+any gap with whatever it wants. See "Countable Quantities" below for
+illustrations that must show an exact quantity or ratio. Remember the
+CANVAS MODE NOTE above — describe only the isolated subject, never the
+page around it.
+
+### Contextual/Opening Images
+- **Type:** Realistic photograph
+- **Height:** 80-100mm
+- **Composition:** Medium shot, rule of thirds, clear context
+- **Lighting:** Natural daylight, warm, professional
+- **Technical description:** Candid photography, real setting, not icon-like
+
+### Pedagogical Process Images
+- **Type:** Detailed illustration OR technical diagram
+- **Height:** 80-100mm
+- **Composition:** Centered, clear focal point, visual depth
+- **Detail:** Shading, color coding, professional quality
+- **Technical description:** Educational illustration, clean lines, vibrant colors, high detail
+
+### Example Context Images
+- **Type:** Realistic photograph
+- **Height:** 80-100mm
+- **Composition:** Close-up OR medium shot, recognizable situation
+- **Lighting:** Professional, clear shadows
+- **Technical description:** Real-world object photography, professional quality, visible detail
+
+### Countable Quantities — Exact Representation (CRITICAL)
+Image models frequently miscount objects in open/organic scenes (a "basket
+of fruit", a "pile of coins"). When an image must show an EXACT quantity or
+ratio, NEVER describe it as a scene — describe it as a labeled grid/array:
+identical flat icons, one per row-slot (max 5 per row), each group labeled
+with its total below it (e.g. "4 apples" / "6 oranges"), and each count
+stated as digit + word ("exactly 4 (four)"). Never use containers that
+imply an approximate amount ("basket", "pile", "handful") — use "row of" /
+"array of" instead.
+
+---
+
+## EXPECTED RESULT
+
+A LESSON that:
+- Divided into pages with --PAGE X--
+- 100% IN ENGLISH
+- Balanced content (150-220mm per page, maximum 240mm)
+- Each page with 15-20mm visual breathing room
+- Boxes/callouts only in the cases described above, always tagged with
+  \`[[BOX]]\`/\`[[CALLOUT:Label]]\` — never implied by prose alone
+- Detailed images when used (80-100mm, not thumbnails), described in
+  isolation per the CANVAS MODE NOTE
+- Ready for 18pt body typography, 20pt titles
+- An American teacher understands in 15 minutes
+- Script for 45-50 minute lesson
+- Base for Practice Activities, Slides, Lesson Plan
+- Ready for A4 printing at 300 DPI
+
+---
+
+## Title continuity across pages
+
+When a section's content spans multiple pages, the page break is a print
+pagination artifact only — it must be INVISIBLE to the reader. On
+continuation page(s):
+- Do NOT repeat the title
+- Do NOT add any new heading, subtitle, or label for the same section
+- Do NOT write ANY phrase that signals continuation — no "continues",
+  "continued", "(cont.)", "as we continue", "picking up where we left off",
+  or similar. This is just as much a red flag as repeating the title.
+- Simply resume the prose exactly where it left off, as if the page break
+  did not exist — the reader should never notice a section spans pages
+
+Example:
+\`\`\`
+--PAGE 1--
+Understanding the pattern
+
+Content paragraph one...
+Content paragraph two...
+
+--PAGE 2--
+[Continue content directly — no title, no "continues", no heading of any kind]
+Content paragraph three...
+
+\`\`\`
+
+**Bad (do NOT do this):**
+\`\`\`
+--PAGE 5--
+Guided practice continues
+
+[WRONG — "continues" is a continuation marker, exactly like repeating the title]
+\`\`\`
+
+## First page title format
+
+On the first page, display ONLY the lesson title. The lesson title should match the actual topic being taught — DO NOT add unit number, lesson number, or CCSS code below the title.
+
+The lesson title appears only on page 1, never repeated on subsequent pages.
+
+### Pattern:
+
+\`\`\`
+--PAGE 1--
+[Insert actual lesson topic here]
+
+[Content starts immediately below]
+\`\`\`
+
+### Generic examples of correct format (replace topic as needed):
+
+For a lesson about algebraic expressions:
+\`\`\`
+--PAGE 1--
+Writing algebraic expressions
+
+[Content here]
+\`\`\`
+
+### What NOT to do:
+
+Do NOT include metadata below the title:
+\`\`\`
+--PAGE 1--
+[Lesson topic]
+
+Unit: Unit 3
+Lesson: 28
+CCSS Code: 6.EE.A.2.a
+[This is WRONG]
+\`\`\`
+
+The title is the ONLY element on that first section — the actual topic of the lesson, nothing else.
+
+---
+
+## PROHIBITED: REFERENCES TO PAST LESSONS
+
+- Referencing past lessons is prohibited. For example: "In previous lessons", "In the last class", "In the content of the previous class". Every lesson is independent content.`,
+
 practice: `# OVERVIEW
 
 You are an expert in CCSS instructional design. Generate a complete prompt with a set of **PRACTICE ACTIVITIES** (10-15 questions) based on an already created LESSON. Each question:
@@ -10937,6 +11412,114 @@ function parsePages(text) {
     if (content) pages.push({ num: markers[i].num, title: markers[i].title, content });
   }
   return pages;
+}
+
+// ── Lesson Canvas rendering pilot (beta) ────────────────────────────────────
+// Parses a single lesson page's raw content (already sliced by parsePages)
+// into a block tree the canvas renderer can lay out deterministically.
+// Structural markers ([[SUB:]]/[[BOX]]/[[CALLOUT:Label]]) only exist when the
+// page was generated with CONTENT_SPECS.lesson_canvas — see that constant.
+
+function _lessonCanvasMarkerRe() {
+  return /\[TITLE:\s*([^\]]+)\]|\[SUBTITLE:\s*([^\]]+)\]|\[\[SUB:\s*([^\]]+)\]\]|\[\[BOX\]\]|\[\[\/BOX\]\]|\[\[CALLOUT:([^\]]+)\]\]|\[\[\/CALLOUT\]\]|\[IMAGE:\s*([^\]]+)\]/g;
+}
+
+// Splits a chunk of plain text (no top-level markers) into paragraph/list
+// blocks. Consecutive lines of the same kind (bullet/numbered vs. prose)
+// merge into one block; a kind change starts a new block — this handles
+// both blank-line-separated chunks and a list running straight on from a
+// paragraph with no blank line in between (Claude doesn't always leave one).
+function _parseParagraphsAndLists(text) {
+  const listItemRe = /^\s*(?:[-•*]|\d+[.)])\s+(.*)$/;
+  const rawLines = text.split('\n');
+  const blocks = [];
+  let currentKind = null;
+  let currentLines = [];
+  const flush = () => {
+    if (!currentLines.length) return;
+    if (currentKind === 'list') {
+      const ordered = /^\s*\d+[.)]/.test(currentLines[0].raw);
+      blocks.push({ type: 'list', ordered, items: currentLines.map(l => l.text) });
+    } else {
+      blocks.push({ type: 'paragraph', text: currentLines.map(l => l.raw).join(' ') });
+    }
+    currentLines = [];
+    currentKind = null;
+  };
+  rawLines.forEach(rawLine => {
+    const line = rawLine.trim();
+    if (!line) { flush(); return; } // a blank line always closes the current block
+    const mm = line.match(listItemRe);
+    const kind = mm ? 'list' : 'para';
+    if (kind !== currentKind) flush();
+    currentKind = kind;
+    currentLines.push({ raw: line, text: mm ? mm[1].trim() : line });
+  });
+  flush();
+  return blocks;
+}
+
+// Recursive scanner: walks `str` left to right, emitting title/subtitle/sub/
+// image blocks for single tags, paragraph/list blocks for plain text runs
+// (via _parseParagraphsAndLists), and box/callout blocks (recursing into
+// their own content) for paired [[BOX]]...[[/BOX]] / [[CALLOUT:L]]...[[/CALLOUT]].
+// Boxes/callouts never nest (per the spec), so a fresh regex per call is
+// enough — no shared mutable state across recursive invocations.
+function _parseLessonCanvasSegment(str) {
+  const re = _lessonCanvasMarkerRe();
+  const blocks = [];
+  let lastIndex = 0;
+  let m;
+  const flushPlain = (raw) => {
+    const trimmed = raw.trim();
+    if (trimmed) blocks.push(..._parseParagraphsAndLists(trimmed));
+  };
+  while ((m = re.exec(str))) {
+    flushPlain(str.slice(lastIndex, m.index));
+    const full = m[0];
+    if (m[1] !== undefined) {
+      blocks.push({ type: 'title', text: m[1].trim() });
+    } else if (m[2] !== undefined) {
+      blocks.push({ type: 'subtitle', text: m[2].trim() });
+    } else if (m[3] !== undefined) {
+      blocks.push({ type: 'sub', text: m[3].trim() });
+    } else if (full === '[[BOX]]') {
+      const closeIdx = str.indexOf('[[/BOX]]', re.lastIndex);
+      const inner = closeIdx === -1 ? str.slice(re.lastIndex) : str.slice(re.lastIndex, closeIdx);
+      blocks.push({ type: 'box', children: _parseLessonCanvasSegment(inner) });
+      re.lastIndex = closeIdx === -1 ? str.length : closeIdx + '[[/BOX]]'.length;
+    } else if (m[4] !== undefined) {
+      const label = m[4].trim();
+      const closeIdx = str.indexOf('[[/CALLOUT]]', re.lastIndex);
+      const inner = closeIdx === -1 ? str.slice(re.lastIndex) : str.slice(re.lastIndex, closeIdx);
+      blocks.push({ type: 'callout', label, children: _parseLessonCanvasSegment(inner) });
+      re.lastIndex = closeIdx === -1 ? str.length : closeIdx + '[[/CALLOUT]]'.length;
+    } else if (m[5] !== undefined) {
+      blocks.push({ type: 'image', description: m[5].trim() });
+    }
+    // Stray [[/BOX]] / [[/CALLOUT]] tokens matched outside an open tag carry
+    // no capture group — nothing to push, just skip past them.
+    lastIndex = re.lastIndex;
+  }
+  flushPlain(str.slice(lastIndex));
+  return blocks;
+}
+
+function parseLessonCanvasPage(pageContent) {
+  return _parseLessonCanvasSegment((pageContent || '').replace(/\r\n/g, '\n'));
+}
+
+// Collects every image block in document order, including ones nested
+// inside boxes/callouts, so illustrations can be requested up front.
+function extractImageBlocks(blocks) {
+  const out = [];
+  (function walk(list) {
+    for (const b of list) {
+      if (b.type === 'image') out.push(b);
+      if (b.children) walk(b.children);
+    }
+  })(blocks);
+  return out;
 }
 
 function onPromptInput() {
