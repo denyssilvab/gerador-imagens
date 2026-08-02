@@ -11522,6 +11522,69 @@ function extractImageBlocks(blocks) {
   return out;
 }
 
+// ── Real justified text layout for the Lesson Canvas renderer ─────────────
+// Canvas has no native justification, so this greedily wraps words to
+// maxWidthPx (measuring with the 2D context, so it accounts for the actual
+// font in use) and lets the caller decide line-height/draw. Pure — no
+// drawing — so the same layout can be reused to just MEASURE a block's
+// height before deciding how big to draw a box/callout around it.
+function _layoutParagraphLines(ctx, text, maxWidthPx, font) {
+  ctx.font = font;
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = [];
+  let currentWidth = 0;
+  const spaceWidth = ctx.measureText(' ').width;
+  words.forEach(word => {
+    const wordWidth = ctx.measureText(word).width;
+    const projected = current.length ? currentWidth + spaceWidth + wordWidth : wordWidth;
+    if (current.length && projected > maxWidthPx) {
+      lines.push({ words: current, width: currentWidth });
+      current = [word];
+      currentWidth = wordWidth;
+    } else {
+      current.push(word);
+      currentWidth = projected;
+    }
+  });
+  if (current.length) lines.push({ words: current, width: currentWidth });
+  return lines;
+}
+
+// Draws lines produced by _layoutParagraphLines. Every line except the
+// last of the paragraph is true-justified — the leftover width is
+// distributed evenly across the inter-word gaps so the line hits both
+// margins exactly; the last line (and any single-word line, which can't
+// be justified — zero gaps) is left-aligned, per standard typographic
+// convention. Uses textBaseline='top' so yTop is the block's top edge and
+// each line is simply yTop + i*lineHeightPx.
+function _drawJustifiedLines(ctx, lines, x, yTop, maxWidthPx, lineHeightPx, font, color) {
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'top';
+  ctx.textAlign = 'left';
+  const spaceWidth = ctx.measureText(' ').width;
+  lines.forEach((line, i) => {
+    const y = yTop + i * lineHeightPx;
+    const isLastLine = i === lines.length - 1;
+    if (isLastLine || line.words.length === 1) {
+      let cx = x;
+      line.words.forEach(w => {
+        ctx.fillText(w, cx, y);
+        cx += ctx.measureText(w).width + spaceWidth;
+      });
+    } else {
+      const gaps = line.words.length - 1;
+      const extraSpace = Math.max(0, (maxWidthPx - line.width) / gaps);
+      let cx = x;
+      line.words.forEach((w, wi) => {
+        ctx.fillText(w, cx, y);
+        if (wi < gaps) cx += ctx.measureText(w).width + spaceWidth + extraSpace;
+      });
+    }
+  });
+}
+
 function onPromptInput() {
   const pages = parsePages(document.getElementById('prompt').value);
   const badge = document.getElementById('pg-badge');
