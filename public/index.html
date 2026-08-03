@@ -9455,7 +9455,7 @@ The source uses explicit markers so the layout never has to guess what is a titl
 - [[SUB]] text  →  a subsection heading. 13 pt, SemiBold, #0251af.
 - [[CALLOUT:Label]] ... [[/CALLOUT]]  →  an editorial callout, rendered as a compact callout box titled with Label.
 
-Any text NOT wrapped in a marker is ordinary body prose — render it as left-aligned body text, extending close to the right margin.
+Any text NOT wrapped in a marker is ordinary body prose — render it as left-aligned body text, extending close to the right margin. Text that IS wrapped in [[BOX]] or [[CALLOUT]] follows this exact same alignment/margin rule — the marker only changes the background/border, never the text's alignment or line-break behavior.
 
 CRITICAL:
 - Render something as a title, heading, subheading, box or callout ONLY when it is wrapped in the matching marker.
@@ -9529,6 +9529,8 @@ The Lesson Plan is one continuous publication; page breaks are invisible to the 
 TYPOGRAPHY
 ==================================================
 
+{{FONT_LINE}}
+
 Typography is the primary tool for creating visual hierarchy — never rely on large containers, oversized titles or decorative graphics. Maintain identical typography throughout; never compensate for page length by changing font sizes.
 
 Lesson title (Page 1 only): 18–20 pt, Bold, #092964.
@@ -9546,7 +9548,9 @@ The lesson title normally occupies 1–3 lines, never exceeding ~15% of the prin
 TEXT ALIGNMENT AND PARAGRAPH DESIGN
 ==================================================
 
-All narrative body paragraphs use left alignment, consistently, on every page — alignment must not change page to page. Every line should extend close to the right margin, with no early line breaks that leave unnecessary space unused; this produces a clean, balanced page without the uneven word spacing and broken hyphenation that full justification produces. Section headings, lists and callout content also remain left aligned.
+All body text — narrative paragraphs, and any paragraph text inside a [[BOX]] or [[CALLOUT]] — uses left alignment, consistently, on every page and inside every container; alignment must never change page to page or container to container. Every line must extend close to the right margin (or, inside a box/callout, close to that container's own right edge), with no early line breaks that leave unnecessary space unused — the last word of each line should approach the margin, not stop short of it. This produces a clean, balanced page without the uneven word spacing and broken hyphenation that full justification produces. A box or callout changes only the background/border treatment — it is never a reason to break lines early or leave a large blank strip on the right. Section and subsection headings are also left-aligned; being short single lines, the margin-extension guidance doesn't apply to them individually.
+
+Canonical failure to avoid: a paragraph where most lines stop well short of the right margin, leaving a large uniform blank strip down the right side of the page (or the right side of a box/callout). That is exactly the "early line break" this rule forbids — every line, in every container, should read as a normal, fully-used line of text.
 
 Prefer paragraphs of 3–6 sentences; divide long discussions into smaller editorial units so readers never encounter large uninterrupted text walls. Paragraph divisions come from the source — render them as written, never merge or split them.
 
@@ -9637,7 +9641,7 @@ Before finalizing, verify that:
 - No interior section has an information box or table — only the [[BOX]] on Page 1 is a box.
 - No callout was added beyond what [[CALLOUT:...]] marks in the source, and all callouts share one consistent boxed style.
 - All markers were stripped and never appear on the rendered page.
-- Body text is left-aligned, with every line extending close to the right margin and no early line breaks.
+- Body text — including text inside boxes and callouts — is left-aligned, with every line extending close to the right margin (or the container's own edge) and no early line breaks.
 - Page breaks match the source's --PAGE X-- markers exactly; no content moved between pages.
 - Headings preserve the source's exact wording and sentence case.
 - Page 1 contains only the lesson title and the metadata box; no interior page recreates lesson information.
